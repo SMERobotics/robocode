@@ -19,6 +19,12 @@ public class DeviceDrive extends Device {
         motorFrontRight = hardwareMap.get(DcMotor.class, "motorFrontRight");
         motorBackLeft = hardwareMap.get(DcMotor.class, "motorBackLeft");
         motorBackRight = hardwareMap.get(DcMotor.class, "motorBackRight");
+
+        // toggle all of them to change robot drive direction
+        motorFrontLeft.setDirection(DcMotor.Direction.REVERSE);
+        motorFrontRight.setDirection(DcMotor.Direction.FORWARD);
+        motorBackLeft.setDirection(DcMotor.Direction.REVERSE);
+        motorBackRight.setDirection(DcMotor.Direction.FORWARD);
     }
 
     @Override
@@ -27,10 +33,14 @@ public class DeviceDrive extends Device {
         float leftY = gamepad.left_stick_y;
         float rightX = gamepad.right_stick_x;
 
-        float powerFrontLeft = leftY - leftX - rightX;
-        float powerFrontRight = leftY + leftX + rightX;
-        float powerBackLeft = -(leftY + leftX - rightX);
-        float powerBackRight = -(leftY - leftX + rightX);
+        update(leftY, leftX, rightX);
+    }
+
+    public void update(float drive, float turn, float strafe) {
+        float powerFrontLeft = drive - turn - strafe;
+        float powerFrontRight = drive + turn + strafe;
+        float powerBackLeft = drive + turn - strafe;
+        float powerBackRight = drive - turn + strafe;
 
         powerFrontLeft *= speedMultiplier;
         powerFrontRight *= speedMultiplier;

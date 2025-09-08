@@ -2,7 +2,9 @@ package com.technodot.ftc.twentyfive.robocore;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 import com.technodot.ftc.twentyfive.ObeliskType;
+import com.technodot.ftc.twentyfive.Team;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -17,6 +19,11 @@ public class DeviceCamera extends Device {
     public VisionPortal visionPortal;
 
     public ObeliskType obeliskType;
+    public int teamID;
+
+    public void init(HardwareMap hardwareMap, Team team) {
+        teamID = team.equals(Team.RED) ? 24 : 20; // defaults to Team.BLUE with tag ID 20
+    }
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -39,6 +46,8 @@ public class DeviceCamera extends Device {
         visionPortal.setProcessorEnabled(aprilTagProcessor, true);
         visionPortal.resumeLiveView();
         visionPortal.resumeStreaming();
+
+        obeliskType = null;
     }
 
     @Override
@@ -47,18 +56,40 @@ public class DeviceCamera extends Device {
         for (AprilTagDetection detection : detections) {
             switch (detection.id) {
                 case 21:
-                    obeliskType = ObeliskType.GPP;
+                    if (obeliskType == null) obeliskType = ObeliskType.GPP;
                     break;
                 case 22:
-                    obeliskType = ObeliskType.PGP;
+                    if (obeliskType != null) obeliskType = ObeliskType.PGP;
                     break;
                 case 23:
-                    obeliskType = ObeliskType.PPG;
+                    if (obeliskType != null) obeliskType = ObeliskType.PPG;
                     break;
                 default:
                     break;
             }
         }
+    }
+
+    public AprilTagDetection detect(Gamepad gamepad) {
+        AprilTagDetection target = null;
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        for (AprilTagDetection detection : detections) {
+            switch (detection.id) {
+                case 21:
+                    if (obeliskType == null) obeliskType = ObeliskType.GPP;
+                case 22:
+                    if (obeliskType != null) obeliskType = ObeliskType.PGP;
+                case 23:
+                    if (obeliskType != null) obeliskType = ObeliskType.PPG;
+                case 20: // team BLUE
+                case 24: // team RED
+                    if (detection.id != teamID) target = detection;
+                    break;
+                default:
+                    break;
+            }
+        }
+        return target;
     }
 
     @Override

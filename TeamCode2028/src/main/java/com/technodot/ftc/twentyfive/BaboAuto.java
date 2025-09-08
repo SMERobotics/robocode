@@ -1,22 +1,26 @@
 package com.technodot.ftc.twentyfive;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 
-@TeleOp(name="BaboOS", group="TechnoCode")
-public class BaboOS extends OpMode {
+@Autonomous(name="BaboAuto", group="TechnoCode")
+public class BaboAuto extends OpMode {
 
     public DeviceCamera deviceCamera = new DeviceCamera();
 
     public DeviceDrive deviceDrive = new DeviceDrive();
 
-    public final Team team = Team.BLUE;
+    public Team team = Team.BLUE;
+
+    public void run() {
+
+    }
 
     @Override
     public void init() {
-        deviceCamera.init(hardwareMap);
+        deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
     }
 
@@ -30,15 +34,14 @@ public class BaboOS extends OpMode {
     public void start() {
         deviceCamera.start();
 
+        run();
+
         telemetry.addData("status", "starting");
         telemetry.update();
     }
 
     @Override
     public void loop() {
-        deviceCamera.update(gamepad1);
-        deviceDrive.update(gamepad1);
-
         telemetry.addData("status", "running");
         telemetry.update();
     }
