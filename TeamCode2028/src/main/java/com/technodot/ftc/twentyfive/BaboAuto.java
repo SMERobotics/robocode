@@ -9,14 +9,9 @@ import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 public class BaboAuto extends OpMode {
 
     public DeviceCamera deviceCamera = new DeviceCamera();
-
     public DeviceDrive deviceDrive = new DeviceDrive();
 
     public Team team = Team.BLUE;
-
-    public void run() {
-
-    }
 
     @Override
     public void init() {
@@ -33,8 +28,6 @@ public class BaboAuto extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
-
-        run();
 
         telemetry.addData("status", "starting");
         telemetry.update();
