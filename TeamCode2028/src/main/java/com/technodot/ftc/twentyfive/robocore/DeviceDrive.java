@@ -11,7 +11,7 @@ public class DeviceDrive extends Device {
     public DcMotor motorBackLeft;
     public DcMotor motorBackRight;
 
-    public float speedMultiplier;
+    public float speedMultiplier = 1.0;
 
     @Override
     public void init(HardwareMap hardwareMap) {
