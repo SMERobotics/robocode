@@ -29,27 +29,13 @@ public class DeviceDrive extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
-        float leftX = gamepad.left_stick_x;
-        float leftY = gamepad.left_stick_y;
-        float rightX = gamepad.right_stick_x;
-
-        update(leftY, leftX, rightX);
+        update(gamepad.left_stick_y, gamepad.left_stick_x, gamepad.right_stick_x);
     }
 
     public void update(float drive, float turn, float strafe) {
-        float powerFrontLeft = drive - turn - strafe;
-        float powerFrontRight = drive + turn + strafe;
-        float powerBackLeft = drive + turn - strafe;
-        float powerBackRight = drive - turn + strafe;
-
-        powerFrontLeft *= speedMultiplier;
-        powerFrontRight *= speedMultiplier;
-        powerBackLeft *= speedMultiplier;
-        powerBackRight *= speedMultiplier;
-
-        motorFrontLeft.setPower(powerFrontLeft);
-        motorFrontRight.setPower(powerFrontRight);
-        motorBackLeft.setPower(powerBackLeft);
-        motorBackRight.setPower(powerBackRight);
+        motorFrontLeft.setPower((drive - turn - strafe) * speedMultiplier);
+        motorFrontRight.setPower((drive + turn + strafe) * speedMultiplier);
+        motorBackLeft.setPower((drive + turn - strafe) * speedMultiplier);
+        motorBackRight.setPower((drive - turn + strafe) * speedMultiplier);
     }
 }
