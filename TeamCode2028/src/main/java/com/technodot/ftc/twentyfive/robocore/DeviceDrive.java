@@ -38,4 +38,11 @@ public class DeviceDrive extends Device {
         motorBackLeft.setPower((drive + turn - strafe) * speedMultiplier);
         motorBackRight.setPower((drive - turn + strafe) * speedMultiplier);
     }
+
+    public void zero() {
+        motorFrontLeft.setPower(0);
+        motorFrontRight.setPower(0);
+        motorBackLeft.setPower(0);
+        motorBackRight.setPower(0);
+    }
 }
