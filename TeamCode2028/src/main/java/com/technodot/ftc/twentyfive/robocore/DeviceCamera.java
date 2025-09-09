@@ -2,8 +2,7 @@ package com.technodot.ftc.twentyfive.robocore;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.Range;
-import com.technodot.ftc.twentyfive.ObeliskType;
+import com.technodot.ftc.twentyfive.Obelisk;
 import com.technodot.ftc.twentyfive.Team;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -18,7 +17,7 @@ public class DeviceCamera extends Device {
     public AprilTagProcessor aprilTagProcessor;
     public VisionPortal visionPortal;
 
-    public ObeliskType obeliskType;
+    public Obelisk obelisk;
     public int teamID;
 
     public void init(HardwareMap hardwareMap, Team team) {
@@ -47,7 +46,7 @@ public class DeviceCamera extends Device {
         visionPortal.resumeLiveView();
         visionPortal.resumeStreaming();
 
-        obeliskType = null;
+        obelisk = null;
     }
 
     @Override
@@ -56,13 +55,13 @@ public class DeviceCamera extends Device {
         for (AprilTagDetection detection : detections) {
             switch (detection.id) {
                 case 21:
-                    if (obeliskType == null) obeliskType = ObeliskType.GPP;
+                    obelisk = Obelisk.GPP;
                     break;
                 case 22:
-                    if (obeliskType != null) obeliskType = ObeliskType.PGP;
+                    obelisk = Obelisk.PGP;
                     break;
                 case 23:
-                    if (obeliskType != null) obeliskType = ObeliskType.PPG;
+                    obelisk = Obelisk.PPG;
                     break;
                 default:
                     break;
@@ -70,17 +69,17 @@ public class DeviceCamera extends Device {
         }
     }
 
-    public AprilTagDetection detect(Gamepad gamepad) {
+    public AprilTagDetection update() {
         AprilTagDetection target = null;
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
         for (AprilTagDetection detection : detections) {
             switch (detection.id) {
                 case 21:
-                    if (obeliskType == null) obeliskType = ObeliskType.GPP;
+                    obelisk = Obelisk.GPP;
                 case 22:
-                    if (obeliskType != null) obeliskType = ObeliskType.PGP;
+                    obelisk = Obelisk.PGP;
                 case 23:
-                    if (obeliskType != null) obeliskType = ObeliskType.PPG;
+                    obelisk = Obelisk.PPG;
                 case 20: // team BLUE
                 case 24: // team RED
                     if (detection.id != teamID) target = detection;

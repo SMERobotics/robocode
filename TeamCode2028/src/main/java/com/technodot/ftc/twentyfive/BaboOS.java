@@ -9,7 +9,6 @@ import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 public class BaboOS extends OpMode {
 
     public DeviceCamera deviceCamera = new DeviceCamera();
-
     public DeviceDrive deviceDrive = new DeviceDrive();
 
     public final Team team = Team.BLUE;
