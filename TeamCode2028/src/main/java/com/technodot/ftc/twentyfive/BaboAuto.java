@@ -47,7 +47,7 @@ public class BaboAuto extends OpMode {
             );
             telemetry.addData("tag", "found");
         } else {
-            deviceDrive.update(0, 0, 0);
+            deviceDrive.zero();
             telemetry.addData("tag", "not found");
         }
 
