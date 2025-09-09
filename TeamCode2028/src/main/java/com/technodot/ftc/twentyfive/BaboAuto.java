@@ -41,8 +41,8 @@ public class BaboAuto extends OpMode {
         AprilTagDetection tag = deviceCamera.update();
         if (tag != null) {
             deviceDrive.update(
-                    (float) Range.clip(tag.ftcPose.range - 12, -1, 1), // stop 12 inches away
-                    (float) Range.clip(tag.ftcPose.bearing, -1, 1),
+                    (float) Range.clip(12 - tag.ftcPose.range, -1, 1), // stop 12 inches away
+                    (float) Range.clip(-tag.ftcPose.bearing, -1, 1), // i *think* range and bearing should be negated to account for camera on back side
                     (float) Range.clip(tag.ftcPose.yaw, -1, 1)
             );
             telemetry.addData("tag", "found");
