@@ -52,4 +52,11 @@ public class DeviceDrive extends Device {
         motorBackLeft.setPower(powerBackLeft);
         motorBackRight.setPower(powerBackRight);
     }
+
+    public void zero() {
+        motorFrontLeft.setPower(0);
+        motorFrontRight.setPower(0);
+        motorBackLeft.setPower(0);
+        motorBackRight.setPower(0);
+    }
 }
