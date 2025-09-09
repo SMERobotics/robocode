@@ -82,7 +82,7 @@ public class DeviceCamera extends Device {
                     obelisk = Obelisk.PPG;
                 case 20: // team BLUE
                 case 24: // team RED
-                    if (detection.id != teamID) target = detection;
+                    if (detection.id == teamID) target = detection;
                     break;
                 default:
                     break;
