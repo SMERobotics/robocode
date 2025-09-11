@@ -12,27 +12,21 @@ import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
 public class DeviceIMU extends Device {
     public IMU imu;
 
-    // Set this to the vector from the rotation origin to the point of interest, expressed in body (IMU) frame (meters).
-    // Example: IMU sits 0.05 m forward on robot, so sensorOffset = {0.05, 0.0, 0.0}
-    private double[] sensorOffset = new double[]{0.0, 0.0, 0.0};
+    private final double[] offset = new double[]{0.0, 0.0, 0.0}; // where the IMU is relative to the robot, in meters
+    // ex. IMU sits 0.05 m forward on robot, so offset is {0.05, 0.0, 0.0}
 
-    // store previous angular velocity and time for finite-difference alpha
+
     private double[] prevOmega = new double[]{0.0, 0.0, 0.0};
-    private long prevTimeNs = -1L;
+    private long prevTime = -1L;
 
     @Override
     public void init(HardwareMap hardwareMap) {
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
                 RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD)));
-        // initialize prevTimeNs so first delta will be skipped/ignored
-        prevTimeNs = System.nanoTime();
-    }
-
-    /** Optional setter for the sensor offset (in meters, body frame) */
-    public void setSensorOffsetMeters(double x, double y, double z) {
-        sensorOffset[0] = x; sensorOffset[1] = y; sensorOffset[2] = z;
+                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+        )));
+        prevTime = System.nanoTime();
     }
 
     @Override
@@ -40,22 +34,19 @@ public class DeviceIMU extends Device {
 
     }
 
-    /**
-     * Returns acceleration of the point (sensorOffset) in the INERTIAL frame (m/s^2),
-     * computed from angular velocity/acceleration and the offset.
-     */
+    // great. this is only relative psuedoacceleration. fuck this shit. fuck physics.
     public double[] update() {
-        // 1) read angular velocity (body frame) from IMU in radians/sec
+        // read IMU data
         AngularVelocity av = imu.getRobotAngularVelocity(AngleUnit.RADIANS);
+        Quaternion q = imu.getRobotOrientationAsQuaternion();
         double omegaX = av.xRotationRate;
         double omegaY = av.yRotationRate;
         double omegaZ = av.zRotationRate;
         double[] omega = new double[]{omegaX, omegaY, omegaZ};
 
-        // 2) compute dt (seconds)
+        // compute dt
         long nowNs = System.nanoTime();
-        double dt = (prevTimeNs <= 0) ? 0.0 : (nowNs - prevTimeNs) * 1e-9;
-        // if dt is zero (first sample), set alpha = 0 to avoid divide-by-zero
+        double dt = (prevTime <= 0) ? 0.0 : (nowNs - prevTime) * 1e-9;
         double[] alpha = new double[]{0.0, 0.0, 0.0};
         if (dt > 0.0) {
             alpha[0] = (omega[0] - prevOmega[0]) / dt;
@@ -63,11 +54,10 @@ public class DeviceIMU extends Device {
             alpha[2] = (omega[2] - prevOmega[2]) / dt;
         }
 
-        // 3) compute alpha x r  (tangential)
-        double[] alphaCrossR = cross(alpha, sensorOffset);
+        double[] alphaCrossR = cross(alpha, offset); // compute alpha x r (tangential)
 
-        // 4) compute omega x (omega x r)  (centripetal)
-        double[] omegaCrossR = cross(omega, sensorOffset);
+        // compute omega x (omega x r) (centripetal)
+        double[] omegaCrossR = cross(omega, offset);
         double[] omegaCrossOmegaCrossR = cross(omega, omegaCrossR);
 
         // rotational acceleration in BODY frame
@@ -77,37 +67,25 @@ public class DeviceIMU extends Device {
                 alphaCrossR[2] + omegaCrossOmegaCrossR[2]
         };
 
-        // 5) rotate aRotBody -> inertial using the IMU quaternion
-        Quaternion q = imu.getRobotOrientationAsQuaternion(); // quaternion from body -> inertial
-        double[] aInertial = rotateVectorByQuaternion(aRotBody, q);
+        double[] aInertial = rotate(aRotBody, q); // rotate aRotBody -> inertial
 
-        // store for next iteration
-        prevOmega[0] = omega[0]; prevOmega[1] = omega[1]; prevOmega[2] = omega[2];
-        prevTimeNs = nowNs;
+        prevOmega[0] = omega[0];
+        prevOmega[1] = omega[1];
+        prevOmega[2] = omega[2];
+        prevTime = nowNs;
 
-        // return acceleration in inertial frame (m/s^2)
-        return aInertial;
+        return aInertial; // inertial frame in m/s^2
     }
-
-    // ---- helper math functions ----
 
     private static double[] cross(double[] a, double[] b) {
         return new double[]{
-                a[1]*b[2] - a[2]*b[1],
-                a[2]*b[0] - a[0]*b[2],
-                a[0]*b[1] - a[1]*b[0]
+                a[1] * b[2] - a[2] * b[1],
+                a[2] * b[0] - a[0] * b[2],
+                a[0] * b[1] - a[1] * b[0]
         };
     }
 
-    /**
-     * Rotate vector v_body by quaternion q to get vector in inertial frame.
-     * Uses quaternion formula where q = [w, (ux,uy,uz)].
-     *
-     * Note: field names on your Quaternion class may differ (some versions use w,x,y,z).
-     * If your Quaternion uses a different order, adapt accordingly.
-     */
-    private static double[] rotateVectorByQuaternion(double[] v, Quaternion q) {
-        // assume q has fields w, x, y, z (typical in FTC libraries)
+    private static double[] rotate(double[] v, Quaternion q) {
         double w = q.w;
         double ux = q.x;
         double uy = q.y;
@@ -119,8 +97,7 @@ public class DeviceIMU extends Device {
         double tz = 2.0 * (ux * v[1] - uy * v[0]);
 
         // v' = v + w * t + u x t
-        double[] u = new double[]{ux, uy, uz};
-        double[] uCrossT = cross(u, new double[]{tx, ty, tz});
+        double[] uCrossT = cross(new double[]{ux, uy, uz}, new double[]{tx, ty, tz});
 
         return new double[]{
                 v[0] + w * tx + uCrossT[0],
