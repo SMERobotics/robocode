@@ -14,7 +14,6 @@ public class DriveCode extends OpMode {
     @Override
     public void init() {
         driveTrain.init(hardwareMap);
-        camera.init(hardwareMap);
 
     }
     @Override
