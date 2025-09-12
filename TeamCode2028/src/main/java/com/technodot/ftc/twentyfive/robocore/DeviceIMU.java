@@ -1,5 +1,6 @@
 package com.technodot.ftc.twentyfive.robocore;
 
+import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -14,7 +15,6 @@ public class DeviceIMU extends Device {
 
     private final double[] offset = new double[]{0.0, 0.0, 0.0}; // where the IMU is relative to the robot, in meters
     // ex. IMU sits 0.05 m forward on robot, so offset is {0.05, 0.0, 0.0}
-
 
     private double[] prevOmega = new double[]{0.0, 0.0, 0.0};
     private long prevTime = -1L;

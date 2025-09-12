@@ -1,5 +1,6 @@
 package com.technodot.ftc.twentyfour;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfour.maytag.MayTag;
@@ -7,6 +8,7 @@ import com.technodot.ftc.twentyfour.robocore.DeviceClaw;
 import com.technodot.ftc.twentyfour.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfour.robocore.DeviceSlide;
 
+@Disabled
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends LinearOpMode {
 

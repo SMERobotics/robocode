@@ -1,12 +1,14 @@
 package com.technodot.ftc.twentyfour;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.technodot.ftc.twentyfour.maytag.MayTag;
 import com.technodot.ftc.twentyfour.robocore.DeviceClaw;
 import com.technodot.ftc.twentyfour.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfour.robocore.DeviceSlide;
 
+@Disabled
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends LinearOpMode {
 

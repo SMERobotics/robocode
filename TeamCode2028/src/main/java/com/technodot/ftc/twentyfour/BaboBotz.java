@@ -1,11 +1,13 @@
 package com.technodot.ftc.twentyfour;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @SuppressWarnings("FieldCanBeLocal")
+@Disabled
 @TeleOp(name="BaboBotz", group="TechnoCode")
 public class BaboBotz extends LinearOpMode {
 

@@ -8,14 +8,14 @@ import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
 
-    public DeviceCamera deviceCamera = new DeviceCamera();
+//    public DeviceCamera deviceCamera = new DeviceCamera();
     public DeviceDrive deviceDrive = new DeviceDrive();
 
     public Team team = Team.BLUE;
 
     @Override
     public void init() {
-        deviceCamera.init(hardwareMap);
+//        deviceCamera.init(hardwareMap);
         deviceDrive.init(hardwareMap);
     }
 
@@ -27,7 +27,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void start() {
-        deviceCamera.start();
+//        deviceCamera.start();
 
         telemetry.addData("status", "starting");
         telemetry.update();
@@ -35,7 +35,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void loop() {
-        deviceCamera.update(gamepad1);
+//        deviceCamera.update(gamepad1);
         deviceDrive.update(gamepad1);
 
         telemetry.addData("status", "running");
@@ -44,7 +44,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void stop() {
-        deviceCamera.stop();
+//        deviceCamera.stop();
 
         telemetry.addData("status", "stopping");
         telemetry.update();
