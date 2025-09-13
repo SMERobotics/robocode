@@ -43,11 +43,14 @@ public class Camera {
         visionPortal.resumeStreaming();
 
     }
-    public int idDetection() {
+    public int TagID() {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
 
         for (AprilTagDetection tagDetected : detections) {
             switch (tagDetected.id) {
+                case 20:
+                    aprilTagIdCode = 20;
+                    break;
                 case 21:
                     aprilTagIdCode = 21;
                     break;
@@ -57,11 +60,22 @@ public class Camera {
                 case 23:
                     aprilTagIdCode = 23;
                     break;
+                case 24:
+                    aprilTagIdCode = 24;
+                    break;
                 default:
                     break;
             }
         }
         return aprilTagIdCode;
+    }
+    public double getTagDistance() {
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        double tagDistance = 0;
+        for (AprilTagDetection tagDetected : detections) {
+            tagDistance = Math.sqrt((tagDetected.ftcPose.y * tagDetected.ftcPose.y) + (tagDetected.ftcPose.x * tagDetected.ftcPose.x));
+        }
+        return tagDistance;
     }
 
 

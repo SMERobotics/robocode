@@ -1,6 +1,5 @@
 package com.mech.ftc.twentyfive.defaults;
 
-import com.acmerobotics.roadrunner.ftc.Encoder;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -38,11 +37,11 @@ public class DriveTrain {
     }
 
     public void driveToTag() {
-        if(camera.idDetection() == 21) {
+        if(camera.TagID() == 21) {
             
-        } else if (camera.idDetection() == 22) {
+        } else if (camera.TagID() == 22) {
             
-        } else if (camera.idDetection() == 23) {
+        } else if (camera.TagID() == 23) {
             
         }
     }
