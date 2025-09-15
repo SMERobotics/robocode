@@ -3,52 +3,48 @@ package com.technodot.ftc.twentyfive.robocore;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.TimedVector3;
+import com.technodot.ftc.twentyfive.common.Quaternion;
 
-/**
- * Integrates MPU6050 linear acceleration to produce velocity.
- * Strategy:
- * 1. Calibration phase: collect N samples while robot is motionless to determine (gravity + sensor bias) vector.
- *    This vector is then subtracted from subsequent raw acceleration so gravity is removed and bias minimized.
- * 2. Exponential smoothing (low‑pass) applied to linear acceleration to suppress high‑frequency noise.
- * 3. Trapezoidal numerical integration (better than simple rectangular) to update velocity.
- * 4. Noise floor thresholding: very small accelerations are treated as zero to reduce drift from noise.
- * 5. Zero‑Velocity Update (ZUPT): if acceleration magnitude stays below a small threshold for a dwell time, velocity is snapped to zero.
- * 6. Thread safety: access to mutable state synchronized on this instance.
- *
- * Notes / Limitations:
- * - Assumes sensor frame aligns with world frame (robot flat, Z up) during operation; if orientation changes significantly,
- *   orientation compensation (gyro integration + rotation) must be added for accurate gravity removal.
- * - Residual drift will still accumulate over long periods; adding external references (encoders, vision) to fuse is recommended.
- */
 public class DeviceIMU extends Device {
+
+    public static class CalibrationData {
+        public final double gWx, gWy, gWz, biasGx, biasGy, biasGz;
+
+        public CalibrationData(double gWx, double gWy, double gWz, double biasGx, double biasGy, double biasGz) {
+            this.gWx = gWx; this.gWy = gWy; this.gWz = gWz; this.biasGx = biasGx; this.biasGy = biasGy; this.biasGz = biasGz;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("CalibrationData[g=(%.5f,%.5f,%.5f), bias=(%.5f,%.5f,%.5f)]", gWx, gWy, gWz, biasGx, biasGy, biasGz);
+        }
+    }
 
     public MPU6050 imu;
 
     public static final double GRAVITY = 9.80665;
 
-    private double biasAx = 0;
-    private double biasAy = 0;
-    private double biasAz = GRAVITY;
+    private double gWx = 0;
+    private double gWy = 0;
+    private double gWz = GRAVITY;
+    private Quaternion qWB = Quaternion.IDENTITY;
 
-    private boolean ready = false;
-    private double lastAx = 0;
-    private double lastAy = 0;
-    private double lastAz = 0;
-
-    private double filtAx = 0;
-    private double filtAy = 0;
-    private double filtAz = 0;
-
-    private double velX = 0;
-    private double velY = 0;
-    private double velZ = 0;
+    private boolean calibrated = false;
+    private int calibCount = 0;
+    private static final int CALIBRATION_SAMPLES = 300; // ~ 3/5 second at 500Hz; adjust per actual sample rate
+    private double sumAx = 0, sumAy = 0, sumAz = 0;
+    private double sumGx = 0, sumGy = 0, sumGz = 0;
+    private double biasGx = 0, biasGy = 0, biasGz = 0;
+    private double filtAx = 0, filtAy = 0, filtAz = 0;
+    private double velX = 0, velY = 0, velZ = 0;
+    private double lastAx = 0, lastAy = 0, lastAz = 0;
 
     private long lastUpdateNs = 0;
     private long lastActiveNs = 0;
 
     private static final double ACCEL_SMOOTH_ALPHA = 0.2; // exponential smoothing factor: higher -> more smoothing
     private static final double ACCEL_NOISE_FLOOR = 0.05; // m/s^2 below which accel component set to zero
-    private static final double STATIONARY_ACCEL_THRESH = 0.15; // magnitude threshold to consider stationary
+    private static final double STATIONARY_ACCEL_THRESH = 0.15; // magnitude threshold (linear accel) to consider stationary
     private static final long STATIONARY_DWELL_NS = (long)(0.30 * 1e9); // dwell time before zeroing velocity
 
     @Override
@@ -58,30 +54,97 @@ public class DeviceIMU extends Device {
     }
 
     private synchronized void resetState() {
-        ready = false;
-        lastAx = lastAy = lastAz = 0;
-        filtAx = filtAy = filtAz = 0;
+        calibrated = false;
+        calibCount = 0;
+        sumAx = sumAy = sumAz = 0;
+        sumGx = sumGy = sumGz = 0;
+        gWx = 0; gWy = 0; gWz = GRAVITY; // fallback assumption
+        biasGx = biasGy = biasGz = 0;
+        qWB = Quaternion.IDENTITY;
         velX = velY = velZ = 0;
         lastUpdateNs = 0;
         lastActiveNs = System.nanoTime();
+        lastAx = lastAy = lastAz = 0;
+        filtAx = filtAy = filtAz = 0;
+    }
+
+    private synchronized void applyCalibration(CalibrationData d) {
+        this.gWx = d.gWx; this.gWy = d.gWy; this.gWz = d.gWz;
+        this.biasGx = d.biasGx; this.biasGy = d.biasGy; this.biasGz = d.biasGz;
+        this.qWB = Quaternion.IDENTITY; // world frame defined at calibration capture
+        this.velX = this.velY = this.velZ = 0;
+        this.lastAx = this.lastAy = this.lastAz = 0;
+        this.filtAx = this.filtAy = this.filtAz = 0;
+        this.lastUpdateNs = System.nanoTime();
+        this.lastActiveNs = this.lastUpdateNs;
+        this.calibrated = true;
+        this.calibCount = CALIBRATION_SAMPLES; // mark as complete
+    }
+
+    public synchronized CalibrationData getCalibrationData() {
+        return new CalibrationData(gWx, gWy, gWz, biasGx, biasGy, biasGz);
+    }
+
+    public synchronized void reset() {
+        resetState();
+    }
+
+    public synchronized boolean isCalibrated() {
+        return calibrated;
+    }
+
+    public synchronized Quaternion getOrientation() {
+        return qWB;
     }
 
     @Override
     public void update(Gamepad gamepad) {
-        TimedVector3 raw = imu.getAcceleration(); // raw includes gravity (assuming device orientation fixed)
-        long now = raw.time; // timestamp from TimedVector3 (System.nanoTime())
+        TimedVector3 accelBody = imu.getAcceleration();
+        TimedVector3 gyroDegPerSec = imu.getAngularVelocity();
+        long now = accelBody.time;
 
-        // Compute linear acceleration (gravity + bias removed via calibration averages).
-        double linAx = raw.x - biasAx;
-        double linAy = raw.y - biasAy;
-        double linAz = raw.z - biasAz;
+        if (!calibrated) {
+            sumAx += accelBody.x; sumAy += accelBody.y; sumAz += accelBody.z;
+            sumGx += gyroDegPerSec.x; sumGy += gyroDegPerSec.y; sumGz += gyroDegPerSec.z;
+            calibCount++;
+            if (calibCount >= CALIBRATION_SAMPLES) {
+                double avgAx = sumAx / calibCount;
+                double avgAy = sumAy / calibCount;
+                double avgAz = sumAz / calibCount;
+                double avgGx = sumGx / calibCount;
+                double avgGy = sumGy / calibCount;
+                double avgGz = sumGz / calibCount;
+                gWx = avgAx; gWy = avgAy; gWz = avgAz;
+                biasGx = avgGx; biasGy = avgGy; biasGz = avgGz;
+                velX = velY = velZ = 0;
+                lastAx = lastAy = lastAz = 0;
+                filtAx = filtAy = filtAz = 0;
+                lastUpdateNs = now;
+                calibrated = true;
+            }
+            return;
+        }
 
-        // Exponential smoothing (low-pass filter).
-        if (!ready) {
-            filtAx = linAx;
-            filtAy = linAy;
-            filtAz = linAz;
-            ready = true;
+        double dt = (lastUpdateNs == 0) ? 0 : (now - lastUpdateNs) * 1e-9;
+        if (dt < 0) { lastUpdateNs = now; return; }
+
+        if (dt > 0 && dt < 0.1) {
+            double wx = Math.toRadians(gyroDegPerSec.x - biasGx);
+            double wy = Math.toRadians(gyroDegPerSec.y - biasGy);
+            double wz = Math.toRadians(gyroDegPerSec.z - biasGz);
+            Quaternion dq = Quaternion.fromAngularVelocity(wx, wy, wz, dt);
+            synchronized (this) { qWB = qWB.multiply(dq).normalize(); }
+        }
+
+        Quaternion q; synchronized (this) { q = qWB; }
+        double[] aWorldTotal = q.rotateBodyToWorld(accelBody.x, accelBody.y, accelBody.z);
+        double linAx = aWorldTotal[0] - gWx;
+        double linAy = aWorldTotal[1] - gWy;
+        double linAz = aWorldTotal[2] - gWz;
+
+        // Exponential smoothing in world frame
+        if (lastUpdateNs == 0) {
+            filtAx = linAx; filtAy = linAy; filtAz = linAz;
         } else {
             filtAx = ACCEL_SMOOTH_ALPHA * filtAx + (1.0 - ACCEL_SMOOTH_ALPHA) * linAx;
             filtAy = ACCEL_SMOOTH_ALPHA * filtAy + (1.0 - ACCEL_SMOOTH_ALPHA) * linAy;
@@ -96,11 +159,11 @@ public class DeviceIMU extends Device {
         if (lastUpdateNs == 0) {
             lastUpdateNs = now;
             lastAx = aX; lastAy = aY; lastAz = aZ;
-            return; // Need a previous sample for trapezoidal integration.
+            return;
         }
 
-        double dt = (now - lastUpdateNs) * 1e-9; // seconds
-        if (dt <= 0 || dt > 0.1) { // Guard against invalid or excessively large dt (e.g., long pause)
+        dt = (now - lastUpdateNs) * 1e-9;
+        if (dt <= 0 || dt > 0.1) { // guard
             lastUpdateNs = now;
             lastAx = aX; lastAy = aY; lastAz = aZ;
             return;
@@ -111,9 +174,7 @@ public class DeviceIMU extends Device {
         velY += 0.5 * (lastAy + aY) * dt;
         velZ += 0.5 * (lastAz + aZ) * dt;
 
-        lastAx = aX;
-        lastAy = aY;
-        lastAz = aZ;
+        lastAx = aX; lastAy = aY; lastAz = aZ;
         lastUpdateNs = now;
 
         // Stationary detection for zero-velocity update.
