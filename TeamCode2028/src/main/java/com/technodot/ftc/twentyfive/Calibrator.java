@@ -2,27 +2,51 @@ package com.technodot.ftc.twentyfive;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.technodot.ftc.twentyfive.common.IMUCalibrationData;
 import com.technodot.ftc.twentyfive.common.TimedVector3;
-import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
-import com.technodot.ftc.twentyfive.robocore.DeviceIMU;
+import com.technodot.ftc.twentyfive.robocore.MPU6050;
 
 @TeleOp(name="Calibrator", group="TechnoCode")
 public class Calibrator extends OpMode {
 
-    public DeviceDrive deviceDrive = new DeviceDrive();
-    public DeviceIMU deviceIMU = new DeviceIMU();
+    public MPU6050 imu;
 
-    public boolean calibratingAccel = false;
-    public boolean calibratingGyro = false;
-    public DeviceIMU.CalibrationData calibrationData;
-    public double sumAx = 0, sumAy = 0, sumAz = 0;
-    public double sumGx = 0, sumGy = 0, sumGz = 0;
-    public int sumSamples = 0;
+    private double sumAx = 0, sumAy = 0, sumAz = 0;
+    private double sumGx = 0, sumGy = 0, sumGz = 0;
+    public double biasAx = 0, biasAy = 0, biasAz = 0;
+    public double biasGx = 0, biasGy = 0, biasGz = 0;
+    private int sampleCount = 0;
+    public IMUCalibrationData calibrationData = null;
+
+    public final int CALIBRATION_SAMPLES = 1000;
+
+    public TimedVector3[] applyCalibration(TimedVector3 accel, TimedVector3 gyro) {
+        accel.x -= biasAx;
+        accel.y -= biasAy;
+        accel.z -= biasAz;
+
+        gyro.x -= biasGx;
+        gyro.y -= biasGy;
+        gyro.z -= biasGz;
+
+        return new TimedVector3[]{accel, gyro};
+    }
+
+    public TimedVector3[] applyCalibration(TimedVector3 accel, TimedVector3 gyro, IMUCalibrationData calibration) {
+        accel.x -= calibration.biasAx;
+        accel.y -= calibration.biasAy;
+        accel.z -= calibration.biasAz;
+
+        gyro.x -= calibration.biasGx;
+        gyro.y -= calibration.biasGy;
+        gyro.z -= calibration.biasGz;
+
+        return new TimedVector3[]{accel, gyro};
+    }
 
     @Override
     public void init() {
-        deviceDrive.init(hardwareMap);
-        deviceIMU.init(hardwareMap);
+        imu = hardwareMap.get(MPU6050.class, "imu");
     }
 
     @Override
@@ -35,64 +59,45 @@ public class Calibrator extends OpMode {
     public void start() {
         telemetry.addData("status", "starting");
         telemetry.update();
-
-        calibratingAccel = true;
     }
 
     @Override
     public void loop() {
-        if (calibratingAccel) {
-            TimedVector3 rawAccel = deviceIMU.imu.getAcceleration();
-            TimedVector3 rawGyro = deviceIMU.imu.getAngularVelocity();
+        TimedVector3 accel = imu.getAcceleration();
+        TimedVector3 gyro = imu.getAngularVelocity();
 
-            sumAx += rawAccel.x;
-            sumAy += rawAccel.y;
-            sumAz += rawAccel.z;
+        if (sampleCount < CALIBRATION_SAMPLES) {
+            sumAx += accel.x;
+            sumAy += accel.y;
+            sumAz += accel.z;
 
-            sumGx += rawGyro.x;
-            sumGy += rawGyro.y;
-            sumGz += rawGyro.z;
+            sumGx += gyro.x;
+            sumGy += gyro.y;
+            sumGz += gyro.z;
 
-            sumSamples++;
+            sampleCount++;
+        } else if (calibrationData == null && sampleCount == CALIBRATION_SAMPLES) {
+            biasAx = sumAx / CALIBRATION_SAMPLES;
+            biasAy = sumAy / CALIBRATION_SAMPLES;
+            biasAz = sumAz / CALIBRATION_SAMPLES;
 
-            if (sumSamples >= DeviceIMU.CALIBRATION_SAMPLES) {
-                double biasAx = sumAx / sumSamples;
-                double biasAy = sumAy / sumSamples;
-                double biasAz = (sumAz / sumSamples) - DeviceIMU.GRAVITY;
+            biasGx = sumGx / CALIBRATION_SAMPLES;
+            biasGy = sumGy / CALIBRATION_SAMPLES;
+            biasGz = sumGz / CALIBRATION_SAMPLES;
 
-                double biasGx = sumGx / sumSamples;
-                double biasGy = sumGy / sumSamples;
-                double biasGz = sumGz / sumSamples;
-
-                calibrationData = new DeviceIMU.CalibrationData(
-                        0, 0, DeviceIMU.GRAVITY,
-                        biasAx, biasAy, biasAz
-                );
-
-                telemetry.addData("calibration", calibrationData.toString());
-                telemetry.update();
-
-                calibratingAccel = false;
-                calibratingGyro = true;
-
-                sumAx = sumAy = sumAz = 0;
-                sumGx = sumGy = sumGz = 0;
-                sumSamples = 0;
-            }
-
-            try {
-                Thread.sleep(2);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-        } else if (calibratingGyro) {
-            deviceDrive.update(1, 0, 0);
-        } else {
-            deviceDrive.update(gamepad1);
-            deviceIMU.update(gamepad1);
+            calibrationData = new IMUCalibrationData(biasAx, biasAy, biasAz, biasGx, biasGy, biasGz);
         }
 
+        if (calibrationData == null) {
+            telemetry.addData("progress", String.format("%.1f%%", (100.0 * sampleCount / CALIBRATION_SAMPLES)));
+        } else {
+            telemetry.addData("calibration", calibrationData.toString());
+        }
+
+        TimedVector3[] calibrated = applyCalibration(accel, gyro);
+
+        telemetry.addData("accel", calibrated[0].toString());
+        telemetry.addData("gyro", calibrated[1].toString());
         telemetry.addData("status", "running");
         telemetry.update();
     }

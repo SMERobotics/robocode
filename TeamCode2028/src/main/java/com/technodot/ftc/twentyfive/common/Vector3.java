@@ -1,9 +1,9 @@
 package com.technodot.ftc.twentyfive.common;
 
 public class Vector3 {
-    public final double x;
-    public final double y;
-    public final double z;
+    public double x;
+    public double y;
+    public double z;
 
     public Vector3(double x, double y, double z) {
         this.x = x;

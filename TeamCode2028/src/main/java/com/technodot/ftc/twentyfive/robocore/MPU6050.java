@@ -113,11 +113,11 @@ public class MPU6050 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         int cfg = deviceClient.read8(Register.GYRO_CONFIG.address) & 0xFF;
         int sel = (cfg >> 3) & 0x03; // FS_SEL
         switch (sel) {
-            case 0: return 131.0; // ±250
-            case 1: return 65.5; // ±500
-            case 2: return 32.8; // ±1000
-            case 3: return 16.4; // ±2000
-            default: return 131.0;
+            case 0: return 131.072; // ±250
+            case 1: return 65.536; // ±500
+            case 2: return 32.768; // ±1000
+            case 3: return 16.384; // ±2000
+            default: return 131.072;
         }
     }
 
@@ -147,9 +147,9 @@ public class MPU6050 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         // double x = rawX / lsbPerDeg;
         // double y = rawY / lsbPerDeg;
         // double z = rawZ / lsbPerDeg;
-        double x = bytesToSigned16(buf[0], buf[1]) / 131.0;
-        double y = bytesToSigned16(buf[2], buf[3]) / 131.0;
-        double z = bytesToSigned16(buf[4], buf[5]) / 131.0;
+        double x = bytesToSigned16(buf[0], buf[1]) / 131.072;
+        double y = bytesToSigned16(buf[2], buf[3]) / 131.072;
+        double z = bytesToSigned16(buf[4], buf[5]) / 131.072;
         return new TimedVector3(x, y, z);
     }
 

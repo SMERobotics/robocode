@@ -28,7 +28,9 @@ public class Quaternion {
         return new Quaternion(w/n, x/n, y/n, z/n);
     }
 
-    public Quaternion conjugate() { return new Quaternion(w, -x, -y, -z); }
+    public Quaternion conjugate() {
+        return new Quaternion(w, -x, -y, -z);
+    }
 
     public Quaternion multiply(Quaternion o) {
         // (this * o)
