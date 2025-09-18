@@ -95,8 +95,8 @@ public class DeviceOldIMU extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
-        TimedVector3 rawAccel = imu.getAcceleration();
-        TimedVector3 rawGyro = imu.getAngularVelocity();
+        TimedVector3 rawAccel = imu.getRawAcceleration();
+        TimedVector3 rawGyro = imu.getRawAngularVelocity();
         long now = rawAccel.time;
 
         double dt = (lastUpdateNs == 0) ? 0 : (now - lastUpdateNs) * 1e-9;

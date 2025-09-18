@@ -121,8 +121,9 @@ public class MPU6050 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         }
     }
 
-    public synchronized TimedVector3 getAcceleration() {
+    public synchronized TimedVector3 getRawAcceleration() {
         byte[] buf = deviceClient.read(Register.ACCEL_OUT.address, 6);
+        long time = System.nanoTime();
         // on device init, we hardcoded accel to ±2g, lsbPerG is always 16384.0
         // int rawX = bytesToSigned16(buf[0], buf[1]);
         // int rawY = bytesToSigned16(buf[2], buf[3]);
@@ -134,11 +135,12 @@ public class MPU6050 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         double x = (bytesToSigned16(buf[0], buf[1]) / 16384.0) * GRAVITY;
         double y = (bytesToSigned16(buf[2], buf[3]) / 16384.0) * GRAVITY;
         double z = (bytesToSigned16(buf[4], buf[5]) / 16384.0) * GRAVITY;
-        return new TimedVector3(x, y, z);
+        return new TimedVector3(x, y, z, time);
     }
 
-    public synchronized TimedVector3 getAngularVelocity() {
+    public synchronized TimedVector3 getRawAngularVelocity() {
         byte[] buf = deviceClient.read(Register.GYRO_OUT.address, 6);
+        long time = System.nanoTime();
         // on device init, we hardcoded velocity to ±250°/s, lsbPerDeg is always 131.0
         // int rawX = bytesToSigned16(buf[0], buf[1]);
         // int rawY = bytesToSigned16(buf[2], buf[3]);
@@ -150,7 +152,22 @@ public class MPU6050 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         double x = bytesToSigned16(buf[0], buf[1]) / 131.072;
         double y = bytesToSigned16(buf[2], buf[3]) / 131.072;
         double z = bytesToSigned16(buf[4], buf[5]) / 131.072;
-        return new TimedVector3(x, y, z);
+        return new TimedVector3(x, y, z, time);
+    }
+
+    public synchronized TimedVector3[] getRawData() {
+        byte[] accelBuf = deviceClient.read(Register.ACCEL_OUT.address, 6);
+        byte[] gyroBuf = deviceClient.read(Register.GYRO_OUT.address, 6);
+        long time = System.nanoTime();
+
+        double aX = (bytesToSigned16(accelBuf[0], accelBuf[1]) / 16384.0) * GRAVITY;
+        double aY = (bytesToSigned16(accelBuf[2], accelBuf[3]) / 16384.0) * GRAVITY;
+        double aZ = (bytesToSigned16(accelBuf[4], accelBuf[5]) / 16384.0) * GRAVITY;
+        double gX = bytesToSigned16(gyroBuf[0], gyroBuf[1]) / 131.072;
+        double gY = bytesToSigned16(gyroBuf[2], gyroBuf[3]) / 131.072;
+        double gZ = bytesToSigned16(gyroBuf[4], gyroBuf[5]) / 131.072;
+
+        return new TimedVector3[]{new TimedVector3(aX, aY, aZ, time), new TimedVector3(gX, gY, gZ, time)};
     }
 
     public synchronized double getTemperatureF() {

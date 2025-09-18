@@ -90,9 +90,108 @@ public class Quaternion {
         return new double[]{roll, pitch, yaw};
     }
 
+    /**
+     * Constructs a quaternion that rotates vectors expressed in the sensor frame into the robot frame.
+     * Inputs are the robot frame unit axes expressed in the sensor frame: forward (+X_r), right (+Y_r), up (+Z_r).
+     * Columns of matrix M = [forward right up] map robot-frame coords to sensor frame.
+     * We need rotation sensor->robot, so we take R = M^T and convert R to quaternion.
+     */
+    public static Quaternion fromBasis(double[] forward, double[] right, double[] up) {
+        // Orthonormalization safety (assumes roughly orthogonal already)
+        forward = normalizeVec(forward);
+        // Make right orthogonal to forward
+        right = subtract(right, scale(forward, dot(forward, right)));
+        right = normalizeVec(right);
+        // Recompute up as forward x right (right-handed robot frame: X=forward, Y=right, Z=up)
+        double[] newUp = cross(forward, right);
+        double nUp = normVec(newUp);
+        if (nUp < 1e-6) newUp = up; else newUp = normalizeVec(newUp);
+        up = newUp;
+
+        // Matrix M (sensor columns are robot axes in sensor frame)
+        double m00 = forward[0]; double m01 = right[0]; double m02 = up[0];
+        double m10 = forward[1]; double m11 = right[1]; double m12 = up[1];
+        double m20 = forward[2]; double m21 = right[2]; double m22 = up[2];
+
+        // R = M^T (sensor->robot)
+        double r00 = m00, r01 = m10, r02 = m20;
+        double r10 = m01, r11 = m11, r12 = m21;
+        double r20 = m02, r21 = m12, r22 = m22;
+
+        double trace = r00 + r11 + r22;
+        double qw, qx, qy, qz;
+        if (trace > 0) {
+            double s = Math.sqrt(trace + 1.0) * 2; // s=4*qw
+            qw = 0.25 * s;
+            qx = (r21 - r12) / s;
+            qy = (r02 - r20) / s;
+            qz = (r10 - r01) / s;
+        } else if (r00 > r11 && r00 > r22) {
+            double s = Math.sqrt(1.0 + r00 - r11 - r22) * 2; // s=4*qx
+            qw = (r21 - r12) / s;
+            qx = 0.25 * s;
+            qy = (r01 + r10) / s;
+            qz = (r02 + r20) / s;
+        } else if (r11 > r22) {
+            double s = Math.sqrt(1.0 + r11 - r00 - r22) * 2; // s=4*qy
+            qw = (r02 - r20) / s;
+            qx = (r01 + r10) / s;
+            qy = 0.25 * s;
+            qz = (r12 + r21) / s;
+        } else {
+            double s = Math.sqrt(1.0 + r22 - r00 - r11) * 2; // s=4*qz
+            qw = (r10 - r01) / s;
+            qx = (r02 + r20) / s;
+            qy = (r12 + r21) / s;
+            qz = 0.25 * s;
+        }
+        return new Quaternion(qw, qx, qy, qz).normalize();
+    }
+
+    private static double[] cross(double[] a, double[] b) {
+        return new double[]{
+                a[1]*b[2] - a[2]*b[1],
+                a[2]*b[0] - a[0]*b[2],
+                a[0]*b[1] - a[1]*b[0]
+        };
+    }
+
+    private static double dot(double[] a, double[] b) {
+        return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+    }
+
+    private static double normVec(double[] v) {
+        return Math.sqrt(dot(v,v));
+    }
+
+    private static double[] normalizeVec(double[] v) {
+        double n = normVec(v);
+        if (n < 1e-12) return new double[]{0,0,0};
+        return new double[]{
+                v[0]/n,
+                v[1]/n,
+                v[2]/n
+        };
+    }
+
+    private static double[] scale(double[] v, double s) {
+        return new double[]{
+                v[0]*s,
+                v[1]*s,
+                v[2]*s
+        };
+    }
+
+    private static double[] subtract(double[] a, double[] b) {
+        return new double[]{
+                a[0]-b[0],
+                a[1]-b[1],
+                a[2]-b[2]
+        };
+    }
+
     @Override
     public String toString() {
         return String.format("q[%.5f, %.5f, %.5f, %.5f]", w,x,y,z);
     }
 }
-
