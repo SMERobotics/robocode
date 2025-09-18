@@ -158,11 +158,9 @@ public class Calibrator extends OpMode {
         telemetry.addData("accel", calibrated[0].toString());
         telemetry.addData("gyro", calibrated[1].toString());
         if (!orientation.equals(Quaternion.IDENTITY)) {
-            telemetry.addData("orientation.forward(sensor)", String.format("[%.3f, %.3f, %.3f]", forwardX, forwardY, forwardZ));
-            telemetry.addData("orientation.up(sensor)", String.format("[%.3f, %.3f, %.3f]", upX, upY, upZ));
-            telemetry.addData("orientation.quat s->r", orientation.toString());
+            telemetry.addData("orientation", orientation.toString());
         } else if (calibrationData != null) {
-            telemetry.addData("orientationProgress", String.format("%d/%d", orientationSampleCount, ORIENTAITON_SAMPLES));
+            telemetry.addData("orientationProgress", String.format("%.1f%%", (100.0 * orientationSampleCount / ORIENTAITON_SAMPLES)));
         }
         telemetry.addData("status", "running");
         telemetry.update();
