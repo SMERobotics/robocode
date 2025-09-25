@@ -4,7 +4,7 @@ This repo contains the code used by Shawnee Mission East Robotics for the FTC DE
 
 ### teams
 
--   
+- 
 - 
 - 
 
