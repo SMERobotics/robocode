@@ -1,21 +1,17 @@
-package org.firstinspires.ftc.teamcode.teleop;
+package com.n0tasha4k.ftc.twentyfive;
 
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
-
-import org.firstinspires.ftc.teamcode.util.Toggler;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
-@TeleOp(name = "Miles' Android Studio Revision")
+@TeleOp(name = "There's a shooter in the building Android Studio")
 public class testtele extends LinearOpMode {
-    public void runOpMode() throws InterruptedException {
+
+    @Override
+    public void runOpMode() {
 
         DcMotor left = hardwareMap.dcMotor.get("left");
         DcMotor right = hardwareMap.dcMotor.get("right");
@@ -23,8 +19,6 @@ public class testtele extends LinearOpMode {
         DcMotor index = hardwareMap.dcMotor.get("index");
 
         Servo finger = hardwareMap.servo.get("indexfinger");
-
-        Toggler shootertoggle = new Toggler();
 
         shooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
@@ -40,7 +34,11 @@ public class testtele extends LinearOpMode {
 
             if (gamepad1.a) {
                 finger.setPosition(1);
-                index.setPower(-1);
+                if (shooter.getVelocity() > 1900) {
+                    index.setPower(-1);
+                } else {
+                    index.setPower(0);
+                }
             } else {
                 finger.setPosition(0);
                 index.setPower(0);
@@ -54,12 +52,11 @@ public class testtele extends LinearOpMode {
 
             telemetry.addData("Left Pow", left.getPower());
             telemetry.addData("Right Pow", right.getPower());
+            telemetry.addData("Shooter Power", shooter.getVelocity());
 
 
-            gamepadX = -gamepad1.right_stick_x;
-            gamepadY = -gamepad1.left_stick_y;
-            left.setPower(gamepadY - gamepadX);
-            right.setPower(gamepadY + gamepadX);
+            left.setPower(gamepad1.left_stick_y-.1);
+            right.setPower(gamepad1.right_stick_y);
         }
 
     }
