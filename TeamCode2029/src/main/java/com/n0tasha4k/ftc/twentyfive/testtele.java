@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "There's a shooter in the building Android Studio")
+@TeleOp(name = "Tank a shooter in the building Android Studio")
 public class testtele extends LinearOpMode {
 
     @Override
@@ -53,10 +53,11 @@ public class testtele extends LinearOpMode {
             telemetry.addData("Left Pow", left.getPower());
             telemetry.addData("Right Pow", right.getPower());
             telemetry.addData("Shooter Power", shooter.getVelocity());
+            telemetry.update();
 
 
-            left.setPower(gamepad1.left_stick_y-.1);
-            right.setPower(gamepad1.right_stick_y);
+            left.setPower(-gamepad1.left_stick_y);
+            right.setPower(-gamepad1.right_stick_y);
         }
 
     }
