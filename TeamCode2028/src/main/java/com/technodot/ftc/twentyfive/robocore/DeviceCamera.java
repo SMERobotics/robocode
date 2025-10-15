@@ -22,10 +22,6 @@ public class DeviceCamera extends Device {
 
     public void init(HardwareMap hardwareMap, Team team) {
         teamID = team.equals(Team.RED) ? 24 : 20; // defaults to Team.BLUE with tag ID 20
-    }
-
-    @Override
-    public void init(HardwareMap hardwareMap) {
         aprilTagProcessor = new AprilTagProcessor.Builder()
                 .setDrawAxes(true)
                 .setDrawCubeProjection(true)
@@ -35,16 +31,16 @@ public class DeviceCamera extends Device {
         builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
         builder.addProcessor(aprilTagProcessor);
         visionPortal = builder.build();
-        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
-        visionPortal.stopLiveView();
-        visionPortal.stopStreaming();
+//        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
+//        visionPortal.stopLiveView();
+//        visionPortal.stopStreaming();
     }
 
     @Override
     public void start() {
-        visionPortal.setProcessorEnabled(aprilTagProcessor, true);
-        visionPortal.resumeLiveView();
-        visionPortal.resumeStreaming();
+//        visionPortal.setProcessorEnabled(aprilTagProcessor, true);
+//        visionPortal.resumeLiveView();
+//        visionPortal.resumeStreaming();
 
         obelisk = null;
     }
@@ -93,8 +89,8 @@ public class DeviceCamera extends Device {
 
     @Override
     public void stop() {
-        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
-        visionPortal.stopLiveView();
-        visionPortal.stopStreaming();
+//        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
+//        visionPortal.stopLiveView();
+//        visionPortal.stopStreaming();
     }
 }

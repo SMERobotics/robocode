@@ -13,6 +13,9 @@ public class DeviceDrive extends Device {
 
     public float speedMultiplier = 1.0F;
 
+    // small stick deadzone to ignore tiny noise
+    private static final float DEADZONE = 0.02f;
+
     @Override
     public void init(HardwareMap hardwareMap) {
         motorFrontLeft = hardwareMap.get(DcMotor.class, "motorFrontLeft");
@@ -21,10 +24,10 @@ public class DeviceDrive extends Device {
         motorBackRight = hardwareMap.get(DcMotor.class, "motorBackRight");
 
         // toggle all of them to change robot drive direction
-        motorFrontLeft.setDirection(DcMotor.Direction.REVERSE);
+        motorFrontLeft.setDirection(DcMotor.Direction.FORWARD);
         motorFrontRight.setDirection(DcMotor.Direction.FORWARD);
         motorBackLeft.setDirection(DcMotor.Direction.REVERSE);
-        motorBackRight.setDirection(DcMotor.Direction.FORWARD);
+        motorBackRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
     @Override
@@ -33,22 +36,54 @@ public class DeviceDrive extends Device {
     }
 
     public void update(float forward, float strafe, float rotate) {
-        float frontLeft = forward + strafe + rotate;
-        float frontRight = forward - strafe - rotate;
-        float backLeft = forward - strafe + rotate;
-        float backRight = forward + strafe - rotate;
+        // Apply deadzone
+        if (Math.abs(forward) < DEADZONE) forward = 0f;
+        if (Math.abs(strafe) < DEADZONE) strafe = 0f;
+        if (Math.abs(rotate) < DEADZONE) rotate = 0f;
 
-        float max = Math.max(1.0f, Math.max(Math.max(Math.abs(frontLeft), Math.abs(frontRight)), Math.max(Math.abs(backLeft), Math.abs(backRight))));
+        // Optional: non-linear scaling for finer low-speed control (comment out if undesired)
+        forward = scaleInput(forward);
+        strafe = scaleInput(strafe);
+        rotate = scaleInput(rotate);
 
-        frontLeft = (frontLeft / max) * speedMultiplier;
-        frontRight = (frontRight / max) * speedMultiplier;
-        backLeft = (backLeft / max) * speedMultiplier;
-        backRight = (backRight / max) * speedMultiplier;
+        // Basic mecanum kinematics (robot-centric)
+        float fl = forward + strafe + rotate;    // Front Left
+        float fr = forward - strafe - rotate;    // Front Right
+        float bl = forward - strafe + rotate;    // Back Left
+        float br = forward + strafe - rotate;    // Back Right
 
-        motorFrontLeft.setPower(frontLeft);
-        motorFrontRight.setPower(frontRight);
-        motorBackLeft.setPower(backLeft);
-        motorBackRight.setPower(backRight);
+        // Find the maximum magnitude to normalize if needed
+        float max = Math.max(1.0f, Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
+        fl /= max; fr /= max; bl /= max; br /= max;
+
+        // Apply overall speed multiplier
+        fl *= speedMultiplier;
+        fr *= speedMultiplier;
+        bl *= speedMultiplier;
+        br *= speedMultiplier;
+
+        // Safety clamp (in case multiplier pushes over 1)
+        fl = clamp(fl);
+        fr = clamp(fr);
+        bl = clamp(bl);
+        br = clamp(br);
+
+        // Set motor powers (null checks just in case init not called yet)
+        if (motorFrontLeft != null) motorFrontLeft.setPower(fl);
+        if (motorFrontRight != null) motorFrontRight.setPower(fr);
+        if (motorBackLeft != null) motorBackLeft.setPower(bl);
+        if (motorBackRight != null) motorBackRight.setPower(br);
+    }
+
+    private float clamp(float v) {
+        if (v > 1f) return 1f;
+        if (v < -1f) return -1f;
+        return v;
+    }
+
+    private float scaleInput(float v) {
+        // Cubic scaling keeps sign and gives finer control at low speeds
+        return v * v * v + 0.0f * v; // easy to tweak later
     }
 
     public void zero() {
