@@ -51,7 +51,7 @@ public class BaboAuto extends OpMode {
             telemetry.addData("yaw", yaw);
 
             if (Math.abs(range - 30) < 3) range = 30;
-            if (Math.abs(bearing) < 1) bearing = 0;
+            if (Math.abs(bearing) < 3) bearing = 0;
             if (Math.abs(yaw) < 3) yaw = 0;
 
             float forward = (float) Range.clip(2 + range / -15, -1, 1); // slow down beginning 45in away, stop at 30in away
@@ -83,7 +83,7 @@ public class BaboAuto extends OpMode {
             telemetry.addData("strafe", strafe);
             telemetry.addData("rotate", rotate);
 
-            deviceDrive.update(forward, strafe, rotate);
+            deviceDrive.update(forward, strafe, rotate * 0.0f);
         } else {
             deviceDrive.zero();
             telemetry.addData("tag", "not found");
