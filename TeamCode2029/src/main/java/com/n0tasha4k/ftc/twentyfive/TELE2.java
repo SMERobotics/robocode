@@ -29,8 +29,6 @@ public class TELE2 extends LinearOpMode {
 
         while (opModeIsActive()) {
 //            shooter.setPower(1);
-            float gamepadX;
-            float gamepadY;
 
             if (gamepad1.a) {
                 finger.setPosition(1);

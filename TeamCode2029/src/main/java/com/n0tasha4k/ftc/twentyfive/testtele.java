@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "Tank a shooter in the building Android Studio")
+@TeleOp(name = "Tank/1.1 a shooter in the building Android Studio")
 public class testtele extends LinearOpMode {
 
     @Override
@@ -29,12 +29,10 @@ public class testtele extends LinearOpMode {
 
         while (opModeIsActive()) {
 //            shooter.setPower(1);
-            float gamepadX;
-            float gamepadY;
 
             if (gamepad1.a) {
                 finger.setPosition(1);
-                if (shooter.getVelocity() > 1900) {
+                if (shooter.getVelocity() > 2000) {
                     index.setPower(-1);
                 } else {
                     index.setPower(0);
@@ -45,7 +43,7 @@ public class testtele extends LinearOpMode {
             }
 
             if (gamepad1.y) {
-                shooter.setVelocity(2000);
+                shooter.setVelocity(6000);
             } else {
                 shooter.setVelocity(0);
             }
@@ -56,8 +54,8 @@ public class testtele extends LinearOpMode {
             telemetry.update();
 
 
-            left.setPower(-gamepad1.left_stick_y);
-            right.setPower(-gamepad1.right_stick_y);
+            left.setPower(gamepad1.right_stick_y / 1.07);
+            right.setPower(gamepad1.left_stick_y);
         }
 
     }

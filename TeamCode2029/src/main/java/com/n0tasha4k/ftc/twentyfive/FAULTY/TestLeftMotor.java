@@ -1,11 +1,9 @@
-package com.n0tasha4k.ftc.twentyfive;
+package com.n0tasha4k.ftc.twentyfive.FAULTY;
 
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name = "Left(Right[another problem for later])MotorTest (Troubleshooting; not a real teleop)")
 public class TestLeftMotor extends LinearOpMode {
