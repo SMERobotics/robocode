@@ -32,7 +32,7 @@ public class testtele extends LinearOpMode {
 
             if (gamepad1.a) {
                 finger.setPosition(1);
-                if (shooter.getVelocity() > 2000) {
+                if (shooter.getVelocity() > 1900) {
                     index.setPower(-1);
                 } else {
                     index.setPower(0);
@@ -43,7 +43,7 @@ public class testtele extends LinearOpMode {
             }
 
             if (gamepad1.y) {
-                shooter.setVelocity(6000);
+                shooter.setVelocity(2000);
             } else {
                 shooter.setVelocity(0);
             }
