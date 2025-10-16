@@ -7,7 +7,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class Velocity {
-    private final double wheelDiameter = 1; // replace later
+    private final double wheelDiameter = .05; // meters
     public DcMotorEx parallelEncoder;
     public DcMotorEx perpendicularEncoder;
 

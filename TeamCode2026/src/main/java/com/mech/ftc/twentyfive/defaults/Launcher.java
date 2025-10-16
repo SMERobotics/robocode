@@ -1,17 +1,35 @@
 package com.mech.ftc.twentyfive.defaults;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Launcher {
+
+    public DcMotor launcherMotor;
+
     Velocity v;
     Camera camera;
     public Launcher(HardwareMap hardwareMap) {
         v = new Velocity(hardwareMap);
         camera = new Camera();
+        launcherMotor = hardwareMap.get(DcMotor.class, "launcherMotor");
     }
+
+    public void launch(Gamepad gamepad) {
+        if (gamepad.right_bumper) {
+            launcherMotor.setPower(launchPower());
+        }
+
+    }
+    public void launch() {
+        launcherMotor.setPower(launchPower());
+
+    }
+
     public double launchPower() {
         double y = 1; //change with 1.17 meters - height of launcher in meters;
-        double x = camera.getTagDistance();
+        double x = camera.getTagDistance() * 0.0254;
         double u = v.getForwardVelocity();
         double maxInitialSpeed = 1321; // calculate in m/s
         double angle = Math.toRadians(45); // angle of launcher in degrees change later
@@ -45,15 +63,15 @@ public class Launcher {
             double one = (-B + Math.sqrt(insideSquareRoot)) / (2 * A);
             double two = (-B - Math.sqrt(insideSquareRoot)) / (2 * A);
             double best = Double.POSITIVE_INFINITY;
-            if (one > 0.0) best = Math.min(best, one);
-            if (two > 0.0) best = Math.min(best, two);
-            if (!Double.isFinite(best)) return 0.0;
+            if (one > 0) best = Math.min(best, one);
+            if (two > 0) best = Math.min(best, two);
+            if (!Double.isFinite(best)) return 0;
 
-            // verify positive flight time
+
             double three = best * Math.cos(angle) + u;
-            if (three <= 0.0) return 0.0;
+            if (three <= 0) return 0;
             double t = x / three;
-            if (t <= 0.0) return 0.0;
+            if (t <= 0) return 0;
 
             return best;
         }

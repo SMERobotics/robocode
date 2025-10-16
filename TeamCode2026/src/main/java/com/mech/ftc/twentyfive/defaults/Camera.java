@@ -16,8 +16,10 @@ public class Camera {
     public AprilTagProcessor aprilTagProcessor;
     public VisionPortal visionPortal;
     public int aprilTagIdCode;
+    public WebcamName webcam;
 
     public void init(HardwareMap hardwareMap) {
+        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
         aprilTagProcessor = new AprilTagProcessor.Builder()
                 .setDrawTagID(true)
                 .setDrawTagOutline(true)
@@ -31,21 +33,22 @@ public class Camera {
                 .setCameraResolution(new Size(640, 480))
                 .setStreamFormat(VisionPortal.StreamFormat.YUY2)
                 .setAutoStopLiveView(true)
+                .enableLiveView(true)
                 .build();
 
-        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
-        visionPortal.stopStreaming();
-        visionPortal.stopLiveView();
+        visionPortal.setProcessorEnabled(aprilTagProcessor, true);
+//        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
+//        visionPortal.stopStreaming();
+//        visionPortal.stopLiveView();
     }
     public void start() {
-        visionPortal.setProcessorEnabled(aprilTagProcessor, true);
-        visionPortal.resumeLiveView();
-        visionPortal.resumeStreaming();
+//        visionPortal.setProcessorEnabled(aprilTagProcessor, true);
+//        visionPortal.resumeLiveView();
+//        visionPortal.resumeStreaming();
 
     }
     public int TagID() {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
-
         for (AprilTagDetection tagDetected : detections) {
             switch (tagDetected.id) {
                 case 20:
@@ -64,6 +67,7 @@ public class Camera {
                     aprilTagIdCode = 24;
                     break;
                 default:
+                    aprilTagIdCode = -1;
                     break;
             }
         }
@@ -73,9 +77,12 @@ public class Camera {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
         double tagDistance = 0;
         for (AprilTagDetection tagDetected : detections) {
-            tagDistance = Math.sqrt((tagDetected.ftcPose.y * tagDetected.ftcPose.y) + (tagDetected.ftcPose.x * tagDetected.ftcPose.x));
+            if (tagDetected.metadata == null) {
+                return 0;
+            }
+            tagDistance = tagDetected.ftcPose.range;
         }
-        return tagDistance;
+        return tagDistance*0.0254;
     }
 
 
