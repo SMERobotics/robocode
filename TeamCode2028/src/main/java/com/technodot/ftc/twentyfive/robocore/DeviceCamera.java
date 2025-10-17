@@ -2,8 +2,8 @@ package com.technodot.ftc.twentyfive.robocore;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.technodot.ftc.twentyfive.Obelisk;
-import com.technodot.ftc.twentyfive.Team;
+import com.technodot.ftc.twentyfive.common.Obelisk;
+import com.technodot.ftc.twentyfive.common.Team;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;

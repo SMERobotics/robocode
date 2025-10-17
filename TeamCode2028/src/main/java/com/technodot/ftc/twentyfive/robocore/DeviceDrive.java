@@ -3,6 +3,7 @@ package com.technodot.ftc.twentyfive.robocore;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 public class DeviceDrive extends Device {
 
@@ -63,22 +64,16 @@ public class DeviceDrive extends Device {
         br *= speedMultiplier;
 
         // Safety clamp (in case multiplier pushes over 1)
-        fl = clamp(fl);
-        fr = clamp(fr);
-        bl = clamp(bl);
-        br = clamp(br);
+        fl = Range.clip(fl, -1, 1);
+        fr = Range.clip(fr, -1, 1);
+        bl = Range.clip(bl, -1, 1);
+        br = Range.clip(br, -1, 1);
 
         // Set motor powers (null checks just in case init not called yet)
         if (motorFrontLeft != null) motorFrontLeft.setPower(fl);
         if (motorFrontRight != null) motorFrontRight.setPower(fr);
         if (motorBackLeft != null) motorBackLeft.setPower(bl);
         if (motorBackRight != null) motorBackRight.setPower(br);
-    }
-
-    private float clamp(float v) {
-        if (v > 1f) return 1f;
-        if (v < -1f) return -1f;
-        return v;
     }
 
     private float scaleInput(float v) {

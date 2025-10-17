@@ -2,7 +2,7 @@ package com.technodot.ftc.twentyfive;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
+import com.technodot.ftc.twentyfive.common.Team;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfive.robocore.DeviceExtake;
 
@@ -48,7 +48,6 @@ public class BaboOS extends OpMode {
         telemetry.addData("ly", gamepad1.left_stick_y);
         telemetry.addData("rx", gamepad1.right_stick_x);
         telemetry.addData("ry", gamepad1.right_stick_y);
-
 
         telemetry.addData("status", "running");
         telemetry.update();

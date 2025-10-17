@@ -3,6 +3,7 @@ package com.technodot.ftc.twentyfive;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.Range;
+import com.technodot.ftc.twentyfive.common.Team;
 import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 
@@ -58,6 +59,7 @@ public class BaboAuto extends OpMode {
             float strafe = (float) Range.clip(bearing / 17, -1, 1); // dynamically adjust bearing based on range?
             float rotate = (float) Range.clip(-yaw / 30, -1, 1);
 
+            // TODO: fuck this scaling shit in favor of implementing scaling directly in DeviceDrive
             forward /= 10;
             if (forward > 0) { // scale to interval +-0.7 to +-0.8
                 forward += 0.7f;

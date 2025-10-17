@@ -1,4 +1,4 @@
-package com.technodot.ftc.twentyfive;
+package com.technodot.ftc.twentyfive.common;
 
 public enum Obelisk {
     GPP,
