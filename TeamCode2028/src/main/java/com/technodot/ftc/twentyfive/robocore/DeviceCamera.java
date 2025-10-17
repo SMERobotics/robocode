@@ -1,5 +1,6 @@
 package com.technodot.ftc.twentyfive.robocore;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.Obelisk;
@@ -31,6 +32,9 @@ public class DeviceCamera extends Device {
         builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
         builder.addProcessor(aprilTagProcessor);
         visionPortal = builder.build();
+
+        FtcDashboard.getInstance().startCameraStream(visionPortal, 0);
+
 //        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
 //        visionPortal.stopLiveView();
 //        visionPortal.stopStreaming();

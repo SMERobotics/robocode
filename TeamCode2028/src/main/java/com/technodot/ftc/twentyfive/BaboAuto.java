@@ -1,5 +1,7 @@
 package com.technodot.ftc.twentyfive;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.Range;
@@ -15,41 +17,45 @@ public class BaboAuto extends OpMode {
     public DeviceCamera deviceCamera = new DeviceCamera();
     public DeviceDrive deviceDrive = new DeviceDrive();
 
-    public Team team = Team.BLUE;
+    public MultipleTelemetry t;
+
+    public final Team team = Team.BLUE;
 
     @Override
     public void init() {
+        t = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
         deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
     }
 
     @Override
     public void init_loop() {
-        telemetry.addData("status", "initialized");
-        telemetry.update();
+        t.addData("status", "initialized");
+        t.update();
     }
 
     @Override
     public void start() {
         deviceCamera.start();
 
-        telemetry.addData("status", "starting");
-        telemetry.update();
+        t.addData("status", "starting");
+        t.update();
     }
 
     @Override
     public void loop() {
         AprilTagDetection tag = deviceCamera.update();
         if (tag != null) {
-            telemetry.addData("tag", "found");
+            t.addData("tag", "found");
 
             double range = tag.ftcPose.range;
             double bearing = tag.ftcPose.bearing;
             double yaw = tag.ftcPose.yaw;
 
-            telemetry.addData("range", range);
-            telemetry.addData("bearing", bearing);
-            telemetry.addData("yaw", yaw);
+            t.addData("range", range);
+            t.addData("bearing", bearing);
+            t.addData("yaw", yaw);
 
             if (Math.abs(range - 30) < 3) range = 30;
             if (Math.abs(bearing) < 3) bearing = 0;
@@ -81,25 +87,25 @@ public class BaboAuto extends OpMode {
                 rotate -= 0.6f;
             }
 
-            telemetry.addData("forward", forward);
-            telemetry.addData("strafe", strafe);
-            telemetry.addData("rotate", rotate);
+            t.addData("forward", forward);
+            t.addData("strafe", strafe);
+            t.addData("rotate", rotate);
 
             deviceDrive.update(forward, strafe, rotate * 0.0f);
         } else {
             deviceDrive.zero();
-            telemetry.addData("tag", "not found");
+            t.addData("tag", "not found");
         }
 
-        telemetry.addData("status", "running");
-        telemetry.update();
+        t.addData("status", "running");
+        t.update();
     }
 
     @Override
     public void stop() {
         deviceCamera.stop();
 
-        telemetry.addData("status", "stopping");
-        telemetry.update();
+        t.addData("status", "stopping");
+        t.update();
     }
 }
