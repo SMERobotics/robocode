@@ -65,31 +65,13 @@ public class BaboAuto extends OpMode {
             float strafe = (float) Range.clip(bearing / 17, -1, 1); // dynamically adjust bearing based on range?
             float rotate = (float) Range.clip(-yaw / 30, -1, 1);
 
-            // TODO: fuck this scaling shit in favor of implementing scaling directly in DeviceDrive
-            forward /= 10;
-            if (forward > 0) { // scale to interval +-0.7 to +-0.8
-                forward += 0.7f;
-            } else if (forward < 0) {
-                forward -= 0.7f;
-            }
-
-            strafe /= 10;
-            if (strafe > 0) { // scale to interval +-0.7 to +-0.8
-                strafe += 0.7f;
-            } else if (strafe < 0) {
-                strafe -= 0.7f;
-            }
-
-            rotate /= 10;
-            if (rotate > 0) { // scale to interval +-0.6 to +-0.7
-                rotate += 0.6f;
-            } else if (rotate < 0) {
-                rotate -= 0.6f;
-            }
-
             t.addData("forward", forward);
             t.addData("strafe", strafe);
             t.addData("rotate", rotate);
+
+            forward *= 0.6f;
+            strafe *= 0.6f;
+            rotate *= 0.6f;
 
             deviceDrive.update(forward, strafe, rotate * 0.0f);
         } else {

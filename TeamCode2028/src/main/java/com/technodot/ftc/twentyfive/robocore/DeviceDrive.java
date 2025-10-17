@@ -14,8 +14,8 @@ public class DeviceDrive extends Device {
 
     public float speedMultiplier = 1.0F;
 
-    // small stick deadzone to ignore tiny noise
     private static final float DEADZONE = 0.02f;
+    private static final float ACTIVATION = 0.2f;
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -37,48 +37,35 @@ public class DeviceDrive extends Device {
     }
 
     public void update(float forward, float strafe, float rotate) {
-        // Apply deadzone
         if (Math.abs(forward) < DEADZONE) forward = 0f;
         if (Math.abs(strafe) < DEADZONE) strafe = 0f;
         if (Math.abs(rotate) < DEADZONE) rotate = 0f;
 
-        // Optional: non-linear scaling for finer low-speed control (comment out if undesired)
-        forward = scaleInput(forward);
-        strafe = scaleInput(strafe);
-        rotate = scaleInput(rotate);
+        // robot-centric kinematics
+        // if it ain't broke, don't fix it
+        // if it ain't broke, don't even flipping TOUCH it
+        float fl = forward + strafe + rotate;
+        float fr = forward - strafe - rotate;
+        float bl = forward - strafe + rotate;
+        float br = forward + strafe - rotate;
 
-        // Basic mecanum kinematics (robot-centric)
-        float fl = forward + strafe + rotate;    // Front Left
-        float fr = forward - strafe - rotate;    // Front Right
-        float bl = forward - strafe + rotate;    // Back Left
-        float br = forward + strafe - rotate;    // Back Right
-
-        // Find the maximum magnitude to normalize if needed
+        // normalize
         float max = Math.max(1.0f, Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
         fl /= max; fr /= max; bl /= max; br /= max;
 
-        // Apply overall speed multiplier
         fl *= speedMultiplier;
         fr *= speedMultiplier;
         bl *= speedMultiplier;
         br *= speedMultiplier;
 
-        // Safety clamp (in case multiplier pushes over 1)
-        fl = Range.clip(fl, -1, 1);
-        fr = Range.clip(fr, -1, 1);
-        bl = Range.clip(bl, -1, 1);
-        br = Range.clip(br, -1, 1);
-
-        // Set motor powers (null checks just in case init not called yet)
-        if (motorFrontLeft != null) motorFrontLeft.setPower(fl);
-        if (motorFrontRight != null) motorFrontRight.setPower(fr);
-        if (motorBackLeft != null) motorBackLeft.setPower(bl);
-        if (motorBackRight != null) motorBackRight.setPower(br);
+        update(fl, fr, bl, br);
     }
 
-    private float scaleInput(float v) {
-        // Cubic scaling keeps sign and gives finer control at low speeds
-        return v * v * v + 0.0f * v; // easy to tweak later
+    public void update(float fl, float fr, float bl, float br) {
+        if (motorFrontLeft != null) motorFrontLeft.setPower(scaleInput(fl));
+        if (motorFrontRight != null) motorFrontRight.setPower(scaleInput(fr));
+        if (motorBackLeft != null) motorBackLeft.setPower(scaleInput(bl));
+        if (motorBackRight != null) motorBackRight.setPower(scaleInput(br));
     }
 
     public void zero() {
@@ -86,5 +73,15 @@ public class DeviceDrive extends Device {
         motorFrontRight.setPower(0);
         motorBackLeft.setPower(0);
         motorBackRight.setPower(0);
+    }
+
+    private float scaleInput(float value) {
+        if (value > 0) {
+            return -value * ACTIVATION + value + ACTIVATION;
+        } else if (value < 0) {
+            return -value * ACTIVATION + value - ACTIVATION;
+        } else {
+            return 0;
+        }
     }
 }
