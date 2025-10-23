@@ -26,6 +26,8 @@ public class testtele extends LinearOpMode {
 
         left.setDirection(DcMotor.Direction.REVERSE);
 
+        boolean isShooterOn = false;
+
         waitForStart();
         if (isStopRequested()) return;
 
@@ -34,7 +36,7 @@ public class testtele extends LinearOpMode {
 
             if (gamepad1.a) {
                 finger.setPosition(1);
-                if (shooter.getVelocity() > 1900) {
+                if (shooter.getVelocity() > 1650) {
                     index.setPower(-1);
                 } else {
                     index.setPower(0);
@@ -44,10 +46,13 @@ public class testtele extends LinearOpMode {
                 index.setPower(0);
             }
 
-            if (gamepad1.y) {
-                shooter.setVelocity(2000);
+            if (gamepad1.yWasPressed()) {
+                isShooterOn = !isShooterOn; // This flips the boolean from true to false
+            }
+            if (isShooterOn) {
+                shooter.setVelocity(1800); // If the toggle is ON, set velocity to 2000
             } else {
-                shooter.setVelocity(0);
+                shooter.setVelocity(0);  // If the toggle is OFF, set velocity to 0
             }
 
             if (gamepad1.right_bumper) {
@@ -60,6 +65,7 @@ public class testtele extends LinearOpMode {
             telemetry.addData("Right Pow", right.getPower());
             telemetry.addData("Shooter Power", shooter.getVelocity());
             telemetry.addData("Intake Power", intake.getPower());
+            telemetry.addData("Shooter Status", isShooterOn ? "On" : "Off"); // Shows toggle state on Driver Hub\
             telemetry.update();
 
 
