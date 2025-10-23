@@ -17,6 +17,8 @@ public class testtele extends LinearOpMode {
         DcMotor right = hardwareMap.dcMotor.get("right");
         DcMotorEx shooter = hardwareMap.get(DcMotorEx.class, "activeShooter");
         DcMotor index = hardwareMap.dcMotor.get("index");
+        DcMotor intake = hardwareMap.dcMotor.get("intakey");
+
 
         Servo finger = hardwareMap.servo.get("indexfinger");
 
@@ -48,14 +50,21 @@ public class testtele extends LinearOpMode {
                 shooter.setVelocity(0);
             }
 
+            if (gamepad1.right_bumper) {
+                intake.setPower(1);
+            } else {
+                intake.setPower(0);
+            }
+
             telemetry.addData("Left Pow", left.getPower());
             telemetry.addData("Right Pow", right.getPower());
             telemetry.addData("Shooter Power", shooter.getVelocity());
+            telemetry.addData("Intake Power", intake.getPower());
             telemetry.update();
 
 
-            left.setPower(gamepad1.right_stick_y / 1.07);
-            right.setPower(gamepad1.left_stick_y);
+            left.setPower(gamepad1.right_stick_y);
+            right.setPower(gamepad1.left_stick_y/1.2773475);
         }
 
     }

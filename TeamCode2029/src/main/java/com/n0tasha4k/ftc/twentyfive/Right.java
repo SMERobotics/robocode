@@ -4,11 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-@Autonomous(name = "BADdieAUTONOMOUS (Blocks to Java)")
-public class BADdieAUTONOUMOUS extends LinearOpMode {
+@Autonomous(name = "Right ")
+public class Right extends LinearOpMode {
 
-    private DcMotor left;
-    private DcMotor index;
     private DcMotor right;
 
     /**
@@ -20,17 +18,14 @@ public class BADdieAUTONOUMOUS extends LinearOpMode {
      */
     @Override
     public void runOpMode() {
-        left = hardwareMap.get(DcMotor.class, "left");
-        index = hardwareMap.get(DcMotor.class, "index");
+
         right = hardwareMap.get(DcMotor.class, "right");
 
         waitForStart();
         if (opModeIsActive()) {
             while (opModeIsActive()) {
-                left.setPower(1);
-                right.setPower(-(1/1.2773475));
+                right.setPower(-1);
 
-                telemetry.addData("Left Pow", left.getPower());
                 telemetry.addData("Right Pow", right.getPower());
                 telemetry.update();
             }
