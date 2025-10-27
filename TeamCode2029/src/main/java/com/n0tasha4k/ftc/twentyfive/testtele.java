@@ -47,12 +47,12 @@ public class testtele extends LinearOpMode {
             }
 
             if (gamepad1.yWasPressed()) {
-                isShooterOn = !isShooterOn; // This flips the boolean from true to false
+                isShooterOn = !isShooterOn;
             }
             if (isShooterOn) {
-                shooter.setVelocity(1800); // If the toggle is ON, set velocity to 2000
+                shooter.setVelocity(1800);
             } else {
-                shooter.setVelocity(0);  // If the toggle is OFF, set velocity to 0
+                shooter.setVelocity(0);
             }
 
             if (gamepad1.right_bumper) {
