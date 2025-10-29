@@ -80,6 +80,7 @@ public class BADdieAUTONOUMOUS extends LinearOpMode {
                 telemetry.addData("Right Pow", right.getPower());
                 telemetry.addData("Shooter Power", shooter.getVelocity());
                 telemetry.update();
+                break;
             }
         }
     }
