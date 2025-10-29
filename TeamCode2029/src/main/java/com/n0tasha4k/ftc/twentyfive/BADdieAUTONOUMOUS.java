@@ -80,6 +80,7 @@ public class BADdieAUTONOUMOUS extends LinearOpMode {
                 telemetry.addData("Right Pow", right.getPower());
                 telemetry.addData("Shooter Power", shooter.getVelocity());
                 telemetry.update();
+                // Breaks out of loop here, isn't a good spot for it and you probably need to run the if statements through each other so it will wait for the first to finish before starting the next one. Still not tested though so it would be hard to tell.
                 break;
             }
         }
