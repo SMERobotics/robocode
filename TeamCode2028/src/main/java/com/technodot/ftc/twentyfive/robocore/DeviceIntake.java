@@ -24,7 +24,7 @@ public class DeviceIntake extends Device {
     @Override
     public void init(HardwareMap hardwareMap) {
         motorIntake = hardwareMap.get(DcMotor.class, "motorIntake");
-        motorIntake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motorIntake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         servoLeft = hardwareMap.get(Servo.class, "servoLeft");
         servoRight = hardwareMap.get(Servo.class, "servoRight");
@@ -42,6 +42,7 @@ public class DeviceIntake extends Device {
     public void update(Gamepad gamepad) {
         motorIntake.setPower((gamepad.right_bumper ? 1 : 0) + (gamepad.left_bumper ? -1 : 0));
 
+        // TODO: refactor into Toggleable class?
         if (gamepad.dpad_left && !leftPressed) {
             leftActivated = !leftActivated;
             leftPressed = true;

@@ -11,7 +11,7 @@ public class DeviceExtake extends Device {
     @Override
     public void init(HardwareMap hardwareMap) {
         motorExtake = hardwareMap.get(DcMotor.class, "motorExtake");
-        motorExtake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motorExtake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
     }
 
     @Override
