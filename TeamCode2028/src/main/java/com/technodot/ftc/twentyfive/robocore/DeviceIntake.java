@@ -42,7 +42,7 @@ public class DeviceIntake extends Device {
     public void update(Gamepad gamepad) {
         motorIntake.setPower((gamepad.right_bumper ? 1 : 0) + (gamepad.left_bumper ? -1 : 0));
 
-        // TODO: refactor into Toggleable class?
+        // TODO: refactor into Toggleable class???
         if (gamepad.dpad_left && !leftPressed) {
             leftActivated = !leftActivated;
             leftPressed = true;
