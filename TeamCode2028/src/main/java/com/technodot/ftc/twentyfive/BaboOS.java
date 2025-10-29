@@ -46,6 +46,8 @@ public class BaboOS extends OpMode {
         deviceIntake.update(gamepad1);
         deviceExtake.update(gamepad1);
 
+        deviceIntake.update(telemetry);
+
         telemetry.addData("lt", gamepad1.left_trigger);
         telemetry.addData("rt", gamepad1.right_trigger);
         telemetry.addData("lx", gamepad1.left_stick_x);
