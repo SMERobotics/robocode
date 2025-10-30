@@ -1,5 +1,7 @@
 package com.technodot.ftc.twentyfive.robocore;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -7,13 +9,14 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class DeviceIntake extends Device {
     public DcMotor motorIntake;
     public Servo servoLeft; // perspective of the robot
     public Servo servoRight; // perspective of the robot
-    public ColorSensor colorLeft;
-    public ColorSensor colorRight;
+    public RevColorSensorV3 colorLeft;
+    public RevColorSensorV3 colorRight;
 
     public boolean leftPressed = false;
     public boolean rightPressed = false;
@@ -23,6 +26,7 @@ public class DeviceIntake extends Device {
 //    public float leftPosition = 0;
 //    public float rightPosition = 0;
 
+    private Telemetry t;
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -32,8 +36,10 @@ public class DeviceIntake extends Device {
         servoLeft = hardwareMap.get(Servo.class, "servoLeft");
         servoRight = hardwareMap.get(Servo.class, "servoRight");
 
-        colorLeft = hardwareMap.get(ColorSensor.class, "colorLeft");
-        colorRight = hardwareMap.get(ColorSensor.class, "colorRight");
+        colorLeft = hardwareMap.get(RevColorSensorV3.class, "colorLeft");
+        colorRight = hardwareMap.get(RevColorSensorV3.class, "colorRight");
+
+        t = FtcDashboard.getInstance().getTelemetry();
     }
 
     @Override
@@ -92,11 +98,23 @@ public class DeviceIntake extends Device {
 //
 //        servoLeft.setPosition(leftPosition);
 //        servoRight.setPosition(rightPosition);
+
+        // TODO: calibrate the color sensors to balls fr
     }
 
     public void update(Telemetry telemetry) {
         telemetry.addData("lcol", "R: %d, G: %d, B: %d", colorLeft.red(), colorLeft.green(), colorLeft.blue());
         telemetry.addData("rcol", "R: %d, G: %d, B: %d", colorRight.red(), colorRight.green(), colorRight.blue());
+
+        t.addData("lcolr", colorLeft.red());
+        t.addData("lcolg", colorLeft.green());
+        t.addData("lcolb", colorLeft.blue());
+        t.addData("lcold", colorLeft.getDistance(DistanceUnit.CM));
+        t.addData("rcolr", colorRight.red());
+        t.addData("rcolg", colorRight.green());
+        t.addData("rcolb", colorRight.blue());
+        t.addData("rcold", colorRight.getDistance(DistanceUnit.CM));
+
 //        telemetry.addData("lpos", servoLeft.getPosition());
 //        telemetry.addData("rpos", servoRight.getPosition());
     }
