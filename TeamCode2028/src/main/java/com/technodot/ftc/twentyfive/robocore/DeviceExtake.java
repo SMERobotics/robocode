@@ -21,7 +21,7 @@ public class DeviceExtake extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
-        motorExtake.setPower(gamepad.left_trigger - gamepad.right_trigger);
+        motorExtake.setPower(gamepad.right_trigger - gamepad.left_trigger);
     }
 
     @Override

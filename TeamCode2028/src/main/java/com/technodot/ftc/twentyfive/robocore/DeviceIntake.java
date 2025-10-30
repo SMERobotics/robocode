@@ -20,6 +20,9 @@ public class DeviceIntake extends Device {
     public boolean leftActivated = false;
     public boolean rightActivated = false;
 
+//    public float leftPosition = 0;
+//    public float rightPosition = 0;
+
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -58,21 +61,44 @@ public class DeviceIntake extends Device {
         }
 
         if (leftActivated) {
-            servoLeft.setPosition(0.0);
+            servoLeft.setPosition(0.56); // left closed position
         } else {
-            servoLeft.setPosition(0.67);
+            servoLeft.setPosition(0.3); // left open position
         }
 
         if (rightActivated) {
-            servoRight.setPosition(0);
+            servoRight.setPosition(0.3); // right closed position
         } else {
-            servoRight.setPosition(-0.67);
+            servoRight.setPosition(0.56); // right open position
         }
+
+        // calibration shit below
+
+//        if (gamepad.dpad_left) {
+//            leftPosition += 0.001;
+//        }
+//
+//        if (gamepad.dpad_down) {
+//            leftPosition -= 0.001;
+//        }
+//
+//        if (gamepad.dpad_right) {
+//            rightPosition += 0.001;
+//        }
+//
+//        if (gamepad.dpad_up) {
+//            rightPosition -= 0.001;
+//        }
+//
+//        servoLeft.setPosition(leftPosition);
+//        servoRight.setPosition(rightPosition);
     }
 
     public void update(Telemetry telemetry) {
-        telemetry.addData("Left Color", "R: %d, G: %d, B: %d", colorLeft.red(), colorLeft.green(), colorLeft.blue());
-        telemetry.addData("Right Color", "R: %d, G: %d, B: %d", colorRight.red(), colorRight.green(), colorRight.blue());
+        telemetry.addData("lcol", "R: %d, G: %d, B: %d", colorLeft.red(), colorLeft.green(), colorLeft.blue());
+        telemetry.addData("rcol", "R: %d, G: %d, B: %d", colorRight.red(), colorRight.green(), colorRight.blue());
+//        telemetry.addData("lpos", servoLeft.getPosition());
+//        telemetry.addData("rpos", servoRight.getPosition());
     }
 
     @Override
