@@ -12,7 +12,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 public class DriveCode extends OpMode {
 
     DriveTrain driveTrain = new DriveTrain();
-    //Velocity v = new Velocity(hardwareMap);
+    Velocity v;
+    Launcher launcher;
     Camera camera = new Camera();
     FtcDashboard dashboard = FtcDashboard.getInstance();
     com.acmerobotics.dashboard.telemetry.TelemetryPacket packet = new com.acmerobotics.dashboard.telemetry.TelemetryPacket();
@@ -21,27 +22,47 @@ public class DriveCode extends OpMode {
     public void init() {
         driveTrain.init(hardwareMap);
         camera.init(hardwareMap);
+        camera.start(); // start once
         dashboard.startCameraStream(camera.visionPortal, 30);
+
+        v = new Velocity(driveTrain.frontLeft, driveTrain.frontRight);
+        launcher = new Launcher(driveTrain.launchMotor, v);
     }
+
     @Override
     public void init_loop() {
         getTelemetry();
     }
+
     @Override
     public void loop() {
         driveTrain.drive(gamepad1);
-        camera.start();
+
+        boolean fire = gamepad1.right_trigger > 0.5;
+        boolean tagVisible = camera.TagID() != -1;
+        double distanceM = camera.getTagDistance();
+
+        launcher.setEnabled(fire && tagVisible);
+        launcher.update(distanceM);
+
+        if (gamepad1.a) {
+            driveTrain.intake.setPower(1);
+        } else {
+            driveTrain.intake.setPower(0);
+        }
+
         getTelemetry();
-        //launcher.launch(gamepad1);
     }
 
     public void getTelemetry() {
-        //telemetry.addData("Forward Velocity (m/s): ", v.getForwardVelocity());
-        //telemetry.addData("Lateral Velocity (m/s): ", v.getLateralVelocity());
-        //telemetry.addData("Robot Velocity (m/s): ", Math.sqrt((v.getForwardVelocity() * v.getForwardVelocity()) + v.getLateralVelocity() * v.getLateralVelocity()));
+        telemetry.addData("Forward Velocity (m/s): ", v.getForwardVelocity());
+        telemetry.addData("Lateral Velocity (m/s): ", v.getLateralVelocity());
         telemetry.addData("ID", camera.TagID() + " Tag Distance (m) " +  camera.getTagDistance());
+        telemetry.addData("Launch Target Power", launcher.getTargetPower());
+        telemetry.addData("Launch Applied Power", driveTrain.launchMotor.getPower());
         packet.put("ID", camera.TagID());
         packet.put("Tag Distance (m)", camera.getTagDistance());
+        packet.put("Launch Target Power", launcher.getTargetPower());
         dashboard.sendTelemetryPacket(packet);
         telemetry.update();
     }
