@@ -1,201 +1,271 @@
 package com.technodot.ftc.twentyfive.common;
 
 public class PIDController {
-    // Gains
-    private double kP;
-    private double kI;
-    private double kD;
+    private double kP;  // Proportional gain
+    private double kI;  // Integral gain
+    private double kD;  // Derivative gain
 
-    // State
     private double setpoint;
+    private double lastError;
     private double integral;
-    private double prevError;
-    private boolean hasPrevError;
+    private double lastTime;
 
-    // Track last error rate for tolerance checks
-    private double lastErrorRate; // units per second
-    private boolean hasLastRate;
+    private double minOutput;
+    private double maxOutput;
+    private boolean outputLimited;
 
-    // Time tracking (for implicit dt)
-    private long lastTimeNanos;
-    private boolean hasLastTime;
+    private double integralMin;
+    private double integralMax;
+    private boolean integralLimited;
 
-    // Limits
-    private double minOutput = -Double.MAX_VALUE;
-    private double maxOutput = Double.MAX_VALUE;
-    private double minIntegral = -Double.MAX_VALUE;
-    private double maxIntegral = Double.MAX_VALUE;
-
-    // Tolerances
-    private double positionTolerance = 0.0; // in same units as measurement
-    private double velocityTolerance = Double.MAX_VALUE; // units per second (MAX => disabled)
-
+    /**
+     * Creates a new PID controller with the specified gains.
+     *
+     * @param kP Proportional gain
+     * @param kI Integral gain
+     * @param kD Derivative gain
+     */
     public PIDController(double kP, double kI, double kD) {
         this.kP = kP;
         this.kI = kI;
         this.kD = kD;
+
+        this.setpoint = 0;
+        this.lastError = 0;
+        this.integral = 0;
+        this.lastTime = -1;
+
+        this.outputLimited = false;
+        this.integralLimited = false;
     }
 
     /**
-     * Calculate output using the elapsed time since last call.
-     * If this is the first call, derivative and integral are not applied.
+     * Calculates the PID output based on the current measurement.
+     *
+     * @param measurement Current measured value
+     * @param currentTime Current time in seconds
+     * @return Control output
      */
-    public double calculate(double measurement) {
-        final long now = System.nanoTime();
-        double output;
+    public double calculate(double measurement, double currentTime) {
+        double error = setpoint - measurement;
 
-        if (!hasLastTime) {
-            // First run: compute P only, initialize time
-            output = calculateInternal(measurement, 0.0);
-            lastTimeNanos = now;
-            hasLastTime = true;
+        // Calculate time delta
+        double dt;
+        if (lastTime < 0) {
+            dt = 0;
+            lastTime = currentTime;
         } else {
-            double dt = (now - lastTimeNanos) / 1_000_000_000.0; // seconds
-            if (dt < 0) dt = 0; // guard (shouldn't happen)
-            output = calculateInternal(measurement, dt);
-            lastTimeNanos = now;
+            dt = currentTime - lastTime;
+            lastTime = currentTime;
         }
-        return output;
-    }
 
-    /**
-     * Calculate output using an explicit dt in seconds.
-     * dt <= 0 disables I and D for this step but still returns the P term.
-     */
-    public double calculate(double measurement, double dtSeconds) {
-        return calculateInternal(measurement, dtSeconds);
-    }
-
-    // Core computation with optional dt (seconds). dt <= 0 => only P is applied.
-    private double calculateInternal(double measurement, double dt) {
-        final double error = setpoint - measurement;
-
-        // Proportional
+        // Proportional term
         double p = kP * error;
 
-        // Integral (with anti-windup via clamping)
-        double i = 0.0;
-        if (kI != 0.0 && dt > 0.0) {
+        // Integral term
+        if (dt > 0) {
             integral += error * dt;
-            // Clamp integral accumulator
-            if (integral > maxIntegral) integral = maxIntegral;
-            if (integral < minIntegral) integral = minIntegral;
-            i = kI * integral;
-        }
 
-        // Derivative (on error) – uses previous error when available
-        double d = 0.0;
-        if (dt > 0.0 && hasPrevError) {
-            double errorRate = (error - prevError) / dt;
-            lastErrorRate = errorRate;
-            hasLastRate = true;
-            if (kD != 0.0) {
-                d = kD * errorRate;
+            // Apply integral limits if enabled
+            if (integralLimited) {
+                integral = clamp(integral, integralMin, integralMax);
             }
-        } else if (dt <= 0.0) {
-            // no rate update when dt is invalid
-            hasLastRate = false;
+        }
+        double i = kI * integral;
+
+        // Derivative term
+        double d = 0;
+        if (dt > 0) {
+            d = kD * (error - lastError) / dt;
+        }
+        lastError = error;
+
+        // Calculate total output
+        double output = p + i + d;
+
+        // Apply output limits if enabled
+        if (outputLimited) {
+            output = clamp(output, minOutput, maxOutput);
         }
 
-        // Save state for next step
-        prevError = error;
-        hasPrevError = true;
-
-        // Sum and clamp output
-        double output = p + i + d;
-        if (output > maxOutput) output = maxOutput;
-        if (output < minOutput) output = minOutput;
         return output;
     }
 
-    // Configuration API
+    /**
+     * Calculates the PID output without explicit time (uses auto-incrementing time).
+     * Useful for fixed-rate control loops.
+     *
+     * @param measurement Current measured value
+     * @return Control output
+     */
+    public double calculate(double measurement) {
+        if (lastTime < 0) {
+            lastTime = 0;
+        }
+        return calculate(measurement, lastTime + 0.02); // Assume 20ms default
+    }
 
+    /**
+     * Sets the target setpoint.
+     *
+     * @param setpoint Target value
+     */
+    public void setSetpoint(double setpoint) {
+        this.setpoint = setpoint;
+    }
+
+    /**
+     * Gets the current setpoint.
+     *
+     * @return Current setpoint
+     */
+    public double getSetpoint() {
+        return setpoint;
+    }
+
+    /**
+     * Sets the PID gains.
+     *
+     * @param kP Proportional gain
+     * @param kI Integral gain
+     * @param kD Derivative gain
+     */
     public void setPID(double kP, double kI, double kD) {
         this.kP = kP;
         this.kI = kI;
         this.kD = kD;
     }
 
-    public void setP(double kP) { this.kP = kP; }
-    public void setI(double kI) { this.kI = kI; }
-    public void setD(double kD) { this.kD = kD; }
-
-    public double getP() { return kP; }
-    public double getI() { return kI; }
-    public double getD() { return kD; }
-
-    public void setSetpoint(double setpoint) { this.setpoint = setpoint; }
-    public double getSetpoint() { return setpoint; }
+    /**
+     * Sets the proportional gain.
+     *
+     * @param kP Proportional gain
+     */
+    public void setP(double kP) {
+        this.kP = kP;
+    }
 
     /**
-     * Clamp output to [min, max]. Defaults to unbounded.
+     * Sets the integral gain.
+     *
+     * @param kI Integral gain
      */
-    public void setOutputRange(double min, double max) {
-        if (min > max) {
-            // swap to be forgiving
-            double tmp = min; min = max; max = tmp;
-        }
+    public void setI(double kI) {
+        this.kI = kI;
+    }
+
+    /**
+     * Sets the derivative gain.
+     *
+     * @param kD Derivative gain
+     */
+    public void setD(double kD) {
+        this.kD = kD;
+    }
+
+    /**
+     * Gets the proportional gain.
+     *
+     * @return Proportional gain
+     */
+    public double getP() {
+        return kP;
+    }
+
+    /**
+     * Gets the integral gain.
+     *
+     * @return Integral gain
+     */
+    public double getI() {
+        return kI;
+    }
+
+    /**
+     * Gets the derivative gain.
+     *
+     * @return Derivative gain
+     */
+    public double getD() {
+        return kD;
+    }
+
+    /**
+     * Sets output limits to prevent output from exceeding bounds.
+     *
+     * @param min Minimum output value
+     * @param max Maximum output value
+     */
+    public void setOutputLimits(double min, double max) {
         this.minOutput = min;
         this.maxOutput = max;
+        this.outputLimited = true;
     }
 
     /**
-     * Clamp the integral accumulator contribution. Defaults to unbounded.
+     * Removes output limits.
      */
-    public void setIntegralRange(double min, double max) {
-        if (min > max) {
-            double tmp = min; min = max; max = tmp;
-        }
-        this.minIntegral = min;
-        this.maxIntegral = max;
-        // also clamp current integral to respect new bounds
-        if (integral > maxIntegral) integral = maxIntegral;
-        if (integral < minIntegral) integral = minIntegral;
+    public void removeOutputLimits() {
+        this.outputLimited = false;
     }
 
     /**
-     * Set tolerances used by atSetpoint().
-     * @param positionTolerance allowable absolute error (>= 0)
-     * @param velocityTolerance allowable absolute error rate in units/sec (>= 0)
-     *                           Use Double.MAX_VALUE to disable velocity check.
+     * Sets integral limits to prevent integral windup.
+     *
+     * @param min Minimum integral value
+     * @param max Maximum integral value
      */
-    public void setTolerance(double positionTolerance, double velocityTolerance) {
-        if (positionTolerance < 0 || velocityTolerance < 0) {
-            throw new IllegalArgumentException("Tolerances must be non-negative");
-        }
-        this.positionTolerance = positionTolerance;
-        this.velocityTolerance = velocityTolerance;
+    public void setIntegralLimits(double min, double max) {
+        this.integralMin = min;
+        this.integralMax = max;
+        this.integralLimited = true;
     }
 
     /**
-     * True when the absolute error is within position tolerance and, if enabled,
-     * the absolute error rate is within velocity tolerance.
-     * Requires at least one prior calculate() call.
+     * Removes integral limits.
      */
-    public boolean atSetpoint() {
-        if (!hasPrevError) {
-            return false; // need at least one measurement step
-        }
-
-        boolean positionOK = Math.abs(prevError) <= positionTolerance;
-
-        // If velocity tolerance is disabled (Double.MAX_VALUE), only check position
-        if (velocityTolerance == Double.MAX_VALUE) {
-            return positionOK;
-        }
-
-        boolean velocityOK = hasLastRate && Math.abs(lastErrorRate) <= velocityTolerance;
-        return positionOK && velocityOK;
+    public void removeIntegralLimits() {
+        this.integralLimited = false;
     }
 
-    /** Reset integrator, previous error, and internal timers. */
+    /**
+     * Resets the controller state (integral and derivative terms).
+     */
     public void reset() {
-        integral = 0.0;
-        prevError = 0.0;
-        hasPrevError = false;
-        lastErrorRate = 0.0;
-        hasLastRate = false;
-        lastTimeNanos = 0L;
-        hasLastTime = false;
+        this.integral = 0;
+        this.lastError = 0;
+        this.lastTime = -1;
+    }
+
+    /**
+     * Gets the current integral value.
+     *
+     * @return Current integral accumulation
+     */
+    public double getIntegral() {
+        return integral;
+    }
+
+    /**
+     * Gets the last error value.
+     *
+     * @return Last error
+     */
+    public double getLastError() {
+        return lastError;
+    }
+
+    /**
+     * Utility method to clamp a value between min and max.
+     *
+     * @param value Value to clamp
+     * @param min Minimum value
+     * @param max Maximum value
+     * @return Clamped value
+     */
+    private double clamp(double value, double min, double max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
     }
 }
