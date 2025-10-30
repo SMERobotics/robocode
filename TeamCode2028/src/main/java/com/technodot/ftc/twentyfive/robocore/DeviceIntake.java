@@ -1,12 +1,14 @@
 package com.technodot.ftc.twentyfive.robocore;
 
-import com.acmerobotics.dashboard.FtcDashboard;
+import android.graphics.Color;
+
 import com.qualcomm.hardware.rev.RevColorSensorV3;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.technodot.ftc.twentyfive.common.Artifact;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -26,7 +28,8 @@ public class DeviceIntake extends Device {
 //    public float leftPosition = 0;
 //    public float rightPosition = 0;
 
-    private Telemetry t;
+    public Artifact leftArtifact = Artifact.NONE;
+    public Artifact rightArtifact = Artifact.NONE;
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -39,7 +42,8 @@ public class DeviceIntake extends Device {
         colorLeft = hardwareMap.get(RevColorSensorV3.class, "colorLeft");
         colorRight = hardwareMap.get(RevColorSensorV3.class, "colorRight");
 
-        t = FtcDashboard.getInstance().getTelemetry();
+        colorLeft.enableLed(true);
+        colorRight.enableLed(true);
     }
 
     @Override
@@ -100,23 +104,52 @@ public class DeviceIntake extends Device {
 //        servoRight.setPosition(rightPosition);
 
         // TODO: calibrate the color sensors to balls fr
+
+        double leftDistance = colorLeft.getDistance(DistanceUnit.CM);
+        NormalizedRGBA leftColor = colorLeft.getNormalizedColors();
+        float[] leftHSV = new float[3];
+        Color.colorToHSV(leftColor.toColor(), leftHSV);
+        float leftHue = leftHSV[0];
+        float leftSaturation = leftHSV[1];
+        float leftValue = leftHSV[2];
+        if (leftDistance <= 10 && leftSaturation <= 30 && leftValue >= 10 && leftValue <= 90) {
+            if (leftHue >= 260 && leftHue <= 320) {
+                leftArtifact = Artifact.PURPLE;
+            } else if (leftHue >= 80 && leftHue <= 160) {
+                leftArtifact = Artifact.GREEN;
+            } else {
+                leftArtifact = Artifact.NONE;
+            }
+        } else {
+            leftArtifact = Artifact.NONE;
+        }
+
+        double rightDistance = colorRight.getDistance(DistanceUnit.CM);
+        NormalizedRGBA rightColor = colorRight.getNormalizedColors();
+        float[] rightHSV = new float[3];
+        Color.colorToHSV(rightColor.toColor(), rightHSV);
+        float rightHue = rightHSV[0];
+        float rightSaturation = rightHSV[1];
+        float rightValue = rightHSV[2];
+        if (rightDistance <= 10 && rightSaturation <= 30 && rightValue >= 10 && rightValue <= 90) {
+            if (rightHue >= 260 && rightHue <= 320) {
+                rightArtifact = Artifact.PURPLE;
+            } else if (rightHue >= 80 && rightHue <= 160) {
+                rightArtifact = Artifact.GREEN;
+            } else {
+                rightArtifact = Artifact.NONE;
+            }
+        } else {
+            rightArtifact = Artifact.NONE;
+        }
     }
 
     public void update(Telemetry telemetry) {
-        telemetry.addData("lcol", "R: %d, G: %d, B: %d", colorLeft.red(), colorLeft.green(), colorLeft.blue());
-        telemetry.addData("rcol", "R: %d, G: %d, B: %d", colorRight.red(), colorRight.green(), colorRight.blue());
+        telemetry.addData("l_artifact", leftArtifact);
+        telemetry.addData("r_artifact", rightArtifact);
 
-        t.addData("lcolr", colorLeft.red());
-        t.addData("lcolg", colorLeft.green());
-        t.addData("lcolb", colorLeft.blue());
-        t.addData("lcold", colorLeft.getDistance(DistanceUnit.CM));
-        t.addData("rcolr", colorRight.red());
-        t.addData("rcolg", colorRight.green());
-        t.addData("rcolb", colorRight.blue());
-        t.addData("rcold", colorRight.getDistance(DistanceUnit.CM));
-
-//        telemetry.addData("lpos", servoLeft.getPosition());
-//        telemetry.addData("rpos", servoRight.getPosition());
+//        telemetry.addData("l_pos", servoLeft.getPosition());
+//        telemetry.addData("r_pos", servoRight.getPosition());
     }
 
     @Override
