@@ -22,8 +22,9 @@ public class DeviceIntake extends Device {
 
     public boolean leftPressed = false;
     public boolean rightPressed = false;
-    public boolean leftActivated = false;
-    public boolean rightActivated = false;
+    public boolean bothPressed = false;
+    public long leftActivated = 0;
+    public long rightActivated = 0;
 
 //    public float leftPosition = 0;
 //    public float rightPosition = 0;
@@ -55,28 +56,37 @@ public class DeviceIntake extends Device {
     public void update(Gamepad gamepad) {
         motorIntake.setPower((gamepad.right_bumper ? 1 : 0) + (gamepad.left_bumper ? -1 : 0));
 
-        // TODO: refactor into Toggleable class???
+        long now = System.currentTimeMillis();
+
         if (gamepad.dpad_left && !leftPressed) {
-            leftActivated = !leftActivated;
+            leftActivated = now + 200;
             leftPressed = true;
         } else if (!gamepad.dpad_left) {
             leftPressed = false;
         }
 
         if (gamepad.dpad_right && !rightPressed) {
-            rightActivated = !rightActivated;
+            rightActivated = now + 200;
             rightPressed = true;
         } else if (!gamepad.dpad_right) {
             rightPressed = false;
         }
 
-        if (leftActivated) {
+        if (gamepad.dpad_down && !bothPressed) {
+            leftActivated = now + 200;
+            rightActivated = now + 200;
+            bothPressed = true;
+        } else if (!gamepad.dpad_down) {
+            bothPressed = false;
+        }
+
+        if (now < leftActivated) {
             servoLeft.setPosition(0.56); // left closed position
         } else {
             servoLeft.setPosition(0.3); // left open position
         }
 
-        if (rightActivated) {
+        if (now < rightActivated) {
             servoRight.setPosition(0.3); // right closed position
         } else {
             servoRight.setPosition(0.56); // right open position
@@ -105,47 +115,93 @@ public class DeviceIntake extends Device {
 
         // TODO: calibrate the color sensors to balls fr
 
-        double leftDistance = colorLeft.getDistance(DistanceUnit.CM);
-        NormalizedRGBA leftColor = colorLeft.getNormalizedColors();
-        float[] leftHSV = new float[3];
-        Color.colorToHSV(leftColor.toColor(), leftHSV);
-        float leftHue = leftHSV[0];
-        float leftSaturation = leftHSV[1];
-        float leftValue = leftHSV[2];
-        if (leftDistance <= 10 && leftSaturation <= 30 && leftValue >= 10 && leftValue <= 90) {
-            if (leftHue >= 260 && leftHue <= 320) {
-                leftArtifact = Artifact.PURPLE;
-            } else if (leftHue >= 80 && leftHue <= 160) {
-                leftArtifact = Artifact.GREEN;
-            } else {
-                leftArtifact = Artifact.NONE;
-            }
-        } else {
-            leftArtifact = Artifact.NONE;
-        }
+//        double leftDistance = colorLeft.getDistance(DistanceUnit.CM);
+//        NormalizedRGBA leftColor = colorLeft.getNormalizedColors();
+//        float[] leftHSV = new float[3];
+//        Color.colorToHSV(leftColor.toColor(), leftHSV);
+//        float leftHue = leftHSV[0];
+//        if (leftDistance <= 10) {
+//            if (leftHue >= 220 && leftHue <= 320) {
+//                leftArtifact = Artifact.PURPLE;
+//            } else if (leftHue >= 80 && leftHue <= 160) {
+//                leftArtifact = Artifact.GREEN;
+//            } else {
+//                leftArtifact = Artifact.NONE;
+//            }
+//        } else {
+//            leftArtifact = Artifact.NONE;
+//        }
+//
+//        double rightDistance = colorRight.getDistance(DistanceUnit.CM);
+//        NormalizedRGBA rightColor = colorRight.getNormalizedColors();
+//        float[] rightHSV = new float[3];
+//        Color.colorToHSV(rightColor.toColor(), rightHSV);
+//        float rightHue = rightHSV[0];
+//        if (rightDistance <= 10) {
+//            if (rightHue >= 220 && rightHue <= 320) {
+//                rightArtifact = Artifact.PURPLE;
+//            } else if (rightHue >= 80 && rightHue <= 160) {
+//                rightArtifact = Artifact.GREEN;
+//            } else {
+//                rightArtifact = Artifact.NONE;
+//            }
+//        } else {
+//            rightArtifact = Artifact.NONE;
+//        }
 
-        double rightDistance = colorRight.getDistance(DistanceUnit.CM);
-        NormalizedRGBA rightColor = colorRight.getNormalizedColors();
-        float[] rightHSV = new float[3];
-        Color.colorToHSV(rightColor.toColor(), rightHSV);
-        float rightHue = rightHSV[0];
-        float rightSaturation = rightHSV[1];
-        float rightValue = rightHSV[2];
-        if (rightDistance <= 10 && rightSaturation <= 30 && rightValue >= 10 && rightValue <= 90) {
-            if (rightHue >= 260 && rightHue <= 320) {
-                rightArtifact = Artifact.PURPLE;
-            } else if (rightHue >= 80 && rightHue <= 160) {
-                rightArtifact = Artifact.GREEN;
-            } else {
-                rightArtifact = Artifact.NONE;
-            }
-        } else {
-            rightArtifact = Artifact.NONE;
-        }
+        // TODO: fix ts
+
+//        double leftDistance = colorLeft.getDistance(DistanceUnit.CM);
+//        float leftR = colorLeft.red();
+//        float leftG = colorLeft.green();
+//        float leftB = colorLeft.blue();
+//        // fix the bum ahh color readings
+//        // check chatgpt for ts
+//        float[] leftHSV = new float[3];
+//        Color.colorToHSV(leftColor.toColor(), leftHSV);
+//        float leftHue = leftHSV[0];
+//        if (leftDistance <= 10) {
+//            if (leftHue >= 220 && leftHue <= 320) {
+//                leftArtifact = Artifact.PURPLE;
+//            } else if (leftHue >= 80 && leftHue <= 160) {
+//                leftArtifact = Artifact.GREEN;
+//            } else {
+//                leftArtifact = Artifact.NONE;
+//            }
+//        } else {
+//            leftArtifact = Artifact.NONE;
+//        }
     }
 
     public void update(Telemetry telemetry) {
+        telemetry.addData("l_r", colorLeft.red());
+        telemetry.addData("l_g", colorLeft.green());
+        telemetry.addData("l_b", colorLeft.blue());
+        telemetry.addData("l_a", colorLeft.alpha());
+        NormalizedRGBA leftColor = colorLeft.getNormalizedColors();
+        telemetry.addData("l_r", leftColor.red);
+        telemetry.addData("l_g", leftColor.green);
+        telemetry.addData("l_b", leftColor.blue);
+        telemetry.addData("l_a", leftColor.alpha);
+        float[] leftHSV = new float[3];
+        Color.colorToHSV(leftColor.toColor(), leftHSV);
+        telemetry.addData("l_hsv", String.format("H:%.0f S:%.0f V:%.0f", leftHSV[0], leftHSV[1], leftHSV[2]));
+        telemetry.addData("l_dist", colorLeft.getDistance(DistanceUnit.CM));
         telemetry.addData("l_artifact", leftArtifact);
+
+        telemetry.addData("r_r", colorRight.red());
+        telemetry.addData("r_g", colorRight.green());
+        telemetry.addData("r_b", colorRight.blue());
+        telemetry.addData("r_a", colorRight.alpha());
+        NormalizedRGBA rightColor = colorRight.getNormalizedColors();
+        telemetry.addData("r_r", rightColor.red);
+        telemetry.addData("r_g", rightColor.green);
+        telemetry.addData("r_b", rightColor.blue);
+        telemetry.addData("r_a", rightColor.alpha);
+        float[] rightHSV = new float[3];
+        Color.colorToHSV(rightColor.toColor(), rightHSV);
+        telemetry.addData("r_hsv", String.format("H:%.0f S:%.0f V:%.0f", rightHSV[0], rightHSV[1], rightHSV[2]));
+        telemetry.addData("r_dist", colorRight.getDistance(DistanceUnit.CM));
         telemetry.addData("r_artifact", rightArtifact);
 
 //        telemetry.addData("l_pos", servoLeft.getPosition());
