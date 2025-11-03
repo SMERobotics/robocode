@@ -2,7 +2,6 @@ package com.technodot.ftc.twentyfive.batch;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class Batch {
 
@@ -10,50 +9,25 @@ public class Batch {
     public long startNs = 0;
     public long currentNs = 0;
 
-    private static final class Action {
-        final long startOffsetNs;
-        final long durationNs;
-        final long endNs;
-        final Runnable callback;
-        boolean completed;
-
-        Action(long startOffsetNs, long durationNs, Runnable callback) {
-            this.startOffsetNs = startOffsetNs;
-            this.durationNs = durationNs;
-            this.endNs = startOffsetNs + durationNs;
-            this.callback = callback;
-        }
-
-        boolean isActive(long elapsedNs) {
-            if (durationNs == 0) {
-                if (completed) {
-                    return false;
-                }
-                if (elapsedNs >= startOffsetNs) {
-                    completed = true;
-                    return true;
-                }
-                return false;
-            }
-            return elapsedNs >= startOffsetNs && elapsedNs < endNs;
-        }
-
-        void reset() {
-            completed = false;
-        }
-    }
-
     private final List<Action> actions = new ArrayList<>();
 
-    public Batch plan(long startMs, long durationMs, Runnable action) {
-        if (action == null) {
-            throw new IllegalArgumentException("action must not be null");
+    public Batch plan(long startMs, long durationMs, Runnable callback) {
+        if (callback == null) {
+            throw new IllegalArgumentException("action is cooked gng \uD83E\uDD40");
         }
-        long clampedStartMs = Math.max(0L, startMs);
-        long clampedDurationMs = Math.max(0L, durationMs);
-        long startOffsetNs = TimeUnit.MILLISECONDS.toNanos(clampedStartMs);
-        long durationNs = TimeUnit.MILLISECONDS.toNanos(clampedDurationMs);
-        actions.add(new Action(startOffsetNs, durationNs, action));
+        // 1s = 1_000ms = 1_000_000us = 1_000_000_000ns
+        long startNs = Math.max(0L, startMs) * 1_000_000L;
+        long durationNs = Math.max(0L, durationMs) * 1_000_000L;
+        actions.add(new Action(startNs, durationNs, callback));
+        return this;
+    }
+
+    public Batch plan(long startMs, Runnable callback) {
+        return plan(startMs, 0L, callback);
+    }
+
+    public Batch plan(Action action) {
+        actions.add(action);
         return this;
     }
 

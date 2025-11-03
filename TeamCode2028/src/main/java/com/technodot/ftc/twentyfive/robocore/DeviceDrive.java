@@ -1,16 +1,15 @@
 package com.technodot.ftc.twentyfive.robocore;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.Range;
 
 public class DeviceDrive extends Device {
 
-    public DcMotor motorFrontLeft;
-    public DcMotor motorFrontRight;
-    public DcMotor motorBackLeft;
-    public DcMotor motorBackRight;
+    public DcMotorEx motorFrontLeft;
+    public DcMotorEx motorFrontRight;
+    public DcMotorEx motorBackLeft;
+    public DcMotorEx motorBackRight;
 
     public float speedMultiplier = 1.0F;
 
@@ -19,16 +18,16 @@ public class DeviceDrive extends Device {
 
     @Override
     public void init(HardwareMap hardwareMap) {
-        motorFrontLeft = hardwareMap.get(DcMotor.class, "motorFrontLeft");
-        motorFrontRight = hardwareMap.get(DcMotor.class, "motorFrontRight");
-        motorBackLeft = hardwareMap.get(DcMotor.class, "motorBackLeft");
-        motorBackRight = hardwareMap.get(DcMotor.class, "motorBackRight");
+        motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
+        motorFrontRight = hardwareMap.get(DcMotorEx.class, "motorFrontRight");
+        motorBackLeft = hardwareMap.get(DcMotorEx.class, "motorBackLeft");
+        motorBackRight = hardwareMap.get(DcMotorEx.class, "motorBackRight");
 
         // toggle all of them to change robot drive direction
-        motorFrontLeft.setDirection(DcMotor.Direction.FORWARD);
-        motorFrontRight.setDirection(DcMotor.Direction.FORWARD);
-        motorBackLeft.setDirection(DcMotor.Direction.REVERSE);
-        motorBackRight.setDirection(DcMotor.Direction.REVERSE);
+        motorFrontLeft.setDirection(DcMotorEx.Direction.FORWARD);
+        motorFrontRight.setDirection(DcMotorEx.Direction.FORWARD);
+        motorBackLeft.setDirection(DcMotorEx.Direction.REVERSE);
+        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
     }
 
     @Override

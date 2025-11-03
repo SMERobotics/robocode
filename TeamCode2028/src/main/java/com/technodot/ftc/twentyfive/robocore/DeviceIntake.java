@@ -3,7 +3,7 @@ package com.technodot.ftc.twentyfive.robocore;
 import android.graphics.Color;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -14,7 +14,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class DeviceIntake extends Device {
-    public DcMotor motorIntake;
+    public DcMotorEx motorIntake;
     public Servo servoLeft; // perspective of the robot
     public Servo servoRight; // perspective of the robot
     public RevColorSensorV3 colorLeft;
@@ -34,8 +34,8 @@ public class DeviceIntake extends Device {
 
     @Override
     public void init(HardwareMap hardwareMap) {
-        motorIntake = hardwareMap.get(DcMotor.class, "motorIntake");
-        motorIntake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        motorIntake = hardwareMap.get(DcMotorEx.class, "motorIntake");
+        motorIntake.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
         servoLeft = hardwareMap.get(Servo.class, "servoLeft");
         servoRight = hardwareMap.get(Servo.class, "servoRight");
