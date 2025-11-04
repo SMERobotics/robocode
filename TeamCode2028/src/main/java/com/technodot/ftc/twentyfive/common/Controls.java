@@ -13,7 +13,6 @@ public final class Controls {
     private static final float DRIVE_FORWARD_SCALE = -1.0f;
     private static final float DRIVE_STRAFE_SCALE = 1.0f;
     private static final float DRIVE_ROTATE_SCALE = 1.0f;
-    private static final double INTAKE_POWER_MAGNITUDE = 1.0;
 
     private Controls() {
         // no instances
@@ -31,12 +30,16 @@ public final class Controls {
         return gamepad == null ? 0f : DRIVE_ROTATE_SCALE * gamepad.right_stick_x;
     }
 
+    public static boolean drivePrecise(Gamepad gamepad) {
+        return gamepad != null && gamepad.y;
+    }
+
     public static boolean intakeIn(Gamepad gamepad) {
-        return gamepad != null && gamepad.right_trigger > 0.5;
+        return gamepad != null && gamepad.right_trigger > 0.1;
     }
 
     public static boolean intakeOut(Gamepad gamepad) {
-        return gamepad != null && gamepad.left_trigger > 0.5;
+        return gamepad != null && gamepad.left_trigger > 0.1;
     }
 
     public static boolean intakeServoLeft(Gamepad gamepad) {

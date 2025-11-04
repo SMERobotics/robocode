@@ -59,6 +59,8 @@ public class DeviceIntake extends Device {
             motorIntake.setPower(-1.0F);
         } else if (Controls.intakeIn(gamepad)) {
             motorIntake.setPower(1.0F);
+        } else {
+            motorIntake.setPower(0.0F);
         }
 
         long now = System.currentTimeMillis();
