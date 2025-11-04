@@ -31,36 +31,29 @@ public final class Controls {
         return gamepad == null ? 0f : DRIVE_ROTATE_SCALE * gamepad.right_stick_x;
     }
 
-    public static double intakePower(Gamepad gamepad) {
-        double power = 0.0;
-        if (intakeIn(gamepad)) {
-            power += INTAKE_POWER_MAGNITUDE;
-        }
-        if (intakeOut(gamepad)) {
-            power -= INTAKE_POWER_MAGNITUDE;
-        }
-        return power;
-    }
-
     public static boolean intakeIn(Gamepad gamepad) {
-        return gamepad != null && gamepad.right_bumper;
+        return gamepad != null && gamepad.right_trigger > 0.5;
     }
 
     public static boolean intakeOut(Gamepad gamepad) {
-        return gamepad != null && gamepad.left_bumper;
+        return gamepad != null && gamepad.left_trigger > 0.5;
     }
 
-    public static boolean intakeCloseLeft(Gamepad gamepad) {
+    public static boolean intakeServoLeft(Gamepad gamepad) {
         return gamepad != null && gamepad.dpad_left;
     }
 
-    public static boolean intakeCloseRight(Gamepad gamepad) {
+    public static boolean intakeServoRight(Gamepad gamepad) {
         return gamepad != null && gamepad.dpad_right;
     }
 
-//    public static boolean intakeCloseBoth(Gamepad gamepad) {
-//        return gamepad != null && gamepad.dpad_down;
-//    }
+    public static boolean intakeServoGreen(Gamepad gamepad) {
+        return gamepad != null && gamepad.left_bumper;
+    }
+
+    public static boolean intakeServoPurple(Gamepad gamepad) {
+        return gamepad != null && gamepad.right_bumper;
+    }
 
     public static boolean extakeShootLow(Gamepad gamepad) {
         return gamepad != null && (gamepad.a || gamepad.dpad_up);
@@ -72,9 +65,5 @@ public final class Controls {
 
     public static boolean extakeShootReverse(Gamepad gamepad) {
         return gamepad != null && gamepad.dpad_down;
-    }
-
-    public static double extakeTriggerValue(Gamepad gamepad) {
-        return gamepad == null ? 0.0 : gamepad.right_trigger;
     }
 }

@@ -7,6 +7,7 @@ import com.technodot.ftc.twentyfive.common.Controls;
 
 public class DeviceExtake extends Device {
     public DcMotorEx motorExtake;
+    public boolean reversing;
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -21,15 +22,24 @@ public class DeviceExtake extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
-//        motorExtake.setPower(gamepad.right_trigger - gamepad.left_trigger);
+        // TODO: use velocity control instead of power control!!!
 
-        // TODO: calculate what velocity corresponds to 67% power!!!
+        if (Controls.extakeShootReverse(gamepad)) {
+            motorExtake.setPower(-1.0);
+            reversing = true;
+        } else if (Controls.extakeShootLow(gamepad)) {
+            motorExtake.setPower(0.67);
+            reversing = false;
+        } else if (Controls.extakeShootHigh(gamepad)) {
+            motorExtake.setPower(1.0);
+            reversing = false;
+        } else {
+            reversing = false;
+        }
 
-//        if (Controls.extakeShoot(gamepad)) {
-//            motorExtake.setPower(0.67);
-//        } else {
-//            motorExtake.setPower(0);
-//        }
+        if (reversing && !Controls.extakeShootReverse(gamepad)) {
+            motorExtake.setPower(0.01);
+        }
     }
 
     public void update(double power) {
