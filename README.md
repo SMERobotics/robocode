@@ -2,17 +2,20 @@
 
 This repo contains the code used by Shawnee Mission East Robotics for the FTC DECODE 2025-2026 season.
 
-### teams
+### teams and maintainers
 
-- 
-- 
-- 
+- [20181 (SME Lancers)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2026/src/main/java/com/mech/ftc) the oldest sibling
+  - @SM-mech (Jake Winfield)
+- [26855 (SME Cavalry)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2028/src/main/java/com/technodot/ftc) the middle child 🥀
+  - @TechDudie (TechnoDot)
+- [21692 (SME Knights)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2029/src/main/java/com/n0tasha4k/ftc) the youngest sibling
+  - @n0tasha4k-glitch (???)
 
 ### setup
 
-Java 21 and Android Studio Narwhal (2025.1) are recommended.
+Java 17 and Android Studio Otter (2025.2.1) recommended!
 
-Sign into Android Studio with your GitHub account and clone the repository.
+Create a Personal Access Token for Github and configure Android Studio to use the token for all git operations. Clone the repository.
 
 ### team
 
