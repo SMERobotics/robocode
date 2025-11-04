@@ -3,6 +3,7 @@ package com.technodot.ftc.twentyfive.robocore;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.technodot.ftc.twentyfive.common.Controls;
 
 public class DeviceExtake extends Device {
     public DcMotorEx motorExtake;
@@ -24,11 +25,11 @@ public class DeviceExtake extends Device {
 
         // TODO: calculate what velocity corresponds to 67% power!!!
 
-        if (gamepad.right_trigger > 0.2) {
-            motorExtake.setPower(0.67);
-        } else {
-            motorExtake.setPower(0);
-        }
+//        if (Controls.extakeShoot(gamepad)) {
+//            motorExtake.setPower(0.67);
+//        } else {
+//            motorExtake.setPower(0);
+//        }
     }
 
     public void update(double power) {

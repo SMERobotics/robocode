@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.technodot.ftc.twentyfive.common.Artifact;
+import com.technodot.ftc.twentyfive.common.Controls;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -54,31 +55,34 @@ public class DeviceIntake extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
-        motorIntake.setPower((gamepad.right_bumper ? 1 : 0) + (gamepad.left_bumper ? -1 : 0));
+        motorIntake.setPower(Controls.intakePower(gamepad));
 
         long now = System.currentTimeMillis();
 
-        if (gamepad.dpad_left && !leftPressed) {
+        boolean closeLeft = Controls.intakeCloseLeft(gamepad);
+        if (closeLeft && !leftPressed) {
             leftActivated = now + 200;
             leftPressed = true;
-        } else if (!gamepad.dpad_left) {
+        } else if (!closeLeft) {
             leftPressed = false;
         }
 
-        if (gamepad.dpad_right && !rightPressed) {
+        boolean closeRight = Controls.intakeCloseRight(gamepad);
+        if (closeRight && !rightPressed) {
             rightActivated = now + 200;
             rightPressed = true;
-        } else if (!gamepad.dpad_right) {
+        } else if (!closeRight) {
             rightPressed = false;
         }
 
-        if (gamepad.dpad_down && !bothPressed) {
-            leftActivated = now + 200;
-            rightActivated = now + 200;
-            bothPressed = true;
-        } else if (!gamepad.dpad_down) {
-            bothPressed = false;
-        }
+//        boolean closeBoth = Controls.intakeCloseBoth(gamepad);
+//        if (closeBoth && !bothPressed) {
+//            leftActivated = now + 200;
+//            rightActivated = now + 200;
+//            bothPressed = true;
+//        } else if (!closeBoth) {
+//            bothPressed = false;
+//        }
 
         if (now < leftActivated) {
             servoLeft.setPosition(0.56); // left closed position

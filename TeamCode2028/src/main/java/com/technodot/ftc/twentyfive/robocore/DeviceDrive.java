@@ -3,6 +3,7 @@ package com.technodot.ftc.twentyfive.robocore;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.technodot.ftc.twentyfive.common.Controls;
 
 public class DeviceDrive extends Device {
 
@@ -31,8 +32,17 @@ public class DeviceDrive extends Device {
     }
 
     @Override
+    public void start() {
+
+    }
+
+    @Override
     public void update(Gamepad gamepad) {
-        update(-gamepad.left_stick_y, gamepad.left_stick_x, gamepad.right_stick_x);
+        update(
+            Controls.driveForward(gamepad),
+            Controls.driveStrafe(gamepad),
+            Controls.driveRotate(gamepad)
+        );
     }
 
     public void update(float forward, float strafe, float rotate) {
@@ -41,6 +51,7 @@ public class DeviceDrive extends Device {
         if (Math.abs(rotate) < DEADZONE) rotate = 0f;
 
         // robot-centric kinematics
+        // TODO: field-centric kinematics
         // if it ain't broke, don't fix it
         // if it ain't broke, don't even flipping TOUCH it
         float fl = forward + strafe + rotate;
@@ -67,11 +78,28 @@ public class DeviceDrive extends Device {
         if (motorBackRight != null) motorBackRight.setPower(scaleInput(br));
     }
 
+    @Override
+    public void stop() {
+
+    }
+
     public void zero() {
         motorFrontLeft.setPower(0);
         motorFrontRight.setPower(0);
         motorBackLeft.setPower(0);
         motorBackRight.setPower(0);
+    }
+
+    public void getMultiplier(float multiplier) {
+        speedMultiplier = multiplier;
+    }
+
+    public void setMultiplier(float multiplier) {
+        speedMultiplier = multiplier;
+    }
+
+    public void resetMultiplier() {
+        speedMultiplier = 1.0F;
     }
 
     private float scaleInput(float value) {

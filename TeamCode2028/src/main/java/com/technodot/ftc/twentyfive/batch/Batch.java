@@ -23,7 +23,13 @@ public class Batch {
     }
 
     public Batch plan(long startMs, Runnable callback) {
-        return plan(startMs, 0L, callback);
+        if (callback == null) {
+            throw new IllegalArgumentException("action is cooked gng \uD83E\uDD40");
+        }
+        // 1s = 1_000ms = 1_000_000us = 1_000_000_000ns
+        long startNs = Math.max(0L, startMs) * 1_000_000L;
+        actions.add(new Action(startNs, callback));
+        return this;
     }
 
     public Batch plan(Action action) {

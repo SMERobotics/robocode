@@ -21,6 +21,13 @@ public class DeviceCamera extends Device {
     public Obelisk obelisk;
     public int teamID;
 
+    @Override
+    @Deprecated // make sure dumbass future me remembers that ts is the wrong one
+    public void init(HardwareMap hardwareMap) {
+        // default to BLUE team
+        init(hardwareMap, Team.BLUE);
+    }
+
     public void init(HardwareMap hardwareMap, Team team) {
         teamID = team.equals(Team.RED) ? 24 : 20; // defaults to Team.BLUE with tag ID 20
         aprilTagProcessor = new AprilTagProcessor.Builder()
@@ -34,6 +41,9 @@ public class DeviceCamera extends Device {
         visionPortal = builder.build();
 
         FtcDashboard.getInstance().startCameraStream(visionPortal, 0);
+
+        // TODO: get the dynamic enablement shit working
+        // (for laters! if it ain't broke, don't touch it)
 
 //        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
 //        visionPortal.stopLiveView();

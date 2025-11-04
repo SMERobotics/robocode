@@ -14,6 +14,13 @@ public class Action {
         this.callback = callback;
     }
 
+    public Action(long startOffsetNs, Runnable callback) {
+        this.startOffsetNs = startOffsetNs;
+        this.durationNs = 0;
+        this.endNs = startOffsetNs;
+        this.callback = callback;
+    }
+
     public boolean isActive(long elapsedNs) {
         if (durationNs == 0) {
             if (completed) {
