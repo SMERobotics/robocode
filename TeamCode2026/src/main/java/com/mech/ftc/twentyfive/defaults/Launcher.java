@@ -1,81 +1,114 @@
 package com.mech.ftc.twentyfive.defaults;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Launcher {
 
-    public DcMotor launcherMotor;
+    public DcMotorEx launcherMotor;
+    private final Velocity v;
 
-    Velocity v;
-    Camera camera;
-    public Launcher(HardwareMap hardwareMap) {
-        v = new Velocity(hardwareMap);
-        camera = new Camera();
-        launcherMotor = hardwareMap.get(DcMotor.class, "launcherMotor");
+    // Stability controls
+    private boolean enabled = false;
+    private double filteredDistance = Double.NaN;
+    private final double alpha = 0.3;
+    private double lastPower = 0.0;
+    private double targetPower = 0.0;
+    private final double slew = 0.05;
+    private final double minPower = 0.10;
+    private final double minRange = 0.5;
+    private final double maxRange = 4.0;
+
+    public Launcher(DcMotorEx motor, Velocity one) {
+        v = one;
+        launcherMotor = motor;
+    }
+    public void launch(Gamepad gamepad, double distance) {
+        setEnabled(gamepad.right_bumper);
+        update(distance);
     }
 
-    public void launch(Gamepad gamepad) {
-        if (gamepad.right_bumper) {
-            launcherMotor.setPower(launchPower());
+    public void launch(double distance) {
+        setEnabled(true);
+        update(distance);
+    }
+
+    public void setEnabled(boolean on) {
+        enabled = on;
+        if (!enabled) targetPower = 0.0;
+    }
+
+    public void update(double distanceMeters) {
+        // Filter distance if valid
+        if (Double.isFinite(distanceMeters) && distanceMeters > 0) {
+            if (Double.isNaN(filteredDistance)) filteredDistance = distanceMeters;
+            else filteredDistance = alpha * distanceMeters + (1 - alpha) * filteredDistance;
         }
 
-    }
-    public void launch() {
-        launcherMotor.setPower(launchPower());
+        // Compute target power when enabled and in range
+        if (enabled && Double.isFinite(filteredDistance)
+                && filteredDistance >= minRange && filteredDistance <= maxRange) {
 
+            double p = launchPower(filteredDistance);
+            if (p > 0 && Double.isFinite(p)) {
+                targetPower = Math.max(minPower, Math.min(1.0, p));
+            } else {
+                targetPower = 0.0;
+            }
+        } else {
+            targetPower = 0.0;
+        }
+
+        // Slew-rate limit to avoid flicker
+        double delta = targetPower - lastPower;
+        if (delta > slew) delta = slew;
+        if (delta < -slew) delta = -slew;
+        lastPower += delta;
+
+        launcherMotor.setPower(lastPower);
     }
 
-    public double launchPower() {
-        double y = 1; //change with 1.17 meters - height of launcher in meters;
-        double x = camera.getTagDistance() * 0.0254;
+    public double launchPower(double distanceMeters) {
+        double y = 0.789;
+        double x = distanceMeters - 2.5*0.0254;
         double u = v.getForwardVelocity();
-        double maxInitialSpeed = 1321; // calculate in m/s
-        double angle = Math.toRadians(45); // angle of launcher in degrees change later
+        double maxInitialSpeed = 7.6;
+        double angle = Math.toRadians(70);
         double g = 9.8;
+
         double initialNeeded = initialNeeded(x, y, u, angle, g);
-        //0 = initialYNeeded^2 + 2*-9.8*y
-        //19.6y = initialYNeeded^2
-        // y = initialYNeeded^2/19.6
-        if (initialNeeded < 0) {
-            return 0;
-        }
-        if ((Math.pow(initialNeeded*Math.sin(angle), 2))/(2*g) < y) {
-            return 0;
-        }
-        return (initialNeeded/maxInitialSpeed);
+        if (initialNeeded <= 0) return 0;
 
+        double maxHeight = Math.pow(initialNeeded * Math.sin(angle), 2) / (2 * g);
+        if (maxHeight < y) return 0;
 
+        return initialNeeded / maxInitialSpeed;
     }
+
     public double initialNeeded(double x, double y, double u, double angle, double g) {
         double A = Math.cos(angle) * (y * Math.cos(angle) - x * Math.sin(angle));
         double B = u * (2 * y * Math.cos(angle) - x * Math.sin(angle));
-        double C = y * u * u + .5 * g * x * x;
+        double C = y * u * u + 0.5 * g * x * x;
 
-        // if A is really small then it won't work
-        if (Math.abs(A) < 1e-12) {
-            return 0;
-        }
+        if (Math.abs(A) < 1e-12) return 0;
 
-        double insideSquareRoot = B * B - 4 * A * C;
-        if (insideSquareRoot > 0) {
-            double one = (-B + Math.sqrt(insideSquareRoot)) / (2 * A);
-            double two = (-B - Math.sqrt(insideSquareRoot)) / (2 * A);
-            double best = Double.POSITIVE_INFINITY;
-            if (one > 0) best = Math.min(best, one);
-            if (two > 0) best = Math.min(best, two);
-            if (!Double.isFinite(best)) return 0;
+        double disc = B * B - 4 * A * C;
+        if (disc <= 0) return 0;
 
+        double one = (-B + Math.sqrt(disc)) / (2 * A);
+        double two = (-B - Math.sqrt(disc)) / (2 * A);
+        double best = Double.POSITIVE_INFINITY;
+        if (one > 0) best = Math.min(best, one);
+        if (two > 0) best = Math.min(best, two);
+        if (!Double.isFinite(best)) return 0;
 
-            double three = best * Math.cos(angle) + u;
-            if (three <= 0) return 0;
-            double t = x / three;
-            if (t <= 0) return 0;
+        double vx = best * Math.cos(angle) + u;
+        if (vx <= 0) return 0;
 
-            return best;
-        }
-        return 0;
+        double t = x / vx;
+        if (t <= 0) return 0;
+
+        return best;
     }
-
+    public double getTargetPower() { return targetPower; }
 }

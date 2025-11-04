@@ -6,8 +6,8 @@ import com.technodot.ftc.twentyfive.common.IMUCalibrationData;
 import com.technodot.ftc.twentyfive.common.TimedVector3;
 import com.technodot.ftc.twentyfive.robocore.MPU6050;
 
-@TeleOp(name="Calibrator", group="TechnoCode")
-public class Calibrator extends OpMode {
+@TeleOp(name="CalibrateIMU", group="TechnoCode")
+public class CalibrateIMU extends OpMode {
 
     public MPU6050 imu;
 
