@@ -177,4 +177,14 @@ public class DeviceOldIMU extends Device {
     public synchronized TimedVector3 getVelocity() {
         return new TimedVector3(velX, velY, velZ, lastUpdateNs);
     }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+
+    }
 }

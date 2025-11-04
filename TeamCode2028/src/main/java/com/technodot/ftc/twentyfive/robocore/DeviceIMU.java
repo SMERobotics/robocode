@@ -29,6 +29,11 @@ public class DeviceIMU extends Device {
         applyCalibration(calibration);
     }
 
+    @Override
+    public void start() {
+
+    }
+
     public void applyCalibration(IMUCalibrationData calibration) {
         this.biasAx = calibration.biasAx;
         this.biasAy = calibration.biasAy;
@@ -96,5 +101,10 @@ public class DeviceIMU extends Device {
 
     public TimedVector3 getVelocity() {
         return new TimedVector3(0, 0, 0);
+    }
+
+    @Override
+    public void stop() {
+
     }
 }
