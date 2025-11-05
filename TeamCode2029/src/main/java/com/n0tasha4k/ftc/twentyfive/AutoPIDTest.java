@@ -51,9 +51,9 @@ public class AutoPIDTest extends LinearOpMode {
 
         // ===== Autonomous Sequence =====
         for (int i = 0; i < 9101 && opModeIsActive(); i++) {
-            driveForward(12);  // forward 24 inches
+            driveForward(18);  // forward 24 inches
             sleep(250);
-            driveBackward(12); // backward 24 inches
+            driveBackward(18); // backward 24 inches
             sleep(250);
         }
 
