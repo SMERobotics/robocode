@@ -1,7 +1,7 @@
 //ts useless fr twin
 package com.n0tasha4k.ftc.twentyfive;
 
-public class PIDController {
+public class pidController {
     private double kp; // Proportional gain
     private double ki; // Integral gain
     private double kd; // Derivative gain
@@ -10,7 +10,7 @@ public class PIDController {
     private double previousError;
     private double dt; // Time step (seconds)
 
-    public PIDController(double kp, double ki, double kd, double dt) {
+    public pidController(double kp, double ki, double kd, double dt) {
         this.kp = kp;
         this.ki = ki;
         this.kd = kd;
