@@ -16,9 +16,9 @@ public class PIDTEST extends LinearOpMode {
     // ============================
     // 🔧 Dashboard PID Variables
     // ============================
-    public static double KP = 0.015;    // proportional
-    public static double KI = 0.0001;   // integral
-    public static double KD = 0.001;    // derivative
+    public static double KP = 0.002;    // proportional
+    public static double KI = 0.000;   // integral
+    public static double KD = 0.0002;    // derivative
 
     public static double POWER_LIMIT = 0.6;          // max motor power
     public static double RIGHT_CORRECTION = 0.7828723194;    // tune if robot drifts right
@@ -81,7 +81,7 @@ public class PIDTEST extends LinearOpMode {
     // 📏 Encoder + Drive Utility
     // ============================
     private static final double TICKS_PER_REV = 537.6;
-    private static final double WHEEL_DIAMETER_INCHES = 4.0;
+    private static final double WHEEL_DIAMETER_INCHES = 3.5;
     private static final double TICKS_PER_INCH = TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER_INCHES);
 
     @Override
@@ -105,8 +105,10 @@ public class PIDTEST extends LinearOpMode {
 
         // Example usage: Drive back and forth forever for tuning
         while (opModeIsActive()) {
-            driveForward(18);
-            driveForward(-18); // backward
+            driveForward(24);
+            sleep(500);
+            driveForward(-24);// backward
+            sleep(500);
         }
     }
 
