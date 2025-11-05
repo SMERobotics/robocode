@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.util.Range;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
 
 @TeleOp(name="CalibrateExtake", group="TechnoCode")
@@ -32,7 +33,7 @@ public class CalibrateExtake extends OpMode {
         power = 0.0f;
 
         motorExtake.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER); // Reset the motor encoder
-        motorExtake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        motorExtake.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         telemetry.addData("status", "starting");
         telemetry.update();
@@ -48,7 +49,7 @@ public class CalibrateExtake extends OpMode {
         } else if (gamepad1.dpad_down) {
             power -= 0.01f;
         }
-        power = Math.max(-1.0f, Math.min(1.0f, power));
+        power = Range.clip(power, -1.0f, 1.0f);
 
         motorExtake.setPower(power);
         telemetry.addData("power", power);
@@ -58,7 +59,7 @@ public class CalibrateExtake extends OpMode {
         // !!! pretend power means velocity here
 //        motorExtake.setVelocity(power);
 //        telemetry.addData("power", motorExtake.getPower());
-//        telemetry.addData("velocity", power * 1780); // max velocity is approx 1780 ticks/sec
+//        telemetry.addData("velocity", power);
 
         telemetry.addData("status", "running");
         telemetry.update();

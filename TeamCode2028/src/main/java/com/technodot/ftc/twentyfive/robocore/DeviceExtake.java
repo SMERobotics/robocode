@@ -9,6 +9,9 @@ public class DeviceExtake extends Device {
     public DcMotorEx motorExtake;
     public ExtakeState currentState = ExtakeState.IDLE;
 
+    private boolean pressingShootLow;
+    private boolean pressingShootHigh;
+
     public enum ExtakeState {
         IDLE,
         SHOOTING_LOW,
@@ -31,29 +34,31 @@ public class DeviceExtake extends Device {
     public void update(Gamepad gamepad) {
         // TODO: use velocity control instead of power control!!!
 
+        boolean shootLow = Controls.extakeShootLow(gamepad);
+        boolean shootHigh = Controls.extakeShootHigh(gamepad);
+
         if (Controls.extakeShootReverse(gamepad)) {
             currentState = ExtakeState.REVERSING;
-        } else if (Controls.extakeShootLow(gamepad)) {
-            if (currentState.equals(ExtakeState.SHOOTING_LOW)) {
-                currentState = ExtakeState.IDLE;
-            } else {
-                currentState = ExtakeState.SHOOTING_LOW;
-            }
-        } else if (Controls.extakeShootHigh(gamepad)) {
-            if (currentState.equals(ExtakeState.SHOOTING_HIGH)) {
-                currentState = ExtakeState.IDLE;
-            } else {
-                currentState = ExtakeState.SHOOTING_HIGH;
-            }
         } else {
-            if (currentState.equals(ExtakeState.REVERSING)) {
+            if (shootLow && !pressingShootLow) {
+                if (currentState.equals(ExtakeState.SHOOTING_LOW)) {
+                    currentState = ExtakeState.IDLE;
+                } else {
+                    currentState = ExtakeState.SHOOTING_LOW;
+                }
+            } else if (shootHigh && !pressingShootHigh) {
+                if (currentState.equals(ExtakeState.SHOOTING_HIGH)) {
+                    currentState = ExtakeState.IDLE;
+                } else {
+                    currentState = ExtakeState.SHOOTING_HIGH;
+                }
+            } else if (currentState.equals(ExtakeState.REVERSING)) {
                 currentState = ExtakeState.IDLE;
             }
         }
 
-        if (currentState.equals(ExtakeState.REVERSING) && !Controls.extakeShootReverse(gamepad)) {
-            currentState = ExtakeState.IDLE;
-        }
+        pressingShootLow = shootLow;
+        pressingShootHigh = shootHigh;
 
         switch (currentState) {
             case REVERSING:

@@ -31,7 +31,7 @@ public final class Controls {
     }
 
     public static boolean drivePrecise(Gamepad gamepad) {
-        return gamepad != null && gamepad.y;
+        return gamepad != null && gamepad.b;
     }
 
     public static boolean intakeIn(Gamepad gamepad) {
