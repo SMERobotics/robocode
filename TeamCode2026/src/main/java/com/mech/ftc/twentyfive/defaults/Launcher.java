@@ -1,14 +1,13 @@
 package com.mech.ftc.twentyfive.defaults;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Gamepad;
 
+@SuppressWarnings("FieldCanBeLocal")
 public class Launcher {
 
     public DcMotorEx launcherMotor;
     private final Velocity v;
 
-    // Stability controls
     private boolean enabled = false;
     private double filteredDistance = Double.NaN;
     private final double alpha = 0.3;
@@ -23,29 +22,17 @@ public class Launcher {
         v = one;
         launcherMotor = motor;
     }
-    public void launch(Gamepad gamepad, double distance) {
-        setEnabled(gamepad.right_bumper);
-        update(distance);
-    }
-
-    public void launch(double distance) {
-        setEnabled(true);
-        update(distance);
-    }
-
     public void setEnabled(boolean on) {
         enabled = on;
         if (!enabled) targetPower = 0.0;
     }
 
     public void update(double distanceMeters) {
-        // Filter distance if valid
         if (Double.isFinite(distanceMeters) && distanceMeters > 0) {
             if (Double.isNaN(filteredDistance)) filteredDistance = distanceMeters;
             else filteredDistance = alpha * distanceMeters + (1 - alpha) * filteredDistance;
         }
 
-        // Compute target power when enabled and in range
         if (enabled && Double.isFinite(filteredDistance)
                 && filteredDistance >= minRange && filteredDistance <= maxRange) {
 
@@ -59,20 +46,20 @@ public class Launcher {
             targetPower = 0.0;
         }
 
-        // Slew-rate limit to avoid flicker
         double delta = targetPower - lastPower;
         if (delta > slew) delta = slew;
         if (delta < -slew) delta = -slew;
         lastPower += delta;
 
-        launcherMotor.setPower(lastPower);
+        launcherMotor.setVelocity(2500*lastPower);
+
     }
 
     public double launchPower(double distanceMeters) {
         double y = 0.789;
         double x = distanceMeters - 2.5*0.0254;
         double u = v.getForwardVelocity();
-        double maxInitialSpeed = 7.6;
+        double maxInitialSpeed = 7.7;
         double angle = Math.toRadians(70);
         double g = 9.8;
 
