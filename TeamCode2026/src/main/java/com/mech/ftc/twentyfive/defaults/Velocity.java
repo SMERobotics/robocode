@@ -1,9 +1,6 @@
 package com.mech.ftc.twentyfive.defaults;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class Velocity {

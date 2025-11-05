@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 
 public class DriveTrain {
     public DcMotorEx frontLeft;
@@ -13,6 +14,8 @@ public class DriveTrain {
     public DcMotorEx frontRight;
     public DcMotorEx intake;
     public DcMotorEx launchMotor;
+    public DcMotorEx indexMotor;
+    public Servo kicker;
 
     public void init(HardwareMap hardwareMap) {
         frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -21,13 +24,19 @@ public class DriveTrain {
         backRight = hardwareMap.get(DcMotorEx.class, "backRight");
         intake = hardwareMap.get(DcMotorEx.class, "intakeMotor");
         launchMotor = hardwareMap.get(DcMotorEx.class, "launchMotor");
+        indexMotor = hardwareMap.get(DcMotorEx.class, "indexMotor");
+        kicker = hardwareMap.get(Servo.class, "servo");
 
 
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         launchMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        //intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        launchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //launchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        indexMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        indexMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        indexMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        indexMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
     public void drive(Gamepad gamepad) {
