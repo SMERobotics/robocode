@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Config
-@Autonomous(name = "PIDTEST(updated graph changeability, error correction on right motor)")
+@Autonomous(name = "PIDTEST yayaya(updated graph changeability, error correction on right motor)")
 public class PIDTEST extends LinearOpMode {
 
     // ============================
@@ -20,7 +20,6 @@ public class PIDTEST extends LinearOpMode {
     public static double KI = 0.0001;   // integral
     public static double KD = 0.001;    // derivative
 
-    public static double TARGET_DISTANCE_INCH = 24;  // forward distance
     public static double POWER_LIMIT = 0.6;          // max motor power
     public static double RIGHT_CORRECTION = 0.7828723194;    // tune if robot drifts right
 
@@ -106,8 +105,8 @@ public class PIDTEST extends LinearOpMode {
 
         // Example usage: Drive back and forth forever for tuning
         while (opModeIsActive()) {
-            driveForward(TARGET_DISTANCE_INCH);
-            driveForward(-TARGET_DISTANCE_INCH); // backward
+            driveForward(18);
+            driveForward(-18); // backward
         }
     }
 

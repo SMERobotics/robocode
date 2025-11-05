@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @Config
-@Autonomous(name = "Modular PID Autonomous with Graph", group = "PID")
+@Autonomous(name = "Modular PID Autonomous with Graphnot main so far, not live updateable", group = "PID")
 public class AutoPIDTest extends LinearOpMode {
 
     // ===== FTC Dashboard Tunables =====
