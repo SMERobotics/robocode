@@ -22,7 +22,7 @@ public class PIDTEST extends LinearOpMode {
 
     public static double TARGET_DISTANCE_INCH = 24;  // forward distance
     public static double POWER_LIMIT = 0.6;          // max motor power
-    public static double RIGHT_CORRECTION = 0.98;    // tune if robot drifts right
+    public static double RIGHT_CORRECTION = 0.7828723194;    // tune if robot drifts right
 
     // ============================
     // ⚙️ Hardware
