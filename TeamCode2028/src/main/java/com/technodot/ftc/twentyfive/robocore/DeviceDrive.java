@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.Controls;
+import com.technodot.ftc.twentyfive.common.Toggle;
 
 public class DeviceDrive extends Device {
 
@@ -13,6 +14,7 @@ public class DeviceDrive extends Device {
     public DcMotorEx motorBackRight;
 
     public float speedMultiplier = 1.0F;
+    public Toggle preciseToggle = new Toggle();
 
     private static final float DEADZONE = 0.02f;
     private static final float ACTIVATION = 0.2f;
@@ -38,6 +40,13 @@ public class DeviceDrive extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
+        preciseToggle.update(Controls.drivePrecise(gamepad));
+        if (preciseToggle.getState()) {
+            setMultiplier(0.5F);
+        } else {
+            resetMultiplier();
+        }
+
         update(
             Controls.driveForward(gamepad),
             Controls.driveStrafe(gamepad),

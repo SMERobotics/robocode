@@ -59,11 +59,13 @@ public class DeviceIntake extends Device {
             motorIntake.setPower(-1.0F);
         } else if (Controls.intakeIn(gamepad)) {
             motorIntake.setPower(1.0F);
+        } else {
+            motorIntake.setPower(0.0F);
         }
 
         long now = System.currentTimeMillis();
 
-        boolean closeLeft = Controls.intakeServoLeft(gamepad);
+        boolean closeLeft = Controls.intakeServoLeft(gamepad) || Controls.intakeServoGreen(gamepad);
         if (closeLeft && !leftPressed) {
             leftActivated = now + 200;
             leftPressed = true;
@@ -71,7 +73,7 @@ public class DeviceIntake extends Device {
             leftPressed = false;
         }
 
-        boolean closeRight = Controls.intakeServoRight(gamepad);
+        boolean closeRight = Controls.intakeServoRight(gamepad) || Controls.intakeServoPurple(gamepad);
         if (closeRight && !rightPressed) {
             rightActivated = now + 200;
             rightPressed = true;

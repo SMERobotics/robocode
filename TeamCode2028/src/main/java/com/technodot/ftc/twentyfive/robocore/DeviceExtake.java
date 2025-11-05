@@ -7,7 +7,17 @@ import com.technodot.ftc.twentyfive.common.Controls;
 
 public class DeviceExtake extends Device {
     public DcMotorEx motorExtake;
-    public boolean reversing;
+    public ExtakeState currentState = ExtakeState.IDLE;
+
+    private boolean pressingShootLow;
+    private boolean pressingShootHigh;
+
+    public enum ExtakeState {
+        IDLE,
+        SHOOTING_LOW,
+        SHOOTING_HIGH,
+        REVERSING
+    }
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -24,21 +34,45 @@ public class DeviceExtake extends Device {
     public void update(Gamepad gamepad) {
         // TODO: use velocity control instead of power control!!!
 
+        boolean shootLow = Controls.extakeShootLow(gamepad);
+        boolean shootHigh = Controls.extakeShootHigh(gamepad);
+
         if (Controls.extakeShootReverse(gamepad)) {
-            motorExtake.setPower(-1.0);
-            reversing = true;
-        } else if (Controls.extakeShootLow(gamepad)) {
-            motorExtake.setPower(0.67);
-            reversing = false;
-        } else if (Controls.extakeShootHigh(gamepad)) {
-            motorExtake.setPower(1.0);
-            reversing = false;
+            currentState = ExtakeState.REVERSING;
         } else {
-            reversing = false;
+            if (shootLow && !pressingShootLow) {
+                if (currentState.equals(ExtakeState.SHOOTING_LOW)) {
+                    currentState = ExtakeState.IDLE;
+                } else {
+                    currentState = ExtakeState.SHOOTING_LOW;
+                }
+            } else if (shootHigh && !pressingShootHigh) {
+                if (currentState.equals(ExtakeState.SHOOTING_HIGH)) {
+                    currentState = ExtakeState.IDLE;
+                } else {
+                    currentState = ExtakeState.SHOOTING_HIGH;
+                }
+            } else if (currentState.equals(ExtakeState.REVERSING)) {
+                currentState = ExtakeState.IDLE;
+            }
         }
 
-        if (reversing && !Controls.extakeShootReverse(gamepad)) {
-            motorExtake.setPower(0.01);
+        pressingShootLow = shootLow;
+        pressingShootHigh = shootHigh;
+
+        switch (currentState) {
+            case REVERSING:
+                motorExtake.setPower(-1.0);
+                break;
+            case SHOOTING_LOW:
+                motorExtake.setPower(0.67);
+                break;
+            case SHOOTING_HIGH:
+                motorExtake.setPower(1.0);
+                break;
+            case IDLE:
+                motorExtake.setPower(0.01);
+                break;
         }
     }
 

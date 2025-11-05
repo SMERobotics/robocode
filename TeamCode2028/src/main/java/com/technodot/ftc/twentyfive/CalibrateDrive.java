@@ -166,6 +166,10 @@ public class CalibrateDrive extends OpMode {
             rotate -= 0.01f;
         }
 
+        forward = Range.clip(forward, -1f, 1f);
+        strafe = Range.clip(strafe, -1f, 1f);
+        rotate = Range.clip(rotate, -1f, 1f);
+
         update(
             Range.clip(forward - gamepad1.left_stick_y, -1f, 1f),
             Range.clip(strafe + gamepad1.left_stick_x, -1f, 1f),
