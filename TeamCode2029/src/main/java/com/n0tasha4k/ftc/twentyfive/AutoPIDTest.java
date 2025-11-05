@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @Config
-@Autonomous(name = "Modular PID Autonomous with Graphnot main so far, not live updateable", group = "PID")
+@Autonomous(name = "*BEST* Modular PID Autonomous with Graphnot main so far.", group = "PID")
 public class AutoPIDTest extends LinearOpMode {
 
     // ===== FTC Dashboard Tunables =====
@@ -21,7 +21,8 @@ public class AutoPIDTest extends LinearOpMode {
     public static double ALLOWABLE_ERROR_TICKS = 30;
     public static double TICKS_PER_REV = 537.7; // GoBilda 312 RPM
     public static double WHEEL_DIAMETER_INCHES = 3.77953;
-    public static double TRACK_WIDTH_INCHES = 14.0; // distance between wheels
+    public static double TRACK_WIDTH_INCHES = 13; // distance between wheels
+    public static double RIGHT_CORRECTION = 0.7828723194;    // tune if robot drifts right
 
     private static final double TICKS_PER_INCH =
             TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER_INCHES);
