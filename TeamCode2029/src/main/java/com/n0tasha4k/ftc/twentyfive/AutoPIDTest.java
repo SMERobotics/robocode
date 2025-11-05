@@ -52,9 +52,9 @@ public class AutoPIDTest extends LinearOpMode {
 
         // ===== Autonomous Sequence =====
         for (int i = 0; i < 9101 && opModeIsActive(); i++) {
-            driveForward(18);  // forward 24 inches
+            driveForward(24);  // forward ~~ inches
             sleep(250);
-            driveBackward(18); // backward 24 inches
+            driveBackward(24); // backward ~~` inches
             sleep(250);
         }
 
@@ -88,7 +88,7 @@ public class AutoPIDTest extends LinearOpMode {
             double rightPower = rightPID.update(rightPos);
 
             leftPower = clip(leftPower);
-            rightPower = clip(rightPower);
+            rightPower = clip(rightPower*RIGHT_CORRECTION);
 
             left.setPower(leftPower);
             right.setPower(rightPower);
