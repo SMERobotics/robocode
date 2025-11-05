@@ -19,4 +19,14 @@ public class Toggle {
     public boolean getState() {
         return state;
     }
+
+    public boolean activate() {
+        state = true;
+        return state;
+    }
+
+    public boolean reset() {
+        state = false;
+        return state;
+    }
 }

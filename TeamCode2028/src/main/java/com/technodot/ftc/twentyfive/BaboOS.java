@@ -23,6 +23,8 @@ public class BaboOS extends OpMode {
         deviceDrive.init(hardwareMap);
         deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
+
+        config();
     }
 
     @Override
@@ -65,5 +67,9 @@ public class BaboOS extends OpMode {
 
         telemetry.addData("status", "stopping");
         telemetry.update();
+    }
+
+    public void config() {
+        team = Team.BLUE;
     }
 }

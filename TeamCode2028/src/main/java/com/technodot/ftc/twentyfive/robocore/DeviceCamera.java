@@ -107,4 +107,12 @@ public class DeviceCamera extends Device {
 //        visionPortal.stopLiveView();
 //        visionPortal.stopStreaming();
     }
+
+    public void setTeam(Team team) {
+        teamID = team.equals(Team.RED) ? 24 : 20;
+    }
+
+    public void getTeam(Team team) {
+        teamID = team.equals(Team.RED) ? 24 : 20;
+    }
 }
