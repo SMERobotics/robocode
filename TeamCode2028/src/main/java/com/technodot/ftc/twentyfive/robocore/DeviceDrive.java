@@ -18,6 +18,7 @@ public class DeviceDrive extends Device {
 
     public float speedMultiplier = 1.0F;
     public AprilTagDetection currentTag = null;
+    public long lastTagTime = 0;
 
     public Toggle preciseToggle = new Toggle();
     public Toggle aimToggle = new Toggle();
@@ -26,12 +27,16 @@ public class DeviceDrive extends Device {
     private static final float ACTIVATION = 0.2f;
 
     // PID constants for tag yaw aiming (units: degrees -> rotate power)
-    private static final float AIM_KP = 0.01f; // proportional gain per degree
+    // values calibrated on a shit battery. if ts crashing out on a good battery, set Kp to 0.015, Ki to 0, Kd to 0
+    private static final float AIM_KP = 0.02f; // proportional gain per degree
     private static final float AIM_KI = 0.0f;  // integral gain (start at 0 to avoid windup)
-    private static final float AIM_KD = 0.002f; // derivative gain per (degree/second)
+    private static final float AIM_KD = 0.001f; // derivative gain per (degree/second)
     private static final float AIM_MAX_OUTPUT = 0.6f; // cap rotation while aiming
     private static final float AIM_TOLERANCE_DEG = 1.0f; // within this yaw, consider aimed
     private static final float AIM_INTEGRAL_LIMIT = 1.0f; // anti-windup clamp for integral term
+
+    private static final int DIRECTIONAL_ENCODER_FOOT = 700;
+    private static final int ROTATIONAL_ENCODER_REVOLUTION = 4000;
 
     // Shared PID controller for aiming
     private PIDController aimPid;
@@ -47,7 +52,8 @@ public class DeviceDrive extends Device {
         motorFrontLeft.setDirection(DcMotorEx.Direction.FORWARD);
         motorFrontRight.setDirection(DcMotorEx.Direction.FORWARD);
         motorBackLeft.setDirection(DcMotorEx.Direction.REVERSE);
-        motorBackRight.setDirection(DcMotorEx.Direction.FORWARD);
+        motorBackRight.setDirection(DcMotorEx.Direction.FORWARD); // ts should be reverse. CHAT MOUNTED IT BACKWARDS WHAT THE FUU
+//        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
 
         // configure PID controller for yaw aiming
         aimPid = new PIDController(AIM_KP, AIM_KI, AIM_KD);
@@ -95,8 +101,7 @@ public class DeviceDrive extends Device {
                     if (aimPid != null) aimPid.reset();
                     rotate = 0f;
                 } else {
-                    double nowSec = System.nanoTime() / 1_000_000_000.0;
-                    double output = aimPid.calculate(yawDeg, nowSec);
+                    double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
                     rotate = (float) output;
                 }
             } else {
@@ -143,6 +148,13 @@ public class DeviceDrive extends Device {
 
     public void updatePose(AprilTagDetection tag) {
         // DeviceCamera handles which team
+        lastTagTime = System.nanoTime();
+        currentTag = tag;
+    }
+
+    public void updatePose(AprilTagDetection tag, long timestampNs) {
+        // DeviceCamera handles which team
+        lastTagTime = timestampNs;
         currentTag = tag;
     }
 

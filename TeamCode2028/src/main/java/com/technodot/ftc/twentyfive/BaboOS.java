@@ -18,6 +18,8 @@ public class BaboOS extends OpMode {
 
     public Team team = Team.BLUE;
 
+    public long now = 0;
+
     @Override
     public void init() {
         deviceCamera.init(hardwareMap);
@@ -44,7 +46,9 @@ public class BaboOS extends OpMode {
 
     @Override
     public void loop() {
-        deviceDrive.updatePose(deviceCamera.update());
+        now = System.nanoTime();
+
+        deviceDrive.updatePose(deviceCamera.update(), now);
         
         deviceDrive.update(gamepad1);
         deviceIntake.update(gamepad1);

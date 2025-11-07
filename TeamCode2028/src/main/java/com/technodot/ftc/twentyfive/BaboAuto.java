@@ -45,39 +45,7 @@ public class BaboAuto extends OpMode {
 
     @Override
     public void loop() {
-        AprilTagDetection tag = deviceCamera.update();
-        if (tag != null) {
-            t.addData("tag", "found");
-
-            double range = tag.ftcPose.range;
-            double bearing = tag.ftcPose.bearing;
-            double yaw = tag.ftcPose.yaw;
-
-            t.addData("range", range);
-            t.addData("bearing", bearing);
-            t.addData("yaw", yaw);
-
-            if (Math.abs(range - 30) < 3) range = 30;
-            if (Math.abs(bearing) < 3) bearing = 0;
-            if (Math.abs(yaw) < 3) yaw = 0;
-
-            float forward = (float) Range.clip(2 + range / -15, -1, 1); // slow down beginning 45in away, stop at 30in away
-            float strafe = (float) Range.clip(bearing / 17, -1, 1); // dynamically adjust bearing based on range?
-            float rotate = (float) Range.clip(-yaw / 30, -1, 1);
-
-            t.addData("forward", forward);
-            t.addData("strafe", strafe);
-            t.addData("rotate", rotate);
-
-            forward *= 0.6f;
-            strafe *= 0.6f;
-            rotate *= 0.6f;
-
-            deviceDrive.update(forward, strafe, rotate * 0.0f);
-        } else {
-            deviceDrive.zero();
-            t.addData("tag", "not found");
-        }
+        // ts goes here
 
         t.addData("status", "running");
         t.update();

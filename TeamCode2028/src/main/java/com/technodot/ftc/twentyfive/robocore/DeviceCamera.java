@@ -36,7 +36,7 @@ public class DeviceCamera extends Device {
                 .build();
 
         VisionPortal.Builder builder = new VisionPortal.Builder();
-        builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "cameraFront"));
         builder.addProcessor(aprilTagProcessor);
         visionPortal = builder.build();
 
