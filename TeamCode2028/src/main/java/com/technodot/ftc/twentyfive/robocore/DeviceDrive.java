@@ -47,7 +47,7 @@ public class DeviceDrive extends Device {
         motorFrontLeft.setDirection(DcMotorEx.Direction.FORWARD);
         motorFrontRight.setDirection(DcMotorEx.Direction.FORWARD);
         motorBackLeft.setDirection(DcMotorEx.Direction.REVERSE);
-        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
+        motorBackRight.setDirection(DcMotorEx.Direction.FORWARD);
 
         // configure PID controller for yaw aiming
         aimPid = new PIDController(AIM_KP, AIM_KI, AIM_KD);
