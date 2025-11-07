@@ -26,7 +26,7 @@ public class DeviceDrive extends Device {
     private static final float ACTIVATION = 0.2f;
 
     // PID constants for tag yaw aiming (units: degrees -> rotate power)
-    private static final float AIM_KP = 0.03f; // proportional gain per degree
+    private static final float AIM_KP = 0.01f; // proportional gain per degree
     private static final float AIM_KI = 0.0f;  // integral gain (start at 0 to avoid windup)
     private static final float AIM_KD = 0.002f; // derivative gain per (degree/second)
     private static final float AIM_MAX_OUTPUT = 0.6f; // cap rotation while aiming
@@ -85,8 +85,10 @@ public class DeviceDrive extends Device {
         if (aimToggle.getState()) {
             // Implement PID aiming with bearing of currentTag
             // Overwrite the rotate value
+            // THE FUCKING CAMERA IS UPSIDE DOWN
+            // BEARING NEGATED AS A RESULT
             if (currentTag != null && currentTag.ftcPose != null) {
-                float yawDeg = (float) currentTag.ftcPose.bearing; // +CCW, degrees
+                float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
 
                 // If within tolerance, stop and reset PID state
                 if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {

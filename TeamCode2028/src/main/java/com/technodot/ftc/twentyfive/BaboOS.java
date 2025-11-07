@@ -3,6 +3,7 @@ package com.technodot.ftc.twentyfive;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfive.common.Team;
+import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfive.robocore.DeviceExtake;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
@@ -10,7 +11,7 @@ import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
 
-//    public DeviceCamera deviceCamera = new DeviceCamera();
+    public DeviceCamera deviceCamera = new DeviceCamera();
     public DeviceDrive deviceDrive = new DeviceDrive();
     public DeviceIntake deviceIntake = new DeviceIntake();
     public DeviceExtake deviceExtake = new DeviceExtake();
@@ -19,7 +20,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void init() {
-//        deviceCamera.init(hardwareMap);
+        deviceCamera.init(hardwareMap);
         deviceDrive.init(hardwareMap);
         deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
@@ -35,7 +36,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void start() {
-//        deviceCamera.start();
+        deviceCamera.start();
 
         telemetry.addData("status", "starting");
         telemetry.update();
@@ -43,7 +44,8 @@ public class BaboOS extends OpMode {
 
     @Override
     public void loop() {
-//        deviceCamera.update(gamepad1);
+        deviceDrive.updatePose(deviceCamera.update());
+        
         deviceDrive.update(gamepad1);
         deviceIntake.update(gamepad1);
         deviceExtake.update(gamepad1);
@@ -63,7 +65,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void stop() {
-//        deviceCamera.stop();
+        deviceCamera.stop();
 
         telemetry.addData("status", "stopping");
         telemetry.update();
