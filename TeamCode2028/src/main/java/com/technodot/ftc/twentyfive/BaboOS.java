@@ -1,5 +1,7 @@
 package com.technodot.ftc.twentyfive;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfive.common.Team;
@@ -7,6 +9,8 @@ import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfive.robocore.DeviceExtake;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
@@ -18,14 +22,18 @@ public class BaboOS extends OpMode {
 
     public Team team = Team.BLUE;
 
+    public Telemetry t;
+
     public long now = 0;
 
     @Override
     public void init() {
-        deviceCamera.init(hardwareMap);
+        deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
         deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
+
+        t = FtcDashboard.getInstance().getTelemetry();
 
         config();
     }
@@ -55,6 +63,10 @@ public class BaboOS extends OpMode {
         deviceExtake.update(gamepad1);
 
         deviceIntake.update(telemetry);
+
+        t.addData("exv", deviceExtake.motorExtake.getVelocity());
+        t.update();
+
 
         telemetry.addData("lt", gamepad1.left_trigger);
         telemetry.addData("rt", gamepad1.right_trigger);

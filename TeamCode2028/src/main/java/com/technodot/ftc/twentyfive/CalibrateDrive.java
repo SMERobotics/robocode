@@ -191,6 +191,11 @@ public class CalibrateDrive extends OpMode {
         telemetry.addData("bl", motorBackLeft.getCurrentPosition());
         telemetry.addData("br", motorBackRight.getCurrentPosition());
 
+        telemetry.addData("flv", motorFrontLeft.getVelocity());
+        telemetry.addData("frv", motorFrontRight.getVelocity());
+        telemetry.addData("blv", motorBackLeft.getVelocity());
+        telemetry.addData("brv", motorBackRight.getVelocity());
+
         telemetry.addData("status", "running");
         telemetry.update();
     }
