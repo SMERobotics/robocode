@@ -4,15 +4,16 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.technodot.ftc.twentyfive.batch.Batch;
+import com.technodot.ftc.twentyfive.common.Obelisk;
 import com.technodot.ftc.twentyfive.common.Team;
+import com.technodot.ftc.twentyfive.common.Artifact;
+import com.technodot.ftc.twentyfive.common.ArtifactInventory;
 import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfive.robocore.DeviceExtake;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
-import com.technodot.ftc.twentyfive.common.Obelisk;
-import com.technodot.ftc.twentyfive.common.Artifact;
-import com.technodot.ftc.twentyfive.common.ArtifactInventory;
 
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends OpMode {
@@ -27,22 +28,25 @@ public class BaboAuto extends OpMode {
     public Batch runtime = new Batch();
 
     public Team team = Team.BLUE;
+    public Obelisk obelisk = Obelisk.PPG; // default pattern if not seen
 
-    // === Autonomous shoot-by-color state ===
-    private boolean shootingActive = false;
-    private long shootingStartMs = 0L;
-    private Artifact[] shootOrder = null; // length 3 when known
-    private int shootStep = 0; // 0..2
+    // --- Autonomous shooting state ---
+    private final Artifact[] targetSequence = new Artifact[3];
+    private int shotsFired = 0;
+    private boolean extakeLowEngaged = false;
+    private boolean intakeRunning = false;
+    private long lastShotNs = 0;
+    private boolean lateralMoveDone = false;
 
-    private enum ShootPhase { WAIT_SPIN, FEEDING, SETTLING, REASSESS, DONE }
-    private ShootPhase shootPhase = ShootPhase.DONE;
-    private long phaseUntilMs = 0L;
+    private boolean servoShotInProgress = false;
+    private long servoShotEndNs = 0;
+    private float lastAutoRotationalOffset = 0.0f;
 
-    // Tunables (ms)
-    private static final long SPINUP_GRACE_MS = 800;   // minimum time to let wheel spin before first feed
-    private static final double SPIN_TOLERANCE = 150;  // ticks/s tolerance to consider at speed
-    private static final long FEED_MS = 550;           // duration to push a ball
-    private static final long SETTLE_MS = 250;         // pause between balls
+    private static final long SHOT_COOLDOWN_MS = 2000; // spin-up time between shots
+    private static final double EXTAKE_READY_FACTOR = 0.9; // 90% of target speed
+    private ArtifactInventory.Side lastShotSide = ArtifactInventory.Side.NONE;
+
+    public void config() { team = Team.BLUE; }
 
     @Override
     public void init() {
@@ -52,49 +56,48 @@ public class BaboAuto extends OpMode {
 
         deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
-        deviceIntake.init(hardwareMap);
+        deviceIntake.init(hardwareMap, team);
         deviceExtake.init(hardwareMap);
 
-        runtime.plan(0, 30_000, (long startMs, long durationMs, long executionMs) -> {
-            deviceCamera.detectTags(false);
-            return false;
-        });
-
-        // Plan to move backward for the first second using the new movement system.
+        // Initial backwards move
         runtime.plan(0, (long startMs, long durationMs, long executionMs) -> {
-            // applyMovement adds a request to the queue. It does not command the motors directly.
-            deviceDrive.applyMovement(-4.0f, 0.0f, 0.0f);
-            return false; // Don't end the action early.
-        });
-
-        runtime.plan(3000, (long startMs, long durationMs, long executionMs) -> {
-            deviceDrive.applyMovement(0.0f, 0.0f, 54.0f);
+            deviceDrive.applyMovement(-5.5f, 0.0f, 0.0f);
             return false;
         });
 
+        // Aim / rotate sequence (example retained)
+        runtime.plan(3000, (long startMs, long durationMs, long executionMs) -> {
+            deviceDrive.applyMovement(0.0f, 0.0f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
+            return false;
+        });
         runtime.plan(4000, (long startMs, long durationMs, long executionMs) -> {
-            deviceDrive.applyMovement(0.0f, 0.0f, -54.0f);
+            // Engage extake low spin at 4000ms per requirements
+            if (!extakeLowEngaged) {
+                deviceExtake.setState(DeviceExtake.ExtakeState.SHOOTING_LOW);
+                extakeLowEngaged = true;
+            }
+            // counter-rotation
+            deviceDrive.applyMovement(0.0f, 0.0f, team.equals(Team.BLUE) ? -54.0f : 54.0f);
             return false;
         });
 
         runtime.plan(5000, (long startMs, long durationMs, long executionMs) -> {
-            deviceExtake.setState(DeviceExtake.ExtakeState.SHOOTING_LOW);
+            // Read obelisk at 5000ms
+            Obelisk detected = deviceCamera.getObelisk();
+            if (detected != null) {
+                obelisk = detected;
+            }
+            buildSequenceFromObelisk();
             return false;
         });
 
-        // Get the obelisk state, and then shoot three balls by color. Do your best to follow the obelisk pattern; if it is impossible, that's okay.
-        runtime.plan(8000, (long startMs, long durationMs, long executionMs) -> {
-            // Begin shooting sequence; determine pattern ASAP (or pick a safe default after timeout in loop)
-            startShootingSequence();
+        runtime.plan(7000, (long startMs, long durationMs, long executionMs) -> {
+            // Attempt first shot at 7000ms
+            attemptShot();
             return false;
         });
 
-        runtime.plan(20_000, (long startMs, long durationMs, long executionMs) -> {
-            // Stop shooter
-            deviceExtake.setState(DeviceExtake.ExtakeState.IDLE);
-            deviceDrive.applyMovement(0.0f, -2.0f, 0.0f);
-            return false;
-        });
+        // Removed late-time plan that conflicted with lateral move logic
     }
 
     @Override
@@ -106,261 +109,156 @@ public class BaboAuto extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
-        deviceDrive.start(); // Initialize encoders and motor modes.
-
+        deviceDrive.start();
         t.addData("status", "starting");
         t.update();
     }
 
     @Override
     public void loop() {
-        // This executes the actions planned in init(), which will call applyMovement().
+        // Execute timed batch plans
         runtime.run();
 
-        // Keep subsystems updated for reliable control/sensing
-        deviceExtake.update(null); // maintain shooter velocity PID
-        deviceIntake.update((com.qualcomm.robotcore.hardware.Gamepad) null); // explicit cast avoids overload ambiguity
+        // First update sensors and subsystems
+        deviceIntake.update((Gamepad) null);
+        deviceExtake.update(null);
+        deviceCamera.update(null);
 
-        // If a shooting sequence is active, run it
-        if (shootingActive) {
-            runShootingSequence();
+        long elapsedMs = runtime.running ? (runtime.currentNs - runtime.startNs) / 1_000_000L : 0L;
+
+        // Retry first shot if not successful exactly at 7000ms and conditions satisfied
+        if (extakeLowEngaged && shotsFired == 0 && !servoShotInProgress && elapsedMs >= 7000) {
+            attemptShot();
         }
 
-        // This combines all movement requests from the last loop, and sends a single command to the motors.
+        // After first shot, ensure intake running
+        if (shotsFired > 0 && !intakeRunning) {
+            deviceIntake.setMotorPower(1.0); // start pulling balls in
+            intakeRunning = true;
+        }
+
+        // Subsequent shots after cooldown
+        if (extakeLowEngaged && shotsFired < 3 && shotsFired > 0 && !servoShotInProgress) {
+            long sinceLastShotMs = (lastShotNs == 0) ? Long.MAX_VALUE : (System.nanoTime() - lastShotNs) / 1_000_000L;
+            if (sinceLastShotMs >= SHOT_COOLDOWN_MS) {
+                attemptShot();
+            }
+        }
+
+        // Immediately recalc rotational offset this same loop if a shot was just scheduled
+        deviceIntake.update((Gamepad) null);
+
+        // Mirror TeleOp: apply heading nudge based on intake rotation window
+        float ro = deviceIntake.getRotationalOffset();
+        if (ro != 0.0f && ro != lastAutoRotationalOffset) {
+            deviceDrive.resetMovement();
+            deviceDrive.applyMovement(0.0f, 0.0f, ro);
+            deviceDrive.flushMovement();
+            lastAutoRotationalOffset = ro;
+        } else if (ro == 0.0f) {
+            lastAutoRotationalOffset = 0.0f;
+        }
+
+        // Manage ongoing servo shot pulses
+        long nowNs = System.nanoTime();
+        if (servoShotInProgress && nowNs >= servoShotEndNs) {
+            // Open both servos after pulse
+            deviceIntake.setServoOverride(true);
+            deviceIntake.setServoPositions(0.3, 0.56); // default open positions
+            servoShotInProgress = false;
+        }
+
+        // Lateral move after all shots
+        if (shotsFired >= 3 && !lateralMoveDone) {
+            deviceDrive.applyMovement(0.0f, team.equals(Team.BLUE) ? -1.0f : 1.0f, 0.0f);
+            deviceDrive.flushMovement(); // immediate execution
+            lateralMoveDone = true;
+        }
+
+        // Flush movement requests from any plans this loop
         deviceDrive.flushMovement();
 
         // Telemetry
+        t.addData("elapsedMs", elapsedMs);
+        t.addData("rotOffset", ro);
         t.addData("fl", deviceDrive.motorFrontLeft.getCurrentPosition());
         t.addData("fr", deviceDrive.motorFrontRight.getCurrentPosition());
         t.addData("bl", deviceDrive.motorBackLeft.getCurrentPosition());
         t.addData("br", deviceDrive.motorBackRight.getCurrentPosition());
-        t.addData("obelisk", deviceCamera.getObelisk());
-        t.addData("shoot_active", shootingActive);
-        t.addData("shoot_phase", shootPhase);
-        t.addData("shoot_step", shootStep);
-        t.addData("extake_v_meas", deviceExtake.getMeasuredVelocity());
-        t.addData("extake_v_tgt", deviceExtake.getTargetVelocity());
-        t.addData("inv_left", deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.LEFT));
-        t.addData("inv_right", deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.RIGHT));
-
+        t.addData("obelisk", obelisk);
+        t.addData("shotsFired", shotsFired);
+        t.addData("targetSeq", targetSequenceToString());
+        t.addData("inventoryL", deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.LEFT));
+        t.addData("inventoryR", deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.RIGHT));
+        t.addData("extakeState", deviceExtake.currentState);
+        t.addData("intakeRunning", intakeRunning);
+        long sinceLastShotMs = (lastShotNs == 0) ? -1L : (System.nanoTime() - lastShotNs) / 1_000_000L;
+        t.addData("sinceLastShotMs", sinceLastShotMs);
         t.addData("status", "running");
         t.update();
     }
 
-    @Override
-    public void stop() {
-        runtime.reset();
-
-        // Ensure mechanisms are safe
-        deviceExtake.setState(DeviceExtake.ExtakeState.IDLE);
-        try { deviceIntake.motorIntake.setPower(0.0); } catch (Exception ignored) {}
-        // Block both lanes by default
-        try { blockBoth(); } catch (Exception ignored) {}
-        try { deviceIntake.setServoOverride(false); } catch (Exception ignored) {}
-
-        deviceCamera.stop();
-        deviceDrive.stop(); // Stops the drive motors.
-
-        t.addData("status", "stopping");
-        t.update();
+    private boolean isExtakeReady() {
+        double target = Math.max(1.0, deviceExtake.getTargetVelocity());
+        double vel = Math.max(0.0, deviceExtake.getMeasuredVelocity());
+        return vel >= EXTAKE_READY_FACTOR * target;
     }
 
-    public void config() {
-        team = Team.BLUE;
-    }
+    private void attemptShot() {
+        if (shotsFired >= 3) return;
+        // Enforce cooldown for subsequent shots
+        if (lastShotNs != 0) {
+            long deltaMs = (System.nanoTime() - lastShotNs) / 1_000_000L;
+            if (deltaMs < SHOT_COOLDOWN_MS) return;
+        }
+        // Ensure flywheel back up to speed
+        if (!isExtakeReady()) return;
 
-    // === Autonomous shooting helpers ===
+        Artifact needed = targetSequence[shotsFired];
+        if (needed == null || needed == Artifact.NONE) return; // nothing to shoot
 
-    private void startShootingSequence() {
-        shootingActive = true;
-        shootingStartMs = System.currentTimeMillis();
-        shootStep = 0;
-        shootPhase = ShootPhase.WAIT_SPIN;
-        phaseUntilMs = 0L;
-        // Try to grab an initial obelisk reading; if null we'll retry in loop
-        Obelisk o = deviceCamera.getObelisk();
-        if (o != null) {
-            shootOrder = orderFromObelisk(o);
+        ArtifactInventory inventory = deviceIntake.getInventory();
+        Artifact leftArt = inventory.getArtifact(ArtifactInventory.Side.LEFT);
+        Artifact rightArt = inventory.getArtifact(ArtifactInventory.Side.RIGHT);
+
+        ArtifactInventory.Side side;
+        if (leftArt == needed && rightArt == needed) {
+            // Choose opposite side of last shot to avoid back-to-back on same side
+            side = (lastShotSide == ArtifactInventory.Side.LEFT) ? ArtifactInventory.Side.RIGHT : ArtifactInventory.Side.LEFT;
+        } else if (leftArt == needed) {
+            side = ArtifactInventory.Side.LEFT;
+        } else if (rightArt == needed) {
+            side = ArtifactInventory.Side.RIGHT;
         } else {
-            shootOrder = null; // will resolve later or fall back
+            return; // required artifact not yet present
         }
-        // Make sure shooter is in a shooting state
-        deviceExtake.setState(DeviceExtake.ExtakeState.SHOOTING_LOW);
-        deviceExtake.setVelocityOverride(1200); // manual override per request
-        // Default: block both until feeding starts
-        blockBoth();
+
+        // Trigger the same timing windows as TeleOp to drive servos and rotationalOffset
+        deviceIntake.triggerShot(side);
+        servoShotInProgress = true;
+        servoShotEndNs = System.nanoTime() + 400_000_000L; // 400ms pulse
+
+        // Mark shot
+        shotsFired++;
+        lastShotSide = side;
+        lastShotNs = System.nanoTime();
     }
 
-    private void runShootingSequence() {
-        long now = System.currentTimeMillis();
-
-        // Resolve obelisk -> order if still unknown; fall back after 2s
-        if (shootOrder == null) {
-            Obelisk o = deviceCamera.getObelisk();
-            if (o != null) {
-                shootOrder = orderFromObelisk(o);
-            } else if (now - shootingStartMs > 2000) {
-                // safe default if not seen
-                shootOrder = new Artifact[]{Artifact.PURPLE, Artifact.PURPLE, Artifact.GREEN};
-            }
-        }
-
-        switch (shootPhase) {
-            case WAIT_SPIN: {
-                // Require minimal time and velocity near target before feeding first ball
-                double vTgt = deviceExtake.getTargetVelocity();
-                double vMeas = deviceExtake.getMeasuredVelocity();
-                boolean timeOk = (now - shootingStartMs) >= SPINUP_GRACE_MS;
-                boolean speedOk = vTgt > 0 && (vMeas >= (vTgt - SPIN_TOLERANCE));
-                if (timeOk && speedOk && shootOrder != null) {
-                    // Proceed to first feed
-                    shootPhase = ShootPhase.FEEDING;
-                    phaseUntilMs = now + FEED_MS;
-                    prepareFeedForStep();
-                }
-                break;
-            }
-            case FEEDING: {
-                // Keep intake running forward while feeding
-                try { deviceIntake.motorIntake.setPower(1.0); } catch (Exception ignored) {}
-                if (now >= phaseUntilMs) {
-                    // Stop pushing and go to settling
-                    try { deviceIntake.motorIntake.setPower(0.0); } catch (Exception ignored) {}
-                    blockBoth();
-                    shootPhase = ShootPhase.SETTLING;
-                    phaseUntilMs = now + SETTLE_MS;
-                }
-                break;
-            }
-            case SETTLING: {
-                if (now >= phaseUntilMs) {
-                    shootStep++;
-                    if (shootStep == 1) { // after first artifact shot
-                        // enter reassess phase to run intake and refresh inventory
-                        shootPhase = ShootPhase.REASSESS;
-                        phaseUntilMs = now + 600; // run intake for 600ms
-                        try { deviceIntake.motorIntake.setPower(1.0); } catch (Exception ignored) {}
-                        // keep both lanes blocked to avoid accidental feed during reassess
-                        blockBoth();
-                    } else if (shootStep >= 3) {
-                        shootPhase = ShootPhase.DONE;
-                        shootingActive = false;
-                        blockBoth();
-                    } else {
-                        // Next ball
-                        shootPhase = ShootPhase.FEEDING;
-                        phaseUntilMs = now + FEED_MS;
-                        prepareFeedForStep();
-                    }
-                }
-                break;
-            }
-            case REASSESS: {
-                // After intake ran, stop intake, open both briefly to scan, recompute remaining order
-                if (now >= phaseUntilMs) {
-                    try { deviceIntake.motorIntake.setPower(0.0); } catch (Exception ignored) {}
-                    // Update inventory once more (already refreshed each loop by update(null))
-                    // Recalculate remaining desired order if obelisk changed (unlikely) or inventory changed
-                    Obelisk oNow = deviceCamera.getObelisk();
-                    if (oNow != null) {
-                        Artifact[] full = orderFromObelisk(oNow);
-                        // Replace remaining portion only
-                        if (full.length == 3 && shootStep < 3) {
-                            for (int i = shootStep; i < 3; i++) {
-                                shootOrder[i] = full[i];
-                            }
-                        }
-                    }
-                    // Proceed to next feeding if shots remain
-                    if (shootStep >= 3) {
-                        shootPhase = ShootPhase.DONE;
-                        shootingActive = false;
-                        blockBoth();
-                    } else {
-                        shootPhase = ShootPhase.FEEDING;
-                        phaseUntilMs = now + FEED_MS;
-                        prepareFeedForStep();
-                    }
-                }
-                break;
-            }
-            case DONE:
-            default: {
-                shootingActive = false;
-                blockBoth();
-                break;
-            }
+    private void buildSequenceFromObelisk() {
+        // Interpret enum letters order for required artifact sequence.
+        switch (obelisk) {
+            case GPP: targetSequence[0] = Artifact.GREEN; targetSequence[1] = Artifact.PURPLE; targetSequence[2] = Artifact.PURPLE; break;
+            case PGP: targetSequence[0] = Artifact.PURPLE; targetSequence[1] = Artifact.GREEN; targetSequence[2] = Artifact.PURPLE; break;
+            case PPG: targetSequence[0] = Artifact.PURPLE; targetSequence[1] = Artifact.PURPLE; targetSequence[2] = Artifact.GREEN; break;
         }
     }
 
-    private Artifact[] orderFromObelisk(Obelisk o) {
-        switch (o) {
-            case GPP: return new Artifact[]{Artifact.GREEN, Artifact.PURPLE, Artifact.PURPLE};
-            case PGP: return new Artifact[]{Artifact.PURPLE, Artifact.GREEN, Artifact.PURPLE};
-            case PPG: return new Artifact[]{Artifact.PURPLE, Artifact.PURPLE, Artifact.GREEN};
-            default: return new Artifact[]{Artifact.PURPLE, Artifact.PURPLE, Artifact.GREEN};
+    private String targetSequenceToString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < targetSequence.length; i++) {
+            if (i > 0) sb.append("-");
+            sb.append(targetSequence[i] == null ? "?" : targetSequence[i]);
         }
-    }
-
-    private void prepareFeedForStep() {
-        // Choose which side to feed based on desired color and available inventory
-        Artifact desired = (shootOrder != null && shootStep < shootOrder.length) ? shootOrder[shootStep] : Artifact.NONE;
-        Artifact left = deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.LEFT);
-        Artifact right = deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.RIGHT);
-
-        ArtifactInventory.Side chosen;
-        if (desired != Artifact.NONE) {
-            if (left == desired) chosen = ArtifactInventory.Side.LEFT;
-            else if (right == desired) chosen = ArtifactInventory.Side.RIGHT;
-            else {
-                // fallback: shoot whatever is available
-                if (left != Artifact.NONE) chosen = ArtifactInventory.Side.LEFT;
-                else if (right != Artifact.NONE) chosen = ArtifactInventory.Side.RIGHT;
-                else chosen = ArtifactInventory.Side.BOTH; // nothing present; let both open as last resort
-            }
-        } else {
-            // No specific desire -> shoot any
-            if (left != Artifact.NONE) chosen = ArtifactInventory.Side.LEFT;
-            else if (right != Artifact.NONE) chosen = ArtifactInventory.Side.RIGHT;
-            else chosen = ArtifactInventory.Side.BOTH;
-        }
-
-        // Gate servos so only the chosen side can feed
-        switch (chosen) {
-            case LEFT: allowLeftBlockRight(); break;
-            case RIGHT: allowRightBlockLeft(); break;
-            case BOTH: default: openBoth(); break; // removed NONE unreachable label
-        }
-    }
-
-    // Servo helper patterns inferred from DeviceIntake defaults
-    // Left: open 0.3, closed 0.56
-    // Right: open 0.56, closed 0.3
-    private void openBoth() {
-        try {
-            deviceIntake.setServoOverride(true);
-            deviceIntake.setServoPositions(0.3, 0.56);  // left open, right open
-        } catch (Exception ignored) {}
-    }
-
-    private void blockBoth() {
-        try {
-            deviceIntake.setServoOverride(true);
-            deviceIntake.setServoPositions(0.56, 0.3); // left closed, right closed
-        } catch (Exception ignored) {}
-    }
-
-    private void allowLeftBlockRight() {
-        try {
-            deviceIntake.setServoOverride(true);
-            deviceIntake.setServoPositions(0.3, 0.3);  // left open, right closed
-        } catch (Exception ignored) {}
-    }
-
-    private void allowRightBlockLeft() {
-        try {
-            deviceIntake.setServoOverride(true);
-            deviceIntake.setServoPositions(0.56, 0.56); // left closed, right open
-        } catch (Exception ignored) {}
+        return sb.toString();
     }
 }

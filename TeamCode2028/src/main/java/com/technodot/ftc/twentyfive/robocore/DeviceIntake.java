@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.technodot.ftc.twentyfive.common.Artifact;
 import com.technodot.ftc.twentyfive.common.ArtifactInventory;
 import com.technodot.ftc.twentyfive.common.Controls;
+import com.technodot.ftc.twentyfive.common.Team;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -27,6 +28,7 @@ public class DeviceIntake extends Device {
     public float rotationalOffset = 0.0f;
 
     public ArtifactInventory inventory = new ArtifactInventory();
+    public Team team = Team.BLUE;
 
     public final float LEFT_DISTANCE = 3.5f;
     public final float RIGHT_DISTANCE = 4.0f;
@@ -35,6 +37,10 @@ public class DeviceIntake extends Device {
     private boolean servoOverride = false;
     private double overrideLeftPos = 0.3;  // default open for left
     private double overrideRightPos = 0.56; // default open for right
+
+    // === Autonomous motor override ===
+    private boolean motorOverride = false;
+    private double overrideMotorPower = 0.0;
 
     @Override
     public void init(HardwareMap hardwareMap) {
@@ -51,6 +57,22 @@ public class DeviceIntake extends Device {
         colorRight.enableLed(true);
     }
 
+    public void init(HardwareMap hardwareMap, Team team) {
+        motorIntake = hardwareMap.get(DcMotorEx.class, "motorIntake");
+        motorIntake.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+
+        servoLeft = hardwareMap.get(Servo.class, "servoLeft");
+        servoRight = hardwareMap.get(Servo.class, "servoRight");
+
+        colorLeft = hardwareMap.get(RevColorSensorV3.class, "colorLeft");
+        colorRight = hardwareMap.get(RevColorSensorV3.class, "colorRight");
+
+        this.team = team;
+
+        colorLeft.enableLed(true);
+        colorRight.enableLed(true);
+    }
+
     @Override
     public void start() {
 
@@ -58,12 +80,17 @@ public class DeviceIntake extends Device {
 
     @Override
     public void update(Gamepad gamepad) {
-        if (Controls.intakeOut(gamepad)) {
-            motorIntake.setPower(-1.0F);
-        } else if (Controls.intakeIn(gamepad)) {
-            motorIntake.setPower(1.0F);
+        // Motor power: respect autonomous override if enabled
+        if (motorOverride) {
+            motorIntake.setPower(overrideMotorPower);
         } else {
-            motorIntake.setPower(0.0F);
+            if (Controls.intakeOut(gamepad)) {
+                motorIntake.setPower(-1.0F);
+            } else if (Controls.intakeIn(gamepad)) {
+                motorIntake.setPower(1.0F);
+            } else {
+                motorIntake.setPower(0.0F);
+            }
         }
 
         long now = System.currentTimeMillis();
@@ -87,15 +114,20 @@ public class DeviceIntake extends Device {
         rotationalOffset = 0.0f;
 
         if (now < leftActivated) {
-            rotationalOffset = 5.06f;
+//            rotationalOffset = 5.06f;
+            rotationalOffset = team.equals(Team.BLUE) ? 8.0f : 10.0f;
+//            rotationalOffset = 13f;
         } else if (now < leftActivated + 100) {
-            rotationalOffset = -5.06f;
+            rotationalOffset = team.equals(Team.BLUE) ? -8.0f : -10.0f;
+//            rotationalOffset = -13f;
         }
 
         if (now < rightActivated) {
-            rotationalOffset = -11.77f;
+//            rotationalOffset = -11.77f;
+            rotationalOffset = -13f;
         } else if (now < rightActivated + 100) {
-            rotationalOffset = 11.77f;
+//            rotationalOffset = 11.77f;
+            rotationalOffset = 13f;
         }
 
         // Servo control: respect autonomous override if enabled
@@ -183,5 +215,36 @@ public class DeviceIntake extends Device {
     public void setServoPositions(double leftPos, double rightPos) {
         this.overrideLeftPos = leftPos;
         this.overrideRightPos = rightPos;
+    }
+
+    // === Autonomous motor override API ===
+    public void setMotorOverride(boolean enabled) {
+        this.motorOverride = enabled;
+        if (!enabled) {
+            this.overrideMotorPower = 0.0;
+        }
+    }
+
+    public boolean isMotorOverride() {
+        return motorOverride;
+    }
+
+    public void setMotorPower(double power) {
+        this.overrideMotorPower = power;
+        this.motorOverride = true;
+    }
+
+    // === Autonomous helpers ===
+    public void triggerShot(ArtifactInventory.Side side) {
+        // Schedule servo close/rotation window identical to TeleOp logic
+        long now = System.currentTimeMillis();
+        if (side == ArtifactInventory.Side.LEFT || side == ArtifactInventory.Side.BOTH) {
+            leftActivated = now + 400; // matches TeleOp timing
+        }
+        if (side == ArtifactInventory.Side.RIGHT || side == ArtifactInventory.Side.BOTH) {
+            rightActivated = now + 400; // matches TeleOp timing
+        }
+        // Ensure internal servo logic drives positions during the window
+        setServoOverride(false);
     }
 }

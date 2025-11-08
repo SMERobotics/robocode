@@ -35,7 +35,7 @@ public class DeviceDrive extends Device {
     // PID constants for tag yaw aiming (units: degrees -> rotate power)
     private static final float AIM_KP = 0.013f; // proportional gain per degree
     private static final float AIM_KI = 0.0f;  // integral gain (start at 0 to avoid windup)
-    private static final float AIM_KD = 0.003f; // derivative gain per (degree/second)
+    private static final float AIM_KD = 0.006f; // derivative gain per (degree/second)
     private static final float AIM_MAX_OUTPUT = 0.6f; // cap rotation while aiming
     private static final float AIM_TOLERANCE_DEG = 1.0f; // within this yaw, consider aimed
     private static final float AIM_INTEGRAL_LIMIT = 1.0f; // anti-windup clamp for integral term
@@ -145,7 +145,9 @@ public class DeviceDrive extends Device {
             resetMultiplier();
         }
 
-        aimToggle.update(Controls.driveAim(gamepad));
+        if (Controls.driveAim(gamepad)) {
+            aimToggle.activate();
+        }
         if (rotate != 0f) {
             aimToggle.reset();
             if (aimPid != null) aimPid.reset();

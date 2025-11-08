@@ -34,7 +34,7 @@ public class BaboOS extends OpMode {
 
         deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
-        deviceIntake.init(hardwareMap);
+        deviceIntake.init(hardwareMap, team);
         deviceExtake.init(hardwareMap);
     }
 
