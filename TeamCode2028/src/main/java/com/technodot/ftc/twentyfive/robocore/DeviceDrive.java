@@ -1,5 +1,6 @@
 package com.technodot.ftc.twentyfive.robocore;
 
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -44,6 +45,18 @@ public class DeviceDrive extends Device {
     // Shared PID controller for aiming
     private PIDController aimPid;
 
+    // Custom PID controllers for autonomous movement (one per motor)
+    private PIDController flPid;
+    private PIDController frPid;
+    private PIDController blPid;
+    private PIDController brPid;
+
+    // PID constants for motor position control
+    private static final double MOTOR_KP = 0.003;
+    private static final double MOTOR_KI = 0.0;
+    private static final double MOTOR_KD = 0.0001;
+    private static final double MOTOR_MAX_POWER = 1.0;
+
     // A list to hold movement requests from various callbacks
     private final List<Movement> movementRequests = new ArrayList<>();
 
@@ -84,21 +97,24 @@ public class DeviceDrive extends Device {
         aimPid.setSetpoint(0.0);
         aimPid.setOutputLimits(-AIM_MAX_OUTPUT, AIM_MAX_OUTPUT);
         aimPid.setIntegralLimits(-AIM_INTEGRAL_LIMIT, AIM_INTEGRAL_LIMIT);
+
+        // configure PID controllers for autonomous motor control
+        flPid = new PIDController(MOTOR_KP, MOTOR_KI, MOTOR_KD);
+        flPid.setOutputLimits(-MOTOR_MAX_POWER, MOTOR_MAX_POWER);
+
+        frPid = new PIDController(MOTOR_KP, MOTOR_KI, MOTOR_KD);
+        frPid.setOutputLimits(-MOTOR_MAX_POWER, MOTOR_MAX_POWER);
+
+        blPid = new PIDController(MOTOR_KP, MOTOR_KI, MOTOR_KD);
+        blPid.setOutputLimits(-MOTOR_MAX_POWER, MOTOR_MAX_POWER);
+
+        brPid = new PIDController(MOTOR_KP, MOTOR_KI, MOTOR_KD);
+        brPid.setOutputLimits(-MOTOR_MAX_POWER, MOTOR_MAX_POWER);
     }
 
     @Override
     public void start() {
-        motorFrontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorFrontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorBackLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorBackRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-
-        // will be using REV Control Hub built in PID controllers for now
-        // TODO: switch to in-house PID controller implementation
-        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        motorBackRight.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        resetMovement();
     }
 
     public void update(Gamepad gamepad) {
@@ -230,13 +246,10 @@ public class DeviceDrive extends Device {
     /**
      * Flushes all applied movement requests, combining them and sending the
      * result to the motors. This should be called once per control loop.
+     * Uses custom PID controllers instead of REV Control Hub PID.
      */
-    public void flushMovement() {
-        if (movementRequests.isEmpty()) {
-            zero();
-            return;
-        }
-
+    public void flushMovement(MultipleTelemetry t) {
+        // Sum all movement requests
         float totalForward = 0;
         float totalStrafe = 0;
         float totalRotate = 0;
@@ -247,41 +260,107 @@ public class DeviceDrive extends Device {
             totalRotate += move.rotate;
         }
 
-        // TODO: encoder shit here
-
+        // Convert to encoder targets
         int encoderForward = (int) (totalForward * DIRECTIONAL_ENCODER_TILE / 2);
         int encoderStrafe = (int) (totalStrafe * DIRECTIONAL_ENCODER_TILE / 2);
         int encoderRotate = (int) (totalRotate * ROTATIONAL_ENCODER_REVOLUTION / 360);
 
-        // robot-centric kinematics
-        int fl = encoderForward + encoderStrafe + encoderRotate;
-        int fr = encoderForward - encoderStrafe - encoderRotate;
-        int bl = encoderForward - encoderStrafe + encoderRotate;
-        int br = encoderForward + encoderStrafe - encoderRotate;
+        // Robot-centric kinematics - calculate target increments
+        int flIncrement = encoderForward + encoderStrafe + encoderRotate;
+        int frIncrement = encoderForward - encoderStrafe - encoderRotate;
+        int blIncrement = encoderForward - encoderStrafe + encoderRotate;
+        int brIncrement = encoderForward + encoderStrafe - encoderRotate;
 
-        // normalize
-        float max = Math.max(1.0f, Math.max(Math.max(Math.abs(fl), Math.abs(fr)), Math.max(Math.abs(bl), Math.abs(br))));
-        float flNormalized = fl / max;
-        float frNormalized = fr / max;
-        float blNormalized = bl / max;
-        float brNormalized = br / max;
+        // Calculate new target positions
+        int flTarget = motorFrontLeft.getTargetPosition() + flIncrement;
+        int frTarget = motorFrontRight.getTargetPosition() + frIncrement;
+        int blTarget = motorBackLeft.getTargetPosition() + blIncrement;
+        int brTarget = motorBackRight.getTargetPosition() + brIncrement;
 
-        motorFrontLeft.setTargetPosition(motorFrontLeft.getCurrentPosition() + fl);
-        motorFrontRight.setTargetPosition(motorFrontRight.getCurrentPosition() + fr);
-        motorBackLeft.setTargetPosition(motorBackLeft.getCurrentPosition() + bl);
-        motorBackRight.setTargetPosition(motorBackRight.getCurrentPosition() + br);
+        // Update internal targets for PID
+        motorFrontLeft.setTargetPosition(flTarget);
+        motorFrontRight.setTargetPosition(frTarget);
+        motorBackLeft.setTargetPosition(blTarget);
+        motorBackRight.setTargetPosition(brTarget);
 
-        if (motorFrontLeft != null) motorFrontLeft.setVelocity(flNormalized * MAX_ENCODER_VELOCITY);
-        if (motorFrontRight != null) motorFrontRight.setVelocity(frNormalized * MAX_ENCODER_VELOCITY);
-        if (motorBackLeft != null) motorBackLeft.setVelocity(blNormalized * MAX_ENCODER_VELOCITY);
-        if (motorBackRight != null) motorBackRight.setVelocity(brNormalized * MAX_ENCODER_VELOCITY);
+        // Get current positions
+        int flCurrent = motorFrontLeft.getCurrentPosition();
+        int frCurrent = motorFrontRight.getCurrentPosition();
+        int blCurrent = motorBackLeft.getCurrentPosition();
+        int brCurrent = motorBackRight.getCurrentPosition();
 
-        // Clear the list for the next loop cycle.
+        // Calculate position errors
+        int flError = flTarget - flCurrent;
+        int frError = frTarget - frCurrent;
+        int blError = blTarget - blCurrent;
+        int brError = brTarget - brCurrent;
+
+        // Update PID setpoints to the target positions
+        flPid.setSetpoint(flTarget);
+        frPid.setSetpoint(frTarget);
+        blPid.setSetpoint(blTarget);
+        brPid.setSetpoint(brTarget);
+
+        // Calculate PID outputs (power values)
+        double flPower = flPid.calculate(flCurrent);
+        double frPower = frPid.calculate(frCurrent);
+        double blPower = blPid.calculate(blCurrent);
+        double brPower = brPid.calculate(brCurrent);
+
+        // Apply power to motors
+        if (motorFrontLeft != null) motorFrontLeft.setPower(flPower);
+        if (motorFrontRight != null) motorFrontRight.setPower(frPower);
+        if (motorBackLeft != null) motorBackLeft.setPower(blPower);
+        if (motorBackRight != null) motorBackRight.setPower(brPower);
+
+        // Telemetry for debugging
+        t.addData("FL", "t:%d c:%d e:%d p:%.3f", flTarget, flCurrent, flError, flPower);
+        t.addData("FR", "t:%d c:%d e:%d p:%.3f", frTarget, frCurrent, frError, frPower);
+        t.addData("BL", "t:%d c:%d e:%d p:%.3f", blTarget, blCurrent, blError, blPower);
+        t.addData("BR", "t:%d c:%d e:%d p:%.3f", brTarget, brCurrent, brError, brPower);
+
+        // Clear the list for the next loop cycle
         movementRequests.clear();
     }
 
+    /**
+     * Prepares the drive system for autonomous mode with custom PID control.
+     * Switches motors to RUN_WITHOUT_ENCODER and resets PID controllers.
+     * Call this at the start of autonomous period.
+     */
     public void resetMovement() {
+        // Switch to RUN_WITHOUT_ENCODER to disable REV Control Hub PID
+        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
+        // Reset encoder positions to 0 for clean autonomous start
+        motorFrontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        motorFrontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        motorBackLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        motorBackRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+
+        // Switch back to RUN_WITHOUT_ENCODER (resetting clears the mode)
+        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Reset target positions to 0
+        motorFrontLeft.setTargetPosition(0);
+        motorFrontRight.setTargetPosition(0);
+        motorBackLeft.setTargetPosition(0);
+        motorBackRight.setTargetPosition(0);
+
+        // Reset custom PID controllers
+        if (flPid != null) flPid.reset();
+        if (frPid != null) frPid.reset();
+        if (blPid != null) blPid.reset();
+        if (brPid != null) brPid.reset();
+
+        // Clear any pending movement requests
+        movementRequests.clear();
     }
 
     private float scaleInput(float value) {

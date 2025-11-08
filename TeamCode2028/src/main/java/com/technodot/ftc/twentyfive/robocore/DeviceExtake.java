@@ -13,11 +13,11 @@ public class DeviceExtake extends Device {
     private boolean pressingShootLow;
     private boolean pressingShootHigh;
 
-    public final float velocityHigh = 1780; // target ticks/sec (tune as needed)
-    public final float velocityLow = 1350;  // target ticks/sec (tune as needed)
+    public final float velocityHigh = 1450; // target ticks/sec (tune as needed)
+    public final float velocityLow = 1250;  // target ticks/sec (tune as needed)
 
     // Custom PID controller for velocity regulation
-    private final PIDController velocityPID = new PIDController(0.001, 0.0000, 0.0002); // Initial gains; tune!
+    private final PIDController velocityPID = new PIDController(0.01, 0.0000, 0.001); // Initial gains; tune!
     private long lastTimeNs = -1;
     private int lastPosition = 0;
     private double measuredVelocity = 0; // ticks/sec
