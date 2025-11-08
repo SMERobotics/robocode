@@ -23,12 +23,9 @@ public class DeviceIntake extends Device {
 
     public boolean leftPressed = false;
     public boolean rightPressed = false;
-    public boolean bothPressed = false;
     public long leftActivated = 0;
     public long rightActivated = 0;
-
-//    public float leftPosition = 0;
-//    public float rightPosition = 0;
+    public float rotationalOffset = 0.0f;
 
     public Artifact leftArtifact = Artifact.NONE;
     public Artifact rightArtifact = Artifact.NONE;
@@ -67,7 +64,7 @@ public class DeviceIntake extends Device {
 
         boolean closeLeft = Controls.intakeServoLeft(gamepad) || Controls.intakeServoGreen(gamepad);
         if (closeLeft && !leftPressed) {
-            leftActivated = now + 200;
+            leftActivated = now + 400;
             leftPressed = true;
         } else if (!closeLeft) {
             leftPressed = false;
@@ -75,44 +72,37 @@ public class DeviceIntake extends Device {
 
         boolean closeRight = Controls.intakeServoRight(gamepad) || Controls.intakeServoPurple(gamepad);
         if (closeRight && !rightPressed) {
-            rightActivated = now + 200;
+            rightActivated = now + 400;
             rightPressed = true;
         } else if (!closeRight) {
             rightPressed = false;
         }
 
+        rotationalOffset = 0.0f;
+
         if (now < leftActivated) {
+            rotationalOffset = 5.06f;
+        } else if (now < leftActivated + 100) {
+            rotationalOffset = -5.06f;
+        }
+
+        if (now < rightActivated) {
+            rotationalOffset = -11.77f;
+        } else if (now < rightActivated + 100) {
+            rotationalOffset = 11.77f;
+        }
+
+        if (leftActivated - 250 < now && now < leftActivated) {
             servoLeft.setPosition(0.56); // left closed position
         } else {
             servoLeft.setPosition(0.3); // left open position
         }
 
-        if (now < rightActivated) {
+        if (rightActivated - 250 < now && now < rightActivated) {
             servoRight.setPosition(0.3); // right closed position
         } else {
             servoRight.setPosition(0.56); // right open position
         }
-
-        // calibration shit below
-
-//        if (gamepad.dpad_left) {
-//            leftPosition += 0.001;
-//        }
-//
-//        if (gamepad.dpad_down) {
-//            leftPosition -= 0.001;
-//        }
-//
-//        if (gamepad.dpad_right) {
-//            rightPosition += 0.001;
-//        }
-//
-//        if (gamepad.dpad_up) {
-//            rightPosition -= 0.001;
-//        }
-//
-//        servoLeft.setPosition(leftPosition);
-//        servoRight.setPosition(rightPosition);
 
         // TODO: calibrate the color sensors to balls fr
 
@@ -204,13 +194,14 @@ public class DeviceIntake extends Device {
         telemetry.addData("r_hsv", String.format("H:%.0f S:%.0f V:%.0f", rightHSV[0], rightHSV[1], rightHSV[2]));
         telemetry.addData("r_dist", colorRight.getDistance(DistanceUnit.CM));
         telemetry.addData("r_artifact", rightArtifact);
-
-//        telemetry.addData("l_pos", servoLeft.getPosition());
-//        telemetry.addData("r_pos", servoRight.getPosition());
     }
 
     @Override
     public void stop() {
 
+    }
+
+    public float getRotationalOffset() {
+        return rotationalOffset;
     }
 }

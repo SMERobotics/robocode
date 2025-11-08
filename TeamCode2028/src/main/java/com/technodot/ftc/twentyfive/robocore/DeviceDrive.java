@@ -23,6 +23,8 @@ public class DeviceDrive extends Device {
     public float speedMultiplier = 1.0F;
     public AprilTagDetection currentTag = null;
     public long lastTagTime = 0;
+    public float rotationalOffset = 0.0f;
+    public float lastRotationalOffset = 0.0f;
 
     public Toggle preciseToggle = new Toggle();
     public Toggle aimToggle = new Toggle();
@@ -87,11 +89,6 @@ public class DeviceDrive extends Device {
         motorBackRight.setDirection(DcMotorEx.Direction.FORWARD); // ts should be reverse. CHAT MOUNTED IT BACKWARDS WHAT THE FUU
 //        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
 
-//        motorFrontLeft.setTargetPositionTolerance(10);
-//        motorFrontRight.setTargetPositionTolerance(10);
-//        motorBackLeft.setTargetPositionTolerance(10);
-//        motorBackRight.setTargetPositionTolerance(10);
-
         // configure PID controller for yaw aiming
         aimPid = new PIDController(AIM_KP, AIM_KI, AIM_KD);
         aimPid.setSetpoint(0.0);
@@ -118,6 +115,21 @@ public class DeviceDrive extends Device {
     }
 
     public void update(Gamepad gamepad) {
+        // If rotational offset is active, ignore user input and execute rotation
+
+        if (rotationalOffset != 0 && lastRotationalOffset != rotationalOffset) {
+            resetMovement();
+            // Apply the rotational offset as a movement request
+            applyMovement(0, 0, rotationalOffset);
+            // Execute the movement using autonomous system
+            flushMovement();
+
+            lastRotationalOffset = rotationalOffset;
+            return;
+        } else if (rotationalOffset == 0) {
+            lastRotationalOffset = 0;
+        }
+
         float forward = Controls.driveForward(gamepad);
         float strafe = Controls.driveStrafe(gamepad);
         float rotate = Controls.driveRotate(gamepad);
@@ -248,7 +260,7 @@ public class DeviceDrive extends Device {
      * result to the motors. This should be called once per control loop.
      * Uses custom PID controllers instead of REV Control Hub PID.
      */
-    public void flushMovement(MultipleTelemetry t) {
+    public void flushMovement() {
         // Sum all movement requests
         float totalForward = 0;
         float totalStrafe = 0;
@@ -290,10 +302,10 @@ public class DeviceDrive extends Device {
         int brCurrent = motorBackRight.getCurrentPosition();
 
         // Calculate position errors
-        int flError = flTarget - flCurrent;
-        int frError = frTarget - frCurrent;
-        int blError = blTarget - blCurrent;
-        int brError = brTarget - brCurrent;
+//        int flError = flTarget - flCurrent;
+//        int frError = frTarget - frCurrent;
+//        int blError = blTarget - blCurrent;
+//        int brError = brTarget - brCurrent;
 
         // Update PID setpoints to the target positions
         flPid.setSetpoint(flTarget);
@@ -312,12 +324,6 @@ public class DeviceDrive extends Device {
         if (motorFrontRight != null) motorFrontRight.setPower(frPower);
         if (motorBackLeft != null) motorBackLeft.setPower(blPower);
         if (motorBackRight != null) motorBackRight.setPower(brPower);
-
-        // Telemetry for debugging
-        t.addData("FL", "t:%d c:%d e:%d p:%.3f", flTarget, flCurrent, flError, flPower);
-        t.addData("FR", "t:%d c:%d e:%d p:%.3f", frTarget, frCurrent, frError, frPower);
-        t.addData("BL", "t:%d c:%d e:%d p:%.3f", blTarget, blCurrent, blError, blPower);
-        t.addData("BR", "t:%d c:%d e:%d p:%.3f", brTarget, brCurrent, brError, brPower);
 
         // Clear the list for the next loop cycle
         movementRequests.clear();
@@ -361,6 +367,14 @@ public class DeviceDrive extends Device {
 
         // Clear any pending movement requests
         movementRequests.clear();
+    }
+
+    public void getRotationalOffset(float offset) {
+        rotationalOffset = offset;
+    }
+
+    public void setRotationalOffset(float offset) {
+        rotationalOffset = offset;
     }
 
     private float scaleInput(float value) {

@@ -56,17 +56,17 @@ public class BaboOS extends OpMode {
     public void loop() {
         now = System.nanoTime();
 
-        deviceDrive.updatePose(deviceCamera.update(), now);
-        
-        deviceDrive.update(gamepad1);
         deviceIntake.update(gamepad1);
-        deviceExtake.update(gamepad1);
+        deviceIntake.update(t);
 
-        deviceIntake.update(telemetry);
+        deviceDrive.setRotationalOffset(deviceIntake.getRotationalOffset());
+        deviceDrive.updatePose(deviceCamera.update(), now);
+        deviceDrive.update(gamepad1);
+
+        deviceExtake.update(gamepad1);
 
         t.addData("exv", deviceExtake.motorExtake.getVelocity());
         t.update();
-
 
         telemetry.addData("lt", gamepad1.left_trigger);
         telemetry.addData("rt", gamepad1.right_trigger);

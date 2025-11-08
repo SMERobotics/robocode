@@ -39,6 +39,11 @@ public class BaboAuto extends OpMode {
             deviceDrive.applyMovement(-4.0f, 0.0f, 0.0f);
             return false; // Don't end the action early.
         });
+
+        runtime.plan(2000, (long startMs, long durationMs, long executionMs) -> {
+            deviceDrive.applyMovement(0.0f, 0.0f, 180.0f);
+            return false;
+        });
     }
 
     @Override
@@ -62,7 +67,7 @@ public class BaboAuto extends OpMode {
         runtime.run();
 
         // This combines all movement requests from the last loop, and sends a single command to the motors.
-        deviceDrive.flushMovement(t);
+        deviceDrive.flushMovement();
 
         t.addData("fl", deviceDrive.motorFrontLeft.getCurrentPosition());
         t.addData("fr", deviceDrive.motorFrontRight.getCurrentPosition());
