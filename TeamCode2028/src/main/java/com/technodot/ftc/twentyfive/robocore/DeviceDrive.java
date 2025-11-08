@@ -33,9 +33,9 @@ public class DeviceDrive extends Device {
     private static final float ACTIVATION = 0.2f;
 
     // PID constants for tag yaw aiming (units: degrees -> rotate power)
-    private static final float AIM_KP = 0.015f; // proportional gain per degree
+    private static final float AIM_KP = 0.013f; // proportional gain per degree
     private static final float AIM_KI = 0.0f;  // integral gain (start at 0 to avoid windup)
-    private static final float AIM_KD = 0.002f; // derivative gain per (degree/second)
+    private static final float AIM_KD = 0.003f; // derivative gain per (degree/second)
     private static final float AIM_MAX_OUTPUT = 0.6f; // cap rotation while aiming
     private static final float AIM_TOLERANCE_DEG = 1.0f; // within this yaw, consider aimed
     private static final float AIM_INTEGRAL_LIMIT = 1.0f; // anti-windup clamp for integral term
