@@ -25,6 +25,9 @@ public class DeviceExtake extends Device {
     // Optional feedforward term (kF) ~ power per ticks/sec; tune based on motor characteristics
     private static final double KF = 1.0 / 2500.0; // Assuming ~2500 ticks/sec at full power; adjust after testing
 
+    private boolean velocityOverride = false;
+    private double overrideVelocity = 0.0; // ticks/sec
+
     public enum ExtakeState {
         IDLE,
         SHOOTING_LOW,
@@ -108,9 +111,10 @@ public class DeviceExtake extends Device {
                 break;
             }
             case SHOOTING_LOW: {
-                velocityPID.setSetpoint(velocityLow);
-                double pidOut = velocityPID.calculate(measuredVelocity, (now / 1e9)); // seconds
-                double ff = velocityLow * KF; // simple feedforward
+                double target = velocityOverride ? overrideVelocity : velocityLow;
+                velocityPID.setSetpoint(target);
+                double pidOut = velocityPID.calculate(measuredVelocity, (System.nanoTime() / 1e9)); // seconds
+                double ff = target * KF; // simple feedforward
                 double power = ff + pidOut;
                 // Clamp power
                 if (power > 1.0) power = 1.0;
@@ -119,9 +123,10 @@ public class DeviceExtake extends Device {
                 break;
             }
             case SHOOTING_HIGH: {
-                velocityPID.setSetpoint(velocityHigh);
-                double pidOut = velocityPID.calculate(measuredVelocity, (now / 1e9));
-                double ff = velocityHigh * KF;
+                double target = velocityOverride ? overrideVelocity : velocityHigh;
+                velocityPID.setSetpoint(target);
+                double pidOut = velocityPID.calculate(measuredVelocity, (System.nanoTime() / 1e9));
+                double ff = target * KF;
                 double power = ff + pidOut;
                 if (power > 1.0) power = 1.0;
                 if (power < 0.0) power = 0.0;
@@ -151,11 +156,33 @@ public class DeviceExtake extends Device {
 
     public double getTargetVelocity() {
         switch (currentState) {
-            case SHOOTING_LOW: return velocityLow;
-            case SHOOTING_HIGH: return velocityHigh;
+            case SHOOTING_LOW: return velocityOverride ? overrideVelocity : velocityLow;
+            case SHOOTING_HIGH: return velocityOverride ? overrideVelocity : velocityHigh;
             default: return 0.0;
         }
     }
 
     public void setVelocityPID(double kP, double kI, double kD) { velocityPID.setPID(kP, kI, kD); }
+
+    // === Autonomous helper ===
+    // Set extake state directly (e.g., from autonomous routines) bypassing gamepad toggle logic.
+    // Call before or between update() loops; update() will maintain the state unless gamepad buttons are pressed.
+    public void setState(ExtakeState state) {
+        if (currentState != state) {
+            velocityPID.reset(); // fresh PID cycle on state change
+        }
+        currentState = state;
+        // Clear toggle latch booleans so manual toggle logic won't immediately flip state.
+        pressingShootLow = false;
+        pressingShootHigh = false;
+    }
+
+    // === Velocity override API ===
+    public void setVelocityOverride(double ticksPerSec) {
+        velocityOverride = true;
+        overrideVelocity = ticksPerSec;
+    }
+    public void clearVelocityOverride() {
+        velocityOverride = false;
+    }
 }

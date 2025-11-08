@@ -28,14 +28,14 @@ public class BaboOS extends OpMode {
 
     @Override
     public void init() {
+        config();
+
+        t = FtcDashboard.getInstance().getTelemetry();
+
         deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
         deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
-
-        t = FtcDashboard.getInstance().getTelemetry();
-
-        config();
     }
 
     @Override
