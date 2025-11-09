@@ -14,6 +14,7 @@ import com.technodot.ftc.twentyfive.robocore.DeviceCamera;
 import com.technodot.ftc.twentyfive.robocore.DeviceDrive;
 import com.technodot.ftc.twentyfive.robocore.DeviceExtake;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends OpMode {
@@ -45,6 +46,23 @@ public class BaboAuto extends OpMode {
     private static final long SHOT_COOLDOWN_MS = 2000; // spin-up time between shots
     private static final double EXTAKE_READY_FACTOR = 0.9; // 90% of target speed
     private ArtifactInventory.Side lastShotSide = ArtifactInventory.Side.NONE;
+
+    // === Aiming constants (mirror DeviceDrive PID) ===
+    private static final double AIM_KP = 0.013;
+    private static final double AIM_KD = 0.003;
+    private static final double AIM_MAX_OUTPUT = 0.6;
+    private static final double AIM_TOLERANCE_DEG = 1.0; // within this bearing we consider aligned
+    private static final long AIM_MAX_TIME_MS = 1500; // fallback timeout
+    private static final long AIM_LOSS_TIMEOUT_MS = 600; // if tag not seen this long, fallback shoot
+    private boolean shotWindowOpen = false; // opens at 7000ms
+
+    private boolean aimingActive = false;
+    private long aimStartNs = 0;
+    private long lastTagSeenNs = 0;
+    private double lastAimYawDeg = 0.0;
+    private long lastAimSampleNs = 0;
+    private int aimStableCount = 0; // consecutive cycles inside tolerance
+    private AprilTagDetection currentTeamTag = null;
 
     public void config() { team = Team.BLUE; }
 
@@ -92,12 +110,10 @@ public class BaboAuto extends OpMode {
         });
 
         runtime.plan(7000, (long startMs, long durationMs, long executionMs) -> {
-            // Attempt first shot at 7000ms
-            attemptShot();
+            shotWindowOpen = true; // allow first shot sequence to begin (aim then feed)
             return false;
         });
-
-        // Removed late-time plan that conflicted with lateral move logic
+        // Removed direct attemptShot() call; aiming precedes feeding now.
     }
 
     @Override
@@ -116,39 +132,96 @@ public class BaboAuto extends OpMode {
 
     @Override
     public void loop() {
-        // Execute timed batch plans
         runtime.run();
 
-        // First update sensors and subsystems
+        // Update subsystems & get AprilTag team detection
         deviceIntake.update((Gamepad) null);
         deviceExtake.update(null);
-        deviceCamera.update(null);
+        currentTeamTag = deviceCamera.update(); // returns team tag detection if visible
+        // Obelisk may also update internally in camera
 
         long elapsedMs = runtime.running ? (runtime.currentNs - runtime.startNs) / 1_000_000L : 0L;
 
-        // Retry first shot if not successful exactly at 7000ms and conditions satisfied
-        if (extakeLowEngaged && shotsFired == 0 && !servoShotInProgress && elapsedMs >= 7000) {
-            attemptShot();
-        }
-
-        // After first shot, ensure intake running
+        // Ensure intake motor after first shot
         if (shotsFired > 0 && !intakeRunning) {
-            deviceIntake.setMotorPower(1.0); // start pulling balls in
+            deviceIntake.setMotorPower(1.0);
             intakeRunning = true;
         }
 
-        // Subsequent shots after cooldown
-        if (extakeLowEngaged && shotsFired < 3 && shotsFired > 0 && !servoShotInProgress) {
+        // Evaluate shot eligibility (without actually feeding) -> start aiming if needed
+        if (shotWindowOpen && extakeLowEngaged && shotsFired < 3 && !servoShotInProgress) {
             long sinceLastShotMs = (lastShotNs == 0) ? Long.MAX_VALUE : (System.nanoTime() - lastShotNs) / 1_000_000L;
-            if (sinceLastShotMs >= SHOT_COOLDOWN_MS) {
-                attemptShot();
+            boolean cooldownOk = (shotsFired == 0 && elapsedMs >= 7000) || sinceLastShotMs >= SHOT_COOLDOWN_MS;
+            if (cooldownOk && isExtakeReady() && hasNextArtifactAvailable()) {
+                // Start aiming if not already
+                if (!aimingActive && deviceIntake.getRotationalOffset() == 0.0f) {
+                    aimingActive = true;
+                    aimStartNs = System.nanoTime();
+                    lastAimSampleNs = aimStartNs;
+                    aimStableCount = 0;
+                }
             }
         }
 
-        // Immediately recalc rotational offset this same loop if a shot was just scheduled
-        deviceIntake.update((Gamepad) null);
+        // Aiming state machine
+        if (aimingActive) {
+            long nowNs = System.nanoTime();
+            long aimElapsedMs = (nowNs - aimStartNs) / 1_000_000L;
 
-        // Mirror TeleOp: apply heading nudge based on intake rotation window
+            double yawDeg;
+            boolean tagVisible = (currentTeamTag != null && currentTeamTag.ftcPose != null);
+            if (tagVisible) {
+                // THE CAMERA IS UPSIDE DOWN (comment from drive), bearing negated
+                yawDeg = -currentTeamTag.ftcPose.bearing;
+                lastTagSeenNs = nowNs;
+            } else {
+                yawDeg = lastAimYawDeg; // continue with last measurement
+            }
+
+            // Derivative (yaw rate)
+            double yawRate = 0.0;
+            if (lastAimSampleNs != 0 && nowNs > lastAimSampleNs) {
+                double dtSec = (nowNs - lastAimSampleNs) / 1e9;
+                yawRate = (yawDeg - lastAimYawDeg) / dtSec;
+            }
+            lastAimYawDeg = yawDeg;
+            lastAimSampleNs = nowNs;
+
+            boolean withinTolerance = Math.abs(yawDeg) <= AIM_TOLERANCE_DEG;
+            if (withinTolerance) {
+                aimStableCount++;
+            } else {
+                aimStableCount = 0; // reset stability counter
+            }
+
+            boolean timeoutExceeded = aimElapsedMs >= AIM_MAX_TIME_MS;
+            boolean tagLossExceeded = tagVisible ? false : (lastTagSeenNs != 0 && (nowNs - lastTagSeenNs) / 1_000_000L >= AIM_LOSS_TIMEOUT_MS);
+            boolean stableAchieved = aimStableCount >= 2; // two consecutive in tolerance cycles
+
+            if (stableAchieved || timeoutExceeded || tagLossExceeded) {
+                aimingActive = false; // finish aiming phase
+                // Only feed if artifact still available & extake ready & cooldown still ok
+                if (hasNextArtifactAvailable() && isExtakeReady()) {
+                    attemptShot();
+                    // After scheduling shot, rotational offset will appear; re-run intake update for immediate offset
+                    deviceIntake.update((Gamepad) null);
+                }
+            } else {
+                // Apply rotation correction this loop (avoid interfering with servo rotational offsets)
+                if (deviceIntake.getRotationalOffset() == 0.0f) {
+                    double rotatePower = AIM_KP * yawDeg + AIM_KD * yawRate;
+                    if (rotatePower > AIM_MAX_OUTPUT) rotatePower = AIM_MAX_OUTPUT;
+                    if (rotatePower < -AIM_MAX_OUTPUT) rotatePower = -AIM_MAX_OUTPUT;
+                    // Request rotation movement
+                    deviceDrive.resetMovement();
+                    deviceDrive.applyMovement(0.0f, 0.0f, (float) rotatePower);
+                    deviceDrive.flushMovement();
+                }
+            }
+        }
+
+        // Immediately recalc rotational offset for any servo pulses (independent of aiming)
+        deviceIntake.update((Gamepad) null);
         float ro = deviceIntake.getRotationalOffset();
         if (ro != 0.0f && ro != lastAutoRotationalOffset) {
             deviceDrive.resetMovement();
@@ -160,42 +233,37 @@ public class BaboAuto extends OpMode {
         }
 
         // Manage ongoing servo shot pulses
-        long nowNs = System.nanoTime();
-        if (servoShotInProgress && nowNs >= servoShotEndNs) {
-            // Open both servos after pulse
+        long nowNsPulse = System.nanoTime();
+        if (servoShotInProgress && nowNsPulse >= servoShotEndNs) {
             deviceIntake.setServoOverride(true);
-            deviceIntake.setServoPositions(0.3, 0.56); // default open positions
+            deviceIntake.setServoPositions(0.3, 0.56);
             servoShotInProgress = false;
         }
 
         // Lateral move after all shots
         if (shotsFired >= 3 && !lateralMoveDone) {
             deviceDrive.applyMovement(0.0f, team.equals(Team.BLUE) ? -1.0f : 1.0f, 0.0f);
-            deviceDrive.flushMovement(); // immediate execution
+            deviceDrive.flushMovement();
             lateralMoveDone = true;
         }
 
-        // Flush movement requests from any plans this loop
+        // Final flush for any remaining requests
         deviceDrive.flushMovement();
 
-        // Telemetry
-        t.addData("elapsedMs", elapsedMs);
-        t.addData("rotOffset", ro);
-        t.addData("fl", deviceDrive.motorFrontLeft.getCurrentPosition());
-        t.addData("fr", deviceDrive.motorFrontRight.getCurrentPosition());
-        t.addData("bl", deviceDrive.motorBackLeft.getCurrentPosition());
-        t.addData("br", deviceDrive.motorBackRight.getCurrentPosition());
-        t.addData("obelisk", obelisk);
-        t.addData("shotsFired", shotsFired);
-        t.addData("targetSeq", targetSequenceToString());
-        t.addData("inventoryL", deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.LEFT));
-        t.addData("inventoryR", deviceIntake.getInventory().getArtifact(ArtifactInventory.Side.RIGHT));
-        t.addData("extakeState", deviceExtake.currentState);
-        t.addData("intakeRunning", intakeRunning);
-        long sinceLastShotMs = (lastShotNs == 0) ? -1L : (System.nanoTime() - lastShotNs) / 1_000_000L;
-        t.addData("sinceLastShotMs", sinceLastShotMs);
-        t.addData("status", "running");
-        t.update();
+        // Telemetry additions
+        t.addData("aimingActive", aimingActive);
+        t.addData("aimYawDeg", lastAimYawDeg);
+        t.addData("aimStableCount", aimStableCount);
+        t.addData("shotWindowOpen", shotWindowOpen);
+        // ...existing telemetry additions...
+    }
+
+    private boolean hasNextArtifactAvailable() {
+        if (shotsFired >= 3) return false;
+        Artifact needed = targetSequence[shotsFired];
+        if (needed == null || needed == Artifact.NONE) return false;
+        ArtifactInventory inv = deviceIntake.getInventory();
+        return inv.getArtifact(ArtifactInventory.Side.LEFT) == needed || inv.getArtifact(ArtifactInventory.Side.RIGHT) == needed;
     }
 
     private boolean isExtakeReady() {
