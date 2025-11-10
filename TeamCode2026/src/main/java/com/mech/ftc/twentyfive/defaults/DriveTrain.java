@@ -33,10 +33,6 @@ public class DriveTrain {
 
         //launchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         indexMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        indexMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        indexMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        indexMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
     public void drive(Gamepad gamepad) {

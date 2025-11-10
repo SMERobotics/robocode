@@ -18,12 +18,12 @@ public class DriveCode extends OpMode {
 
     private PIDController controller;
 
-    public static double p = 0, i = 0, d = 0;
-    public static double f = 0;
+    public static double p = 0.01, i = 0.022, d = 0.000277;
+    public static double f = 0.01;
 
     public static int targetPosition = 0;
 
-    private final double TICKS_PER_REV = 28*3;
+    private final double TICKS_PER_REV = 28*27;
 
     private boolean prevRightBumper = false;
     private boolean prevLeftBumper = false;
@@ -44,7 +44,6 @@ public class DriveCode extends OpMode {
 
         v = new Velocity(driveTrain.frontLeft, driveTrain.frontRight);
         launcher = new Launcher(driveTrain.launchMotor, v);
-        driveTrain.indexMotor.setTargetPosition(0);
 
         controller = new PIDController(p, i, d);
 
@@ -56,7 +55,6 @@ public class DriveCode extends OpMode {
 
     @Override
     public void loop() {
-
         driveTrain.drive(gamepad1);
 
         boolean fire = gamepad1.right_trigger > 0.5;
@@ -72,9 +70,9 @@ public class DriveCode extends OpMode {
             driveTrain.intake.setPower(0);
         }
         if (gamepad1.a) {
-            driveTrain.kicker.setPosition(0.6);
+            driveTrain.kicker.setPosition(0.25);
         } else {
-            driveTrain.kicker.setPosition(0);
+            driveTrain.kicker.setPosition(-.5);
         }
 
         boolean rb = gamepad1.right_bumper;
@@ -92,11 +90,12 @@ public class DriveCode extends OpMode {
         driveTrain.indexMotor.setPower(power);
 
         if (rbPressedOnce) {
-            targetPosition += 14;
+            targetPosition += 112;
         } else if (lbPressedOnce) {
-            targetPosition -= 14;
+            targetPosition -= 112;
         }
-
+        if (targetPosition > 561) targetPosition = 0;
+        if (targetPosition < -561) targetPosition = 0;
         prevRightBumper = rb;
         prevLeftBumper = lb;
         getTelemetry();
@@ -106,15 +105,12 @@ public class DriveCode extends OpMode {
         telemetry.addData("Forward Velocity (m/s): ", v.getForwardVelocity());
         telemetry.addData("Lateral Velocity (m/s): ", v.getLateralVelocity());
         telemetry.addData("ID", camera.TagID() + " Tag Distance (m) " +  camera.getTagDistance());
-        telemetry.addData("Launch Target Power", launcher.getTargetPower());
         telemetry.addData("Launch Applied Power", driveTrain.launchMotor.getPower());
-        telemetry.addData("Index Target Pos", driveTrain.indexMotor.getTargetPosition());
         telemetry.addData("Index Current Pos", driveTrain.indexMotor.getCurrentPosition());
         telemetry.addData("Index Power", driveTrain.indexMotor.getPower());
         telemetry.addData("launch velocity", driveTrain.launchMotor.getVelocity());
-        packet.put("ID", camera.TagID());
-        packet.put("Tag Distance (m)", camera.getTagDistance());
-        packet.put("Launch Target Power", launcher.getTargetPower());
+        telemetry.addData("Target", targetPosition);
+        telemetry.addData("target Velocity", launcher.getTargetVelocity());
         dashboard.sendTelemetryPacket(packet);
         telemetry.update();
     }

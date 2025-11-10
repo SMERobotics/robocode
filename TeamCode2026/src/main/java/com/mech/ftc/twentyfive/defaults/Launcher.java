@@ -1,5 +1,6 @@
 package com.mech.ftc.twentyfive.defaults;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -11,20 +12,28 @@ public class Launcher {
     private boolean enabled = false;
     private double filteredDistance = Double.NaN;
     private final double alpha = 0.3;
-    private double lastPower = 0.0;
-    private double targetPower = 0.0;
+
+    private double lastFrac = 0.0;
+    private double targetFrac = 0.0;
+
     private final double slew = 0.05;
     private final double minPower = 0.10;
     private final double minRange = 0.5;
     private final double maxRange = 4.0;
 
+    private final double maxTicksPerSec;
+
     public Launcher(DcMotorEx motor, Velocity one) {
         v = one;
         launcherMotor = motor;
+        maxTicksPerSec = 2500;
+
+        launcherMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
+
     public void setEnabled(boolean on) {
         enabled = on;
-        if (!enabled) targetPower = 0.0;
+        if (!enabled) targetFrac = 0.0;
     }
 
     public void update(double distanceMeters) {
@@ -38,28 +47,29 @@ public class Launcher {
 
             double p = launchPower(filteredDistance);
             if (p > 0 && Double.isFinite(p)) {
-                targetPower = Math.max(minPower, Math.min(1.0, p));
+                targetFrac = Math.max(minPower, Math.min(1.0, p));
             } else {
-                targetPower = 0.0;
+                targetFrac = 0.0;
             }
         } else {
-            targetPower = 0.0;
+            targetFrac = 0.0;
         }
 
-        double delta = targetPower - lastPower;
+        double delta = targetFrac - lastFrac;
         if (delta > slew) delta = slew;
         if (delta < -slew) delta = -slew;
-        lastPower += delta;
+        lastFrac += delta;
 
-        launcherMotor.setVelocity(2500*lastPower);
+        double targetVelocity = lastFrac * maxTicksPerSec;
 
+        launcherMotor.setVelocity(targetVelocity);
     }
 
     public double launchPower(double distanceMeters) {
         double y = 0.789;
         double x = distanceMeters - 2.5*0.0254;
         double u = v.getForwardVelocity();
-        double maxInitialSpeed = 7.7;
+        double maxInitialSpeed = 7;
         double angle = Math.toRadians(70);
         double g = 9.8;
 
@@ -82,8 +92,9 @@ public class Launcher {
         double disc = B * B - 4 * A * C;
         if (disc <= 0) return 0;
 
-        double one = (-B + Math.sqrt(disc)) / (2 * A);
-        double two = (-B - Math.sqrt(disc)) / (2 * A);
+        double root = Math.sqrt(disc);
+        double one = (-B + root) / (2 * A);
+        double two = (-B - root) / (2 * A);
         double best = Double.POSITIVE_INFINITY;
         if (one > 0) best = Math.min(best, one);
         if (two > 0) best = Math.min(best, two);
@@ -97,5 +108,5 @@ public class Launcher {
 
         return best;
     }
-    public double getTargetPower() { return targetPower; }
+    public double getTargetVelocity() { return targetFrac*maxTicksPerSec; }
 }
