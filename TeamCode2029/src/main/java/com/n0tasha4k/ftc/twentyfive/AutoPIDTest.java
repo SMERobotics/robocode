@@ -14,15 +14,15 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 public class AutoPIDTest extends LinearOpMode {
 
     // ===== FTC Dashboard Tunables =====
-    public static double KP = 0.0008;
-    public static double KI = 0.0;
-    public static double KD = 0.00005;
+    public static double KP = 0.001;
+    public static double KI = 0.0002;
+    public static double KD = 0.000055;
     public static double TURN_KP = 0.01; // simpler proportional turn
     public static double ALLOWABLE_ERROR_TICKS = 30;
-    public static double TICKS_PER_REV = 537.7; // GoBilda 312 RPM
+    public static double TICKS_PER_REV = 537.7; //  312 RPM
     public static double WHEEL_DIAMETER_INCHES = 3.77953;
     public static double TRACK_WIDTH_INCHES = 13; // distance between wheels
-    public static double RIGHT_CORRECTION = 0.7828723194;    // tune if robot drifts right
+    public static double RIGHT_CORRECTION = .9175;    // tune if robot drifts right
 
     private static final double TICKS_PER_INCH =
             TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER_INCHES);
@@ -50,17 +50,7 @@ public class AutoPIDTest extends LinearOpMode {
         waitForStart();
         if (isStopRequested()) return;
 
-        // ===== Autonomous Sequence =====
-        for (int i = 0; i < 9101 && opModeIsActive(); i++) {
-            driveForward(24);  // forward ~~ inches
-            sleep(250);
-            driveBackward(24); // backward ~~` inches
-            sleep(250);
-        }
-
-        turnDegrees(90);
-        sleep(500);
-        turnDegrees(-90);
+        driveForward(24);
 
         stopMotors();
     }

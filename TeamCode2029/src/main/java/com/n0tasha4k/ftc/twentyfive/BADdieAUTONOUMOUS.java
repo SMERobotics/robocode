@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "BADdieAUTONOMOUS (Blocks to Java)")
+@Autonomous(name = "*GREAT*BADdieAUTONOMOUS (Blocks to Java)")
 public class BADdieAUTONOUMOUS extends LinearOpMode {
 
     private DcMotor left;
@@ -37,14 +37,14 @@ public class BADdieAUTONOUMOUS extends LinearOpMode {
             while (opModeIsActive()) {
                 left.setPower(-1);
                 right.setPower((1 / 1.2773475));
-                sleep(2000);
+                sleep(1425);
                 left.setPower(0);
                 right.setPower(0);
-                shooter.setVelocity(1800);
+                shooter.setVelocity(1875);
 
-                if (shooter.getVelocity() > 1650) {
+                if (shooter.getVelocity() > 1800) {
                     sleep(1000);
-                index.setPower(-1);
+                index.setPower(1);
                 finger.setPosition(1);
                 sleep(5000);
                 index.setPower(0);
@@ -55,7 +55,7 @@ public class BADdieAUTONOUMOUS extends LinearOpMode {
                 }
                 if (shooter.getVelocity() > 1650) {
                     sleep(1000);
-                    index.setPower(-1);
+                    index.setPower(1);
                     finger.setPosition(1);
                     sleep(5000);
                     index.setPower(0);
@@ -66,7 +66,7 @@ public class BADdieAUTONOUMOUS extends LinearOpMode {
                 }
                 if (shooter.getVelocity() > 1650) {
                     sleep(1000);
-                    index.setPower(-1);
+                    index.setPower(1);
                     finger.setPosition(1);
                     sleep(5000);
                     index.setPower(0);

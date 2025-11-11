@@ -11,9 +11,25 @@
 
 // Custom definitions may go here
 
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url = 'https://www.matthewo.tech/maven/'
+        }
+    }
+    dependencies {
+        classpath 'org.team11260:fast-load-plugin:0.1.2'
+
+    }
+}
+
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
+apply plugin: 'org.team11260.fast-load-plugin'
+
 
 android {
     namespace = 'com.n0tasha4k.ftc.twentyfive'
@@ -23,8 +39,17 @@ android {
     }
 }
 
+
+repositories {
+    maven {
+        url = 'https://www.matthewo.tech/maven/'
+    }
+}
+
 dependencies {
     implementation project(':FtcRobotController')
     implementation 'com.acmerobotics.dashboard:dashboard:0.5.0'
+    implementation 'org.team11260:fast-load:0.1.4-beta1'
+
 
 }

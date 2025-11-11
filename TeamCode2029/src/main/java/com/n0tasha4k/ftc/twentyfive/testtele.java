@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "Tank/1.1 a shooter in the building Android Studio")
+@TeleOp(name = "*USE*Tank/1.1 a shooter in the building Android Studio")
 public class testtele extends LinearOpMode {
 
     @Override
@@ -28,6 +28,7 @@ public class testtele extends LinearOpMode {
         left.setDirection(DcMotor.Direction.REVERSE);
 
         boolean isShooterOn = false;
+        boolean isShooterHyper = false;
 
         waitForStart();
         if (isStopRequested()) return;
@@ -37,8 +38,8 @@ public class testtele extends LinearOpMode {
 
             if (gamepad1.a) {
                 finger.setPosition(1);
-                if (shooter.getVelocity() > 1650) {
-                    index.setPower(-1);
+                if (shooter.getVelocity() > 1775) {
+                    index.setPower(1);
                 } else {
                     index.setPower(0);
                 }
@@ -47,17 +48,29 @@ public class testtele extends LinearOpMode {
                 index.setPower(0);
             }
 
+            if (gamepad1.bWasPressed()) {
+                isShooterOn = false;
+                isShooterHyper = !isShooterHyper;
+            }
+
+            if (isShooterHyper) {
+                shooter.setVelocity(3000);
+            } else {
+                shooter.setVelocity(0);
+            }
+
             if (gamepad1.yWasPressed()) {
+                isShooterHyper = false;
                 isShooterOn = !isShooterOn;
             }
             if (isShooterOn) {
-                shooter.setVelocity(1800);
+                shooter.setVelocity(1925);
             } else {
                 shooter.setVelocity(0);
             }
 
             if (gamepad1.right_bumper) {
-                intake.setPower(1);
+                intake.setPower(-1);
             } else {
                 intake.setPower(0);
             }
@@ -67,6 +80,7 @@ public class testtele extends LinearOpMode {
             telemetry.addData("Shooter Power", shooter.getVelocity());
             telemetry.addData("Intake Power", intake.getPower());
             telemetry.addData("Shooter Status", isShooterOn ? "On" : "Off"); // Shows toggle state on Driver Hub\
+            telemetry.addData("Shooter Hyper", isShooterHyper ? "On" : "Off");
             telemetry.update();
 
 
