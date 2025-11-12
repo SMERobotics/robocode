@@ -2,14 +2,18 @@
 package com.n0tasha4k.ftc.twentyfive;
 
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+@Config
 @TeleOp(name = "*USE*Tank/1.1 a shooter in the building Android Studio")
 public class testtele extends LinearOpMode {
+
+    public static double shootervelocity = 3000;
 
     @Override
     public void runOpMode() {
@@ -54,7 +58,7 @@ public class testtele extends LinearOpMode {
             }
 
             if (isShooterHyper) {
-                shooter.setVelocity(3000);
+                shooter.setVelocity(shootervelocity);
             } else {
                 shooter.setVelocity(0);
             }
