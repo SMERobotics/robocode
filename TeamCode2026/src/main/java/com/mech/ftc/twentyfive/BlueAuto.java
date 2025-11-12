@@ -18,13 +18,13 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "RedAuto")
-public class RedAuto extends LinearOpMode {
+@Autonomous(name = "BlueAuto")
+public class BlueAuto extends LinearOpMode {
 
 
     @Override
     public void runOpMode() throws InterruptedException {
-        Pose2d beginPose = new Pose2d(-45, 45, Math.toRadians(315));
+        Pose2d beginPose = new Pose2d(-45, -45, Math.toRadians(45));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         DcMotorEx launchMotor = hardwareMap.get(DcMotorEx.class, "launchMotor");
         DcMotorEx frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -40,7 +40,7 @@ public class RedAuto extends LinearOpMode {
 
         Actions.runBlocking(
                 drive.actionBuilder(beginPose)
-                        .strafeToConstantHeading(new Vector2d(-15,15))
+                        .strafeToConstantHeading(new Vector2d(-15,-15))
                         .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, hardwareMap))
                         .stopAndAdd(new Index(indexMotor, p, i, d, f, 0))
                         .waitSeconds(1.5)
@@ -103,7 +103,9 @@ public class RedAuto extends LinearOpMode {
 
             launcher.setEnabled(fire && tagVisible);
             launcher.update(distanceM);
+            telemetry.addData("Visible", tagVisible);
             telemetry.addData("target", launcher.getTargetVelocity());
+            telemetry.addData("D", distanceM);
             telemetry.update();
             launcherMotor.setVelocity(launcher.getTargetVelocity());
             return distanceM == 0;

@@ -11,7 +11,7 @@ public class Batch {
 
     private final List<Action> actions = new ArrayList<>();
 
-    public Batch plan(long startMs, long durationMs, Runnable callback) {
+    public Batch plan(long startMs, long durationMs, BatchCallback callback) {
         if (callback == null) {
             throw new IllegalArgumentException("action is cooked gng \uD83E\uDD40");
         }
@@ -22,7 +22,7 @@ public class Batch {
         return this;
     }
 
-    public Batch plan(long startMs, Runnable callback) {
+    public Batch plan(long startMs, BatchCallback callback) {
         if (callback == null) {
             throw new IllegalArgumentException("action is cooked gng \uD83E\uDD40");
         }
@@ -48,7 +48,20 @@ public class Batch {
 
         for (Action action : actions) {
             if (action.isActive(elapsedNs)) {
-                action.callback.run();
+                long startMs = action.startOffsetNs / 1_000_000L;
+                long durationMs = action.durationNs / 1_000_000L;
+                long currentMs = (elapsedNs - action.startOffsetNs) / 1_000_000L;
+
+                boolean shouldEnd = action.callback.invoke(startMs, durationMs, currentMs);
+
+                if (shouldEnd) {
+                    action.completed = true;
+                }
+
+                // If it's an action without a duration, it should only run once.
+                if (action.durationNs == 0) {
+                    action.completed = true;
+                }
             }
         }
     }

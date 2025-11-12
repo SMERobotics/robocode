@@ -36,7 +36,8 @@ public class CalibrateDrive extends OpMode {
         motorFrontLeft.setDirection(DcMotorEx.Direction.FORWARD);
         motorFrontRight.setDirection(DcMotorEx.Direction.FORWARD);
         motorBackLeft.setDirection(DcMotorEx.Direction.REVERSE);
-        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
+        motorBackRight.setDirection(DcMotorEx.Direction.FORWARD); // ts should be reverse. CHAT MOUNTED IT BACKWARDS WHAT THE FUU
+//        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
     }
 
     public void update(Gamepad gamepad) {
@@ -189,6 +190,11 @@ public class CalibrateDrive extends OpMode {
         telemetry.addData("fr", motorFrontRight.getCurrentPosition());
         telemetry.addData("bl", motorBackLeft.getCurrentPosition());
         telemetry.addData("br", motorBackRight.getCurrentPosition());
+
+        telemetry.addData("flv", motorFrontLeft.getVelocity());
+        telemetry.addData("frv", motorFrontRight.getVelocity());
+        telemetry.addData("blv", motorBackLeft.getVelocity());
+        telemetry.addData("brv", motorBackRight.getVelocity());
 
         telemetry.addData("status", "running");
         telemetry.update();

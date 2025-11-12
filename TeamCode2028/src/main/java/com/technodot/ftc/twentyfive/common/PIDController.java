@@ -1,5 +1,7 @@
 package com.technodot.ftc.twentyfive.common;
 
+import com.qualcomm.robotcore.util.Range;
+
 public class PIDController {
     private double kP;  // Proportional gain
     private double kI;  // Integral gain
@@ -68,7 +70,7 @@ public class PIDController {
 
             // Apply integral limits if enabled
             if (integralLimited) {
-                integral = clamp(integral, integralMin, integralMax);
+                integral = Range.clip(integral, integralMin, integralMax);
             }
         }
         double i = kI * integral;
@@ -85,7 +87,7 @@ public class PIDController {
 
         // Apply output limits if enabled
         if (outputLimited) {
-            output = clamp(output, minOutput, maxOutput);
+            output = Range.clip(output, minOutput, maxOutput);
         }
 
         return output;

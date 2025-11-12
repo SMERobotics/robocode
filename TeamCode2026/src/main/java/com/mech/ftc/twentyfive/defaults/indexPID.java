@@ -13,12 +13,13 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 public class indexPID extends OpMode {
     private PIDController controller;
 
-    public static double p = 0, i = 0, d = 0;
-    public static double f = 0;
+    public static double p = 0.01, i = 0.01, d = 0.000277;
+    public static double f = 0.01;
+
 
     public static int targetPosition = 0;
 
-    private final double TICKS_PER_REV = 28*3;
+    private final double TICKS_PER_REV = 28*27;
 
     private DcMotorEx indexMotor;
 

@@ -34,6 +34,10 @@ public final class Controls {
         return gamepad != null && gamepad.b;
     }
 
+    public static boolean driveAim(Gamepad gamepad) {
+        return gamepad != null && gamepad.x;
+    }
+
     public static boolean intakeIn(Gamepad gamepad) {
         return gamepad != null && gamepad.right_trigger > 0.1;
     }
