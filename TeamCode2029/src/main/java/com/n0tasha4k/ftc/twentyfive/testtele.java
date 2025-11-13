@@ -13,8 +13,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 @TeleOp(name = "*USE*Tank/1.1 a shooter in the building Android Studio")
 public class testtele extends LinearOpMode {
 
-    public static double shootervelocity = 3000;
-
     @Override
     public void runOpMode() {
 
@@ -33,6 +31,8 @@ public class testtele extends LinearOpMode {
 
         boolean isShooterOn = false;
         boolean isShooterHyper = false;
+
+        double hypervelocity = 0;
 
         waitForStart();
         if (isStopRequested()) return;
@@ -53,22 +53,20 @@ public class testtele extends LinearOpMode {
             }
 
             if (gamepad1.bWasPressed()) {
-                isShooterOn = false;
                 isShooterHyper = !isShooterHyper;
             }
-
             if (isShooterHyper) {
-                shooter.setVelocity(shootervelocity);
+                hypervelocity = 1000;
             } else {
-                shooter.setVelocity(0);
+                hypervelocity = 0;
             }
 
+
             if (gamepad1.yWasPressed()) {
-                isShooterHyper = false;
                 isShooterOn = !isShooterOn;
             }
             if (isShooterOn) {
-                shooter.setVelocity(1925);
+                shooter.setVelocity(1925+hypervelocity);
             } else {
                 shooter.setVelocity(0);
             }
@@ -84,7 +82,7 @@ public class testtele extends LinearOpMode {
             telemetry.addData("Shooter Power", shooter.getVelocity());
             telemetry.addData("Intake Power", intake.getPower());
             telemetry.addData("Shooter Status", isShooterOn ? "On" : "Off"); // Shows toggle state on Driver Hub\
-            telemetry.addData("Shooter Hyper", isShooterHyper ? "On" : "Off");
+            telemetry.addData("Hyper Status", isShooterHyper ? "On" : "Off"); // Shows toggle state on Driver Hub\
             telemetry.update();
 
 
