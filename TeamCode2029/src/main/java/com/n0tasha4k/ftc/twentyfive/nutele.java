@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @Config
-@TeleOp(name = "*untested*Tank the shooter")
+@TeleOp(name = "Tank the Shooter")
 public class nutele extends LinearOpMode {
 
     @Override
@@ -58,7 +58,7 @@ public class nutele extends LinearOpMode {
                 isShooterHyper = !isShooterHyper;
             }
             if (isShooterHyper) {
-                hypervelocity = 1075;
+                hypervelocity = 1125;
             } else {
                 hypervelocity = 0;
             }
@@ -68,7 +68,7 @@ public class nutele extends LinearOpMode {
                 isShooterOn = !isShooterOn;
             }
             if (isShooterOn) {
-                shooter.setVelocity(1925+hypervelocity);
+                shooter.setVelocity(1875+hypervelocity);
             } else {
                 shooter.setVelocity(0);
             }

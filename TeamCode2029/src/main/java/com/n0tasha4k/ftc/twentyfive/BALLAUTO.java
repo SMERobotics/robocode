@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "BasicAuto")
+@Autonomous(name = "3BasicAuto")
 public class BALLAUTO extends LinearOpMode {
 
     private DcMotor left;
@@ -27,6 +27,7 @@ public class BALLAUTO extends LinearOpMode {
         index = hardwareMap.get(DcMotor.class, "index");
         right = hardwareMap.get(DcMotor.class, "right");
         DcMotor index = hardwareMap.dcMotor.get("index");
+        DcMotor intakey = hardwareMap.dcMotor.get("intakey");
         DcMotorEx shooter = hardwareMap.get(DcMotorEx.class, "activeShooter");
 
         Servo finger = hardwareMap.servo.get("indexfinger");
@@ -46,12 +47,15 @@ public class BALLAUTO extends LinearOpMode {
 
                 for (int i = 0; i < 3 && opModeIsActive(); ) {
 
-                    if (shooter.getVelocity() > 1650) {
+                    if (shooter.getVelocity() > 1625) {
                         i++;
                         sleep(5000);
                         index.setPower(1);
                         sleep(5000);
-                        index.setPower(0);
+                        index.setPower(-1);
+                        intakey.setPower(-1);
+                        sleep(10000);
+                        intakey.setPower(0);
                     } else {
                         sleep(1000);
                     }
