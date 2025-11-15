@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.mech.ftc.twentyfive.defaults.Camera;
@@ -13,6 +14,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -30,11 +32,13 @@ public class BlueAuto extends LinearOpMode {
         DcMotorEx frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
         DcMotorEx frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
         Servo kicker = hardwareMap.get(Servo.class, "servo");
+        Servo wall = hardwareMap.get(Servo.class, "servoTwo");
 
         double p = 0.01, i = 0.022, d = 0.000277;
         double f = 0.01;
         DcMotorEx indexMotor = hardwareMap.get(DcMotorEx.class, "indexMotor");
         launchMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        indexMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         waitForStart();
 
@@ -42,22 +46,31 @@ public class BlueAuto extends LinearOpMode {
                 drive.actionBuilder(beginPose)
                         .strafeToConstantHeading(new Vector2d(-15,-15))
                         .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, hardwareMap))
-                        .stopAndAdd(new Index(indexMotor, p, i, d, f, 0))
+                        .stopAndAdd(new ParallelAction(new Index(indexMotor, p, i, d, f, 0)))
                         .waitSeconds(1.5)
+                        .stopAndAdd(new Wall(wall, 0))
+                        .waitSeconds(.5)
                         .stopAndAdd(new Kick(kicker, .25))
                         .waitSeconds(1.25)
+                        .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
                         .waitSeconds(.5)
-                        .stopAndAdd(new Index(indexMotor, p, i, d, f, 220))
-                        .waitSeconds(1)
+                        .stopAndAdd(new ParallelAction(new Index(indexMotor, p, i, d, f, 230)))
+                        .waitSeconds(1.5)
+                        .stopAndAdd(new Wall(wall, 0))
+                        .waitSeconds(.5)
                         .stopAndAdd(new Kick(kicker, .25))
                         .waitSeconds(.5)
+                        .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
                         .waitSeconds(.5)
-                        .stopAndAdd(new Index(indexMotor, p, i, d, f, 440))
-                        .waitSeconds(1)
+                        .stopAndAdd(new ParallelAction(new Index(indexMotor, p, i, d, f, 450)))
+                        .waitSeconds(1.5)
+                        .stopAndAdd(new Wall(wall, 0))
+                        .waitSeconds(.5)
                         .stopAndAdd(new Kick(kicker, .25))
                         .waitSeconds(.5)
+                        .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
                         .waitSeconds(100)
                         .build());
@@ -73,6 +86,20 @@ public class BlueAuto extends LinearOpMode {
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             kick.setPosition(pos);
+            return false;
+
+        }
+    }
+    public class Wall implements Action {
+        Servo wall;
+        double pos;
+        public Wall (Servo wall, double pos) {
+            this.wall = wall;
+            this.pos = pos;
+        }
+        @Override
+        public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+            wall.setPosition(pos);
             return false;
 
         }
@@ -137,9 +164,7 @@ public class BlueAuto extends LinearOpMode {
             double power = pid + ff;
 
             index.setPower(power);
-            telemetryPacket.put("indexPosition", indexPosition);
-            telemetryPacket.put("target", targetPosition);
-            if (indexPosition >= targetPosition -2 && indexPosition <= targetPosition +2) {
+            if (indexPosition >= targetPosition -1 && indexPosition <= targetPosition +1) {
                 index.setPower(0);
                 return false;
             }
