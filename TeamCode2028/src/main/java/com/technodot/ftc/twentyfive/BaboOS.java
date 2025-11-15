@@ -25,6 +25,8 @@ public class BaboOS extends OpMode {
     public Telemetry t;
 
     public long now = 0;
+    public long last = 0;
+    public long delta = 0;
 
     @Override
     public void init() {
@@ -65,9 +67,6 @@ public class BaboOS extends OpMode {
 
         deviceExtake.update(gamepad1);
 
-        t.addData("exv", deviceExtake.motorExtake.getVelocity());
-        t.update();
-
         telemetry.addData("lt", gamepad1.left_trigger);
         telemetry.addData("rt", gamepad1.right_trigger);
         telemetry.addData("lx", gamepad1.left_stick_x);
@@ -75,8 +74,17 @@ public class BaboOS extends OpMode {
         telemetry.addData("rx", gamepad1.right_stick_x);
         telemetry.addData("ry", gamepad1.right_stick_y);
 
+        t.addData("exv", deviceExtake.motorExtake.getVelocity());
+
+        delta = now - last;
+        t.addData("d", delta / 1_000_000.0);
+        t.addData("r", 1_000_000_000.0 / delta);
+        t.update();
+
         telemetry.addData("status", "running");
         telemetry.update();
+
+        last = now;
     }
 
     @Override

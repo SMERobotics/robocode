@@ -81,6 +81,36 @@ public class DeviceIntake extends Device {
     @Override
     public void update(Gamepad gamepad) {
         // Motor power: respect autonomous override if enabled
+//        if (motorOverride) {
+//            motorIntake.setPower(overrideMotorPower);
+//        } else {
+//            if (Controls.intakeOut(gamepad)) {
+//                motorIntake.setPower(-1.0F);
+//            } else if (Controls.intakeIn(gamepad)) {
+//                motorIntake.setPower(1.0F);
+//            } else {
+//                motorIntake.setPower(0.0F);
+//            }
+//        }
+//
+//        long now = System.currentTimeMillis();
+//
+//        boolean closeLeft = Controls.intakeServoLeft(gamepad) || Controls.intakeServoGreen(gamepad);
+//        if (closeLeft && !leftPressed) {
+//            leftActivated = now + 400;
+//            leftPressed = true;
+//        } else if (!closeLeft) {
+//            leftPressed = false;
+//        }
+//
+//        boolean closeRight = Controls.intakeServoRight(gamepad) || Controls.intakeServoPurple(gamepad);
+//        if (closeRight && !rightPressed) {
+//            rightActivated = now + 400;
+//            rightPressed = true;
+//        } else if (!closeRight) {
+//            rightPressed = false;
+//        }
+
         if (motorOverride) {
             motorIntake.setPower(overrideMotorPower);
         } else {
@@ -97,7 +127,7 @@ public class DeviceIntake extends Device {
 
         boolean closeLeft = Controls.intakeServoLeft(gamepad) || Controls.intakeServoGreen(gamepad);
         if (closeLeft && !leftPressed) {
-            leftActivated = now + 400;
+            leftActivated = now + 250;
             leftPressed = true;
         } else if (!closeLeft) {
             leftPressed = false;
@@ -105,46 +135,46 @@ public class DeviceIntake extends Device {
 
         boolean closeRight = Controls.intakeServoRight(gamepad) || Controls.intakeServoPurple(gamepad);
         if (closeRight && !rightPressed) {
-            rightActivated = now + 400;
+            rightActivated = now + 250;
             rightPressed = true;
         } else if (!closeRight) {
             rightPressed = false;
         }
 
-        rotationalOffset = 0.0f;
-
-        if (now < leftActivated) {
-//            rotationalOffset = 5.06f;
-            rotationalOffset = team.equals(Team.BLUE) ? 8.0f : 10.0f;
-//            rotationalOffset = 13f;
-        } else if (now < leftActivated + 100) {
-            rotationalOffset = team.equals(Team.BLUE) ? -8.0f : -10.0f;
+//        rotationalOffset = 0.0f;
+//
+//        if (now < leftActivated) {
+////            rotationalOffset = 5.06f;
+//            rotationalOffset = team.equals(Team.BLUE) ? 8.0f : 10.0f;
+////            rotationalOffset = 13f;
+//        } else if (now < leftActivated + 100) {
+//            rotationalOffset = team.equals(Team.BLUE) ? -8.0f : -10.0f;
+////            rotationalOffset = -13f;
+//        }
+//
+//        if (now < rightActivated) {
+////            rotationalOffset = -11.77f;
 //            rotationalOffset = -13f;
-        }
-
-        if (now < rightActivated) {
-//            rotationalOffset = -11.77f;
-            rotationalOffset = -13f;
-        } else if (now < rightActivated + 100) {
-//            rotationalOffset = 11.77f;
-            rotationalOffset = 13f;
-        }
+//        } else if (now < rightActivated + 100) {
+////            rotationalOffset = 11.77f;
+//            rotationalOffset = 13f;
+//        }
 
         // Servo control: respect autonomous override if enabled
         if (servoOverride) {
             try { servoLeft.setPosition(overrideLeftPos); } catch (Exception ignored) {}
             try { servoRight.setPosition(overrideRightPos); } catch (Exception ignored) {}
         } else {
-            if (leftActivated - 250 < now && now < leftActivated) {
-                servoLeft.setPosition(0.56); // left closed position
+            if (now < leftActivated) {
+                servoLeft.setPosition(0.5); // left closed position
             } else {
-                servoLeft.setPosition(0.3); // left open position
+                servoLeft.setPosition(0.26); // left open position
             }
 
-            if (rightActivated - 250 < now && now < rightActivated) {
-                servoRight.setPosition(0.3); // right closed position
+            if (now < rightActivated) {
+                servoRight.setPosition(0.32); // right closed position
             } else {
-                servoRight.setPosition(0.56); // right open position
+                servoRight.setPosition(0.58); // right open position
             }
         }
 
