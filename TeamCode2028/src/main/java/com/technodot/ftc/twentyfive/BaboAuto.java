@@ -100,7 +100,7 @@ public class BaboAuto extends OpMode {
 
         runtime.plan(10000, (long startMs, long durationMs, long executionMs) -> shootNext());
 
-        runtime.plan(10500, 1200, (long startMs, long durationMs, long executionMs) -> {
+        runtime.plan(10500, 12009, (long startMs, long durationMs, long executionMs) -> {
             deviceIntake.intake();
             return false;
         });
