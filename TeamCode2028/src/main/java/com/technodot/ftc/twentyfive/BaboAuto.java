@@ -115,6 +115,7 @@ public class BaboAuto extends OpMode {
 
         runtime.plan(20000, (long startMs, long durationMs, long executionMs) -> {
             deviceExtake.setState(DeviceExtake.ExtakeState.IDLE);
+            deviceExtake.clearVelocityOverride();
             deviceDrive.applyMovement(3.0f, 0.0f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
             return false;
         });
@@ -172,6 +173,8 @@ public class BaboAuto extends OpMode {
     }
 
     private boolean shootNext() {
+        deviceIntake.notake();
+
         Artifact next = artifactQuene.pollFirst();
         t.addData("shoot/queued", next);
         if (next == null || next == Artifact.NONE) {

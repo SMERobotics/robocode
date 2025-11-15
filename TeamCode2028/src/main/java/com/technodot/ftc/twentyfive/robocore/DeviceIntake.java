@@ -295,4 +295,8 @@ public class DeviceIntake extends Device {
     public void intake() {
         motorIntake.setPower(1.0);
     }
+
+    public void notake() {
+        motorIntake.setPower(0.0);
+    }
 }
