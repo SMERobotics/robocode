@@ -291,4 +291,8 @@ public class DeviceIntake extends Device {
             rightActivated = now + 250; // matches TeleOp timing
         }
     }
+
+    public void intake() {
+        motorIntake.setPower(1.0);
+    }
 }

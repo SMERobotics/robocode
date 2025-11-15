@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.Controls;
 import com.technodot.ftc.twentyfive.common.Toggle;
 import com.technodot.ftc.twentyfive.common.PIDController;
-import com.technodot.ftc.twentyfive.common.ShotSolver;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
@@ -24,8 +23,8 @@ public class DeviceDrive extends Device {
     public float speedMultiplier = 1.0F;
     public AprilTagDetection currentTag = null;
     public long lastTagTime = 0;
-    // public float rotationalOffset = 0.0f;   // old autorotate path (now unused)
-    // public float lastRotationalOffset = 0.0f;
+    public float rotationalOffset = 0.0f;
+    public float lastRotationalOffset = 0.0f;
 
     public Toggle preciseToggle = new Toggle();
     public Toggle aimToggle = new Toggle();
@@ -115,17 +114,30 @@ public class DeviceDrive extends Device {
         resetMovement();
     }
 
-    public void update(Gamepad gamepad, DeviceExtake extake) {
-        // NOTE: prior autorotate/rotationalOffset path is now disabled. X controls both
-        // camera-based rotation and extake spin-up via ShotSolver in DeviceExtake.
+    public void update(Gamepad gamepad) {
+        // If rotational offset is active, ignore user input and execute rotation
+        // TODO: ts bot fixed. remove legacy code at some point
+
+//        if (rotationalOffset != 0 && lastRotationalOffset != rotationalOffset) {
+//            resetMovement();
+//            // Apply the rotational offset as a movement request
+//            applyMovement(0, 0, rotationalOffset);
+//            // Execute the movement using autonomous system
+//            flushMovement();
+//
+//            lastRotationalOffset = rotationalOffset;
+//            return;
+//        } else if (rotationalOffset == 0) {
+//            lastRotationalOffset = 0;
+//        }
 
         float forward = Controls.driveForward(gamepad);
         float strafe = Controls.driveStrafe(gamepad);
-        float rotateInput = Controls.driveRotate(gamepad);
+        float rotate = Controls.driveRotate(gamepad);
 
         if (Math.abs(forward) < DEADZONE) forward = 0f;
         if (Math.abs(strafe) < DEADZONE) strafe = 0f;
-        if (Math.abs(rotateInput) < DEADZONE) rotateInput = 0f;
+        if (Math.abs(rotate) < DEADZONE) rotate = 0f;
 
         preciseToggle.update(Controls.drivePrecise(gamepad));
         if (preciseToggle.getState()) {
@@ -134,58 +146,40 @@ public class DeviceDrive extends Device {
             resetMultiplier();
         }
 
-        // X is both rotation and shooting: if the aim button is down, we auto-aim using tag yaw.
-        boolean aimPressed = Controls.driveAim(gamepad);
-        if (aimPressed) {
+        if (Controls.driveAim(gamepad)) {
             aimToggle.activate();
-        } else {
-            aimToggle.reset();
         }
-
-        float rotate = rotateInput;
-
+        if (rotate != 0f) {
+            aimToggle.reset();
+            if (aimPid != null) aimPid.reset();
+        }
         if (aimToggle.getState()) {
-            // Camera-based aiming uses the most recent AprilTag detection.
+            // Implement PID aiming with bearing of currentTag
+            // Overwrite the rotate value
+            // THE FUCKING CAMERA IS UPSIDE DOWN
+            // BEARING NEGATED AS A RESULT
             if (currentTag != null && currentTag.ftcPose != null) {
-                // THE CAMERA IS UPSIDE DOWN -> negate bearing
                 float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
 
-                // If within tolerance, stop rotating and reset PID.
+                // If within tolerance, stop and reset PID state
                 if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {
                     if (aimPid != null) aimPid.reset();
                     rotate = 0f;
                 } else {
-                    double timeSec = lastTagTime / 1_000_000_000.0;
-                    double output = aimPid.calculate(yawDeg, timeSec);
+                    double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
                     rotate = (float) output;
                 }
-
-                // When using X for auto-aim, let DeviceExtake decide velocity from ShotSolver.
-                if (extake != null) {
-                    extake.updateFromShotSolver(currentTag);
-                }
             } else {
-                // No tag available -> do not spin or shoot.
+                // no tag to aim at; don't spin
                 rotate = 0f;
                 if (aimPid != null) aimPid.reset();
-                if (extake != null) {
-                    extake.clearVelocityOverride();
-                }
             }
         } else {
-            // Manual rotation: PID aiming idle and extake not camera-controlled.
+            // aiming not active; clear PID state so it doesn't carry over
             if (aimPid != null) aimPid.reset();
-            if (extake != null) {
-                extake.clearVelocityOverride();
-            }
         }
 
         update(forward, strafe, rotate);
-    }
-
-    // Backwards-compatible signature if some callers don't yet pass DeviceExtake.
-    public void update(Gamepad gamepad) {
-        update(gamepad, null);
     }
 
     public void update(float forward, float strafe, float rotate) {
@@ -253,6 +247,33 @@ public class DeviceDrive extends Device {
         speedMultiplier = 1.0F;
     }
 
+    public void updateAim() {
+        float rotate = 0f;
+
+        // Implement PID aiming with bearing of currentTag
+        // Overwrite the rotate value
+        // THE FUCKING CAMERA IS UPSIDE DOWN
+        // BEARING NEGATED AS A RESULT
+        if (currentTag != null && currentTag.ftcPose != null) {
+            float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
+
+            // If within tolerance, stop and reset PID state
+            if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {
+                if (aimPid != null) aimPid.reset();
+                rotate = 0f;
+            } else {
+                double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
+                rotate = (float) output;
+            }
+        } else {
+            // no tag to aim at; don't spin
+            rotate = 0f;
+            if (aimPid != null) aimPid.reset();
+        }
+
+        update(0, 0, rotate);
+    }
+
     /**
      * Applies a movement request to be processed in the next flush.
      * Callbacks can use this to contribute to the robot's movement.
@@ -309,6 +330,12 @@ public class DeviceDrive extends Device {
         int frCurrent = motorFrontRight.getCurrentPosition();
         int blCurrent = motorBackLeft.getCurrentPosition();
         int brCurrent = motorBackRight.getCurrentPosition();
+
+        // Calculate position errors
+//        int flError = flTarget - flCurrent;
+//        int frError = frTarget - frCurrent;
+//        int blError = blTarget - blCurrent;
+//        int brError = brTarget - brCurrent;
 
         // Update PID setpoints to the target positions
         flPid.setSetpoint(flTarget);
@@ -372,13 +399,13 @@ public class DeviceDrive extends Device {
         movementRequests.clear();
     }
 
-    // public void getRotationalOffset(float offset) {
-    //     rotationalOffset = offset;
-    // }
-    //
-    // public void setRotationalOffset(float offset) {
-    //     rotationalOffset = offset;
-    // }
+//    public void getRotationalOffset(float offset) {
+//        rotationalOffset = offset;
+//    }
+//
+//    public void setRotationalOffset(float offset) {
+//        rotationalOffset = offset;
+//    }
 
     private float scaleInput(float value) {
         if (value > 0) {

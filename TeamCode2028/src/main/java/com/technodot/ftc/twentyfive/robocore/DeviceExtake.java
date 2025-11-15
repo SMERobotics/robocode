@@ -89,16 +89,14 @@ public class DeviceExtake extends Device {
         }
 
         pressingShootLow = shootLow;
-        update();
-    }
-
-    public void update() {
+        pressingShootHigh = shootHigh;
 
         // Update measured velocity (manual derivative of encoder position)
         long now = System.nanoTime();
         int currentPosition = motorExtake.getCurrentPosition();
         if (lastTimeNs >= 0) {
             long dtNs = now - lastTimeNs;
+            if (dtNs > 0) {
                 double dtSec = dtNs / 1e9;
                 int deltaPos = currentPosition - lastPosition;
                 measuredVelocity = deltaPos / dtSec; // ticks/sec
@@ -107,6 +105,10 @@ public class DeviceExtake extends Device {
         lastTimeNs = now;
         lastPosition = currentPosition;
 
+        update();
+    }
+
+    public void update() {
         switch (currentState) {
             case REVERSING: {
                 motorExtake.setPower(-1.0); // Full reverse purge
@@ -136,7 +138,7 @@ public class DeviceExtake extends Device {
                 break;
             }
             case IDLE: {
-                // Minimal power or full stop; ensure PID not driving; not 0.0 to avoid motor float as set above
+                // Small power to slow down motor, keep in mind motor is set to float
                 motorExtake.setPower(0.01);
                 break;
             }
