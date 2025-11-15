@@ -205,6 +205,44 @@ public class DeviceIntake extends Device {
         telemetry.addData("r_artifact", inventory.getArtifact(ArtifactInventory.Side.RIGHT));
     }
 
+    public void update() {
+        // Servo control: respect autonomous override if enabled
+        long now = System.currentTimeMillis();
+
+        if (servoOverride) {
+            try { servoLeft.setPosition(overrideLeftPos); } catch (Exception ignored) {}
+            try { servoRight.setPosition(overrideRightPos); } catch (Exception ignored) {}
+        } else {
+            if (now < leftActivated) {
+                servoLeft.setPosition(0.5); // left closed position
+            } else {
+                servoLeft.setPosition(0.26); // left open position
+            }
+
+            if (now < rightActivated) {
+                servoRight.setPosition(0.32); // right closed position
+            } else {
+                servoRight.setPosition(0.58); // right open position
+            }
+        }
+
+        double leftDistance = colorLeft.getDistance(DistanceUnit.CM);
+        if (leftDistance < LEFT_DISTANCE) {
+            NormalizedRGBA leftColor = colorLeft.getNormalizedColors();
+            inventory.setArtifact(ArtifactInventory.Side.LEFT, colorArtifact(leftColor));
+        } else {
+            inventory.setArtifact(ArtifactInventory.Side.LEFT, Artifact.NONE);
+        }
+
+        double rightDistance = colorRight.getDistance(DistanceUnit.CM);
+        if (rightDistance < RIGHT_DISTANCE) {
+            NormalizedRGBA rightColor = colorRight.getNormalizedColors();
+            inventory.setArtifact(ArtifactInventory.Side.RIGHT, colorArtifact(rightColor));
+        } else {
+            inventory.setArtifact(ArtifactInventory.Side.RIGHT, Artifact.NONE);
+        }
+    }
+
     @Override
     public void stop() {
 
@@ -233,28 +271,6 @@ public class DeviceIntake extends Device {
         return Artifact.NONE;
     }
 
-    // === Autonomous servo override API ===
-    public void setServoOverride(boolean enabled) {
-        this.servoOverride = enabled;
-    }
-
-    public boolean isServoOverride() {
-        return servoOverride;
-    }
-
-    public void setServoPositions(double leftPos, double rightPos) {
-        this.overrideLeftPos = leftPos;
-        this.overrideRightPos = rightPos;
-    }
-
-    // === Autonomous motor override API ===
-    public void setMotorOverride(boolean enabled) {
-        this.motorOverride = enabled;
-        if (!enabled) {
-            this.overrideMotorPower = 0.0;
-        }
-    }
-
     public boolean isMotorOverride() {
         return motorOverride;
     }
@@ -269,12 +285,10 @@ public class DeviceIntake extends Device {
         // Schedule servo close/rotation window identical to TeleOp logic
         long now = System.currentTimeMillis();
         if (side == ArtifactInventory.Side.LEFT || side == ArtifactInventory.Side.BOTH) {
-            leftActivated = now + 400; // matches TeleOp timing
+            leftActivated = now + 250; // matches TeleOp timing
         }
         if (side == ArtifactInventory.Side.RIGHT || side == ArtifactInventory.Side.BOTH) {
-            rightActivated = now + 400; // matches TeleOp timing
+            rightActivated = now + 250; // matches TeleOp timing
         }
-        // Ensure internal servo logic drives positions during the window
-        setServoOverride(false);
     }
 }
