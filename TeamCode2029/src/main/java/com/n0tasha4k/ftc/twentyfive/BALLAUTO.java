@@ -38,26 +38,26 @@ public class BALLAUTO extends LinearOpMode {
             while (opModeIsActive()) {
                 left.setPower(-1);
                 right.setPower((1 / 1.2773475));
-                sleep(1425);
+                sleep(1600);
                 left.setPower(0);
                 right.setPower(0);
-                shooter.setVelocity(1875);
+                shooter.setVelocity(1760);
+                index.setPower(-1);
 
                 sleep(2000);
 
                 for (int i = 0; i < 3 && opModeIsActive(); ) {
 
-                    if (shooter.getVelocity() > 1625) {
+                    if (shooter.getVelocity() > 1675) {
                         i++;
-                        sleep(5000);
                         index.setPower(1);
-                        sleep(5000);
+                        sleep(2000);
                         index.setPower(-1);
                         intakey.setPower(-1);
-                        sleep(10000);
+                        sleep(2000);
                         intakey.setPower(0);
                     } else {
-                        sleep(1000);
+                        sleep(500);
                     }
                 }
 

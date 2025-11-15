@@ -42,7 +42,7 @@ public class nutele extends LinearOpMode {
 //control point for balls; out when motor isn't fast enough and will reset to position to get out of way when you are done spinning
             if (gamepad1.a) {
                 index.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-                if (shooter.getVelocity() > 1775) {
+                if (shooter.getVelocity() > 1700) {
                     index.setPower(1);
                 } else {
                     index.setPower(-1);
@@ -58,7 +58,7 @@ public class nutele extends LinearOpMode {
                 isShooterHyper = !isShooterHyper;
             }
             if (isShooterHyper) {
-                hypervelocity = 1125;
+                hypervelocity = 625;
             } else {
                 hypervelocity = 0;
             }
@@ -68,7 +68,7 @@ public class nutele extends LinearOpMode {
                 isShooterOn = !isShooterOn;
             }
             if (isShooterOn) {
-                shooter.setVelocity(1875+hypervelocity);
+                shooter.setVelocity(1775+hypervelocity);
             } else {
                 shooter.setVelocity(0);
             }
