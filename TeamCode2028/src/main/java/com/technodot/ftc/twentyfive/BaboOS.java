@@ -73,6 +73,7 @@ public class BaboOS extends OpMode {
         telemetry.addData("rx", gamepad1.right_stick_x);
         telemetry.addData("ry", gamepad1.right_stick_y);
 
+        telemetry.addData("exv", deviceExtake.motorExtake.getVelocity());
         t.addData("exv", deviceExtake.motorExtake.getVelocity());
 
         delta = now - last;

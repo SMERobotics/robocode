@@ -12,7 +12,7 @@ public class DeviceExtake extends Device {
     private boolean pressingShootLow;
     private boolean pressingShootHigh;
 
-    public final double velocityHigh = 1420; // target ticks/sec (tune as needed)
+    public final double velocityHigh = 1460; // target ticks/sec (tune as needed)
     public final double velocityLow = 1200;  // target ticks/sec (tune as needed)
 
     // Autonomous can request a specific target velocity, but we pass it straight to the SDK.

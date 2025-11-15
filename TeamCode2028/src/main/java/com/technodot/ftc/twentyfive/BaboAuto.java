@@ -25,9 +25,10 @@ public class BaboAuto extends OpMode {
     public DeviceExtake deviceExtake = new DeviceExtake();
 
     public MultipleTelemetry t;
-
     public Batch runtime = new Batch();
     public ArrayDeque<Artifact> artifactQuene = new ArrayDeque<>();
+
+    private boolean nextShotLeft = true;
 
     public Team team = Team.BLUE;
     public Obelisk obelisk = Obelisk.PPG;
@@ -69,6 +70,7 @@ public class BaboAuto extends OpMode {
             obelisk = deviceCamera.getObelisk();
             artifactQuene.clear();
             if (obelisk == null) return false; // we're cooked
+
             switch (obelisk) {
                 case GPP:
                     artifactQuene.add(Artifact.GREEN);
@@ -86,6 +88,11 @@ public class BaboAuto extends OpMode {
                     artifactQuene.add(Artifact.PURPLE);
                     artifactQuene.add(Artifact.GREEN);
                     break;
+            }
+
+            // TODO: ts obelisk solver doesnt work, fix
+            if (!obelisk.equals(Obelisk.GPP)) {
+                nextShotLeft = false;
             }
 
             return false;
@@ -180,9 +187,6 @@ public class BaboAuto extends OpMode {
     public void config() {
         team = Team.BLUE;
     }
-
-    // Simple left/right sequence for autonomous shooting; ignores color sensors.
-    private boolean nextShotLeft = true;
 
     private boolean shootNext() {
 //        Artifact next = artifactQuene.pollFirst();
