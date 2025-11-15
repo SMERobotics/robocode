@@ -45,16 +45,22 @@ public class BaboAuto extends OpMode {
 
         runtime.plan(0, (long startMs, long durationMs, long executionMs) -> {
             // applyMovement adds a request to the queue. It does not command the motors directly.
-            deviceExtake.setVelocityOverride(1160);
+            deviceExtake.setVelocityOverride(1180);
             deviceExtake.setState(DeviceExtake.ExtakeState.SHOOTING_LOW);
 
-            deviceDrive.applyMovement(-3.8f, team.equals(Team.BLUE) ? -0.1f : 0.1f, 0.0f);
+//            deviceDrive.applyMovement(-3.8f, team.equals(Team.BLUE) ? -0.1f : 0.1f, 0.0f);
+            deviceDrive.applyMovement(-3.8f, team.equals(Team.BLUE) ? -0.1f : 0.1f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
             return false;
         });
 
-        runtime.plan(3000, (long startMs, long durationMs, long executionMs) -> {
-            deviceDrive.applyMovement(0.0f, 0.0f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
-            return false;
+//        runtime.plan(3000, (long startMs, long durationMs, long executionMs) -> {
+//            deviceDrive.applyMovement(0.0f, 0.0f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
+//            return false;
+//        });
+
+        runtime.plan(0, 4000, (long startMs, long durationMs, long executionMs) -> {
+           deviceCamera.update();
+           return false;
         });
 
         runtime.plan(4000, (long startMs, long durationMs, long executionMs) -> {
@@ -88,24 +94,25 @@ public class BaboAuto extends OpMode {
         runtime.plan(5000, 20000, (long startMs, long durationMs, long executionMs) -> {
             deviceDrive.updatePose(deviceCamera.update(), executionMs * 1_000_000L);
             deviceDrive.updateAim();
+            t.addData("obelisk", obelisk);
             return false;
         });
 
         runtime.plan(6000, (long startMs, long durationMs, long executionMs) -> shootNext());
 
-        runtime.plan(6500, 8000, (long startMs, long durationMs, long executionMs) -> {
-            deviceIntake.intake();
-            return false;
-        });
+//        runtime.plan(6500, 8000, (long startMs, long durationMs, long executionMs) -> {
+//            deviceIntake.intake();
+//            return false;
+//        });
 
         runtime.plan(10000, (long startMs, long durationMs, long executionMs) -> shootNext());
 
-        runtime.plan(10500, 12000, (long startMs, long durationMs, long executionMs) -> {
-            deviceIntake.intake();
-            return false;
-        });
+//        runtime.plan(10500, 12000, (long startMs, long durationMs, long executionMs) -> {
+//            deviceIntake.intake();
+//            return false;
+//        });
 
-        runtime.plan(14000, (long startMs, long durationMs, long executionMs) -> shootNext());
+//        runtime.plan(14000, (long startMs, long durationMs, long executionMs) -> shootNext());
 
         // no more balls left so no need to intake
 //        runtime.plan(14500, 16000, (long startMs, long durationMs, long executionMs) -> {
@@ -113,10 +120,10 @@ public class BaboAuto extends OpMode {
 //            return false;
 //        });
 
-        runtime.plan(20000, (long startMs, long durationMs, long executionMs) -> {
+        runtime.plan(14000, (long startMs, long durationMs, long executionMs) -> {
             deviceExtake.setState(DeviceExtake.ExtakeState.IDLE);
             deviceExtake.clearVelocityOverride();
-            deviceDrive.applyMovement(3.0f, 0.0f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
+            deviceDrive.applyMovement(-3.0f, team.equals(Team.BLUE) ? -2.0f : 2.0f, 0.0f);
             return false;
         });
     }
@@ -153,6 +160,8 @@ public class BaboAuto extends OpMode {
 //        t.addData("bl", deviceDrive.motorBackLeft.getCurrentPosition());
 //        t.addData("br", deviceDrive.motorBackRight.getCurrentPosition());
 
+        t.addData("exv", deviceExtake.motorExtake.getVelocity());
+
         t.addData("status", "running");
         t.update();
     }
@@ -172,36 +181,27 @@ public class BaboAuto extends OpMode {
         team = Team.BLUE;
     }
 
+    // Simple left/right sequence for autonomous shooting; ignores color sensors.
+    private boolean nextShotLeft = true;
+
     private boolean shootNext() {
-        deviceIntake.notake();
+//        Artifact next = artifactQuene.pollFirst();
+//        t.addData("shoot/queued", nextShotLeft);
+//        if (next == null || next == Artifact.NONE) {
+//            t.addData("shoot/status", "no artifact in queue");
+//            return false; // nothing planned to shoot
+//        }
+//
+        ArtifactInventory.Side sideToShoot = nextShotLeft
+                ? ArtifactInventory.Side.LEFT
+                : ArtifactInventory.Side.RIGHT;
 
-        Artifact next = artifactQuene.pollFirst();
-        t.addData("shoot/queued", next);
-        if (next == null || next == Artifact.NONE) {
-            t.addData("shoot/status", "no artifact in queue");
-            return false; // nothing planned to shoot
-        }
-
-        // Let DeviceIntake's color sensors decide which side holds this artifact.
-        ArtifactInventory inv = deviceIntake.getInventory();
-        ArtifactInventory.Side preferredSide = inv.findArtifact(next);
-
-        t.addData("shoot/left", inv.getArtifact(ArtifactInventory.Side.LEFT));
-        t.addData("shoot/right", inv.getArtifact(ArtifactInventory.Side.RIGHT));
-        t.addData("shoot/side", preferredSide);
-
-        ArtifactInventory.Side sideToShoot;
-        if (preferredSide == ArtifactInventory.Side.LEFT || preferredSide == ArtifactInventory.Side.RIGHT) {
-            sideToShoot = preferredSide;
-        } else if (preferredSide == ArtifactInventory.Side.BOTH) {
-            // Both sides match; just pick left by convention.
-            sideToShoot = ArtifactInventory.Side.LEFT;
-        } else {
-            // No matching balls: shoot any side; choose left by default.
-            sideToShoot = ArtifactInventory.Side.LEFT;
-        }
+        t.addData("shoot/queued", sideToShoot);
 
         deviceIntake.triggerShot(sideToShoot);
+
+        // Flip for next call: LEFT then RIGHT then LEFT, etc.
+        nextShotLeft = !nextShotLeft;
 
         return false;
     }
