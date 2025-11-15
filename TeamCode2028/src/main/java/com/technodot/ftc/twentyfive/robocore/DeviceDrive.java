@@ -116,19 +116,20 @@ public class DeviceDrive extends Device {
 
     public void update(Gamepad gamepad) {
         // If rotational offset is active, ignore user input and execute rotation
+        // TODO: ts bot fixed. remove legacy code at some point
 
-        if (rotationalOffset != 0 && lastRotationalOffset != rotationalOffset) {
-            resetMovement();
-            // Apply the rotational offset as a movement request
-            applyMovement(0, 0, rotationalOffset);
-            // Execute the movement using autonomous system
-            flushMovement();
-
-            lastRotationalOffset = rotationalOffset;
-            return;
-        } else if (rotationalOffset == 0) {
-            lastRotationalOffset = 0;
-        }
+//        if (rotationalOffset != 0 && lastRotationalOffset != rotationalOffset) {
+//            resetMovement();
+//            // Apply the rotational offset as a movement request
+//            applyMovement(0, 0, rotationalOffset);
+//            // Execute the movement using autonomous system
+//            flushMovement();
+//
+//            lastRotationalOffset = rotationalOffset;
+//            return;
+//        } else if (rotationalOffset == 0) {
+//            lastRotationalOffset = 0;
+//        }
 
         float forward = Controls.driveForward(gamepad);
         float strafe = Controls.driveStrafe(gamepad);
@@ -244,6 +245,33 @@ public class DeviceDrive extends Device {
 
     public void resetMultiplier() {
         speedMultiplier = 1.0F;
+    }
+
+    public void updateAim() {
+        float rotate = 0f;
+
+        // Implement PID aiming with bearing of currentTag
+        // Overwrite the rotate value
+        // THE FUCKING CAMERA IS UPSIDE DOWN
+        // BEARING NEGATED AS A RESULT
+        if (currentTag != null && currentTag.ftcPose != null) {
+            float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
+
+            // If within tolerance, stop and reset PID state
+            if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {
+                if (aimPid != null) aimPid.reset();
+                rotate = 0f;
+            } else {
+                double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
+                rotate = (float) output;
+            }
+        } else {
+            // no tag to aim at; don't spin
+            rotate = 0f;
+            if (aimPid != null) aimPid.reset();
+        }
+
+        update(0, 0, rotate);
     }
 
     /**
@@ -371,13 +399,13 @@ public class DeviceDrive extends Device {
         movementRequests.clear();
     }
 
-    public void getRotationalOffset(float offset) {
-        rotationalOffset = offset;
-    }
-
-    public void setRotationalOffset(float offset) {
-        rotationalOffset = offset;
-    }
+//    public void getRotationalOffset(float offset) {
+//        rotationalOffset = offset;
+//    }
+//
+//    public void setRotationalOffset(float offset) {
+//        rotationalOffset = offset;
+//    }
 
     private float scaleInput(float value) {
         if (value > 0) {

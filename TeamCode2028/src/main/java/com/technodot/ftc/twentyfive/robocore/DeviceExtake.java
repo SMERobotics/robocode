@@ -105,6 +105,10 @@ public class DeviceExtake extends Device {
         lastTimeNs = now;
         lastPosition = currentPosition;
 
+        update();
+    }
+
+    public void update() {
         switch (currentState) {
             case REVERSING: {
                 motorExtake.setPower(-1.0); // Full reverse purge
@@ -134,8 +138,8 @@ public class DeviceExtake extends Device {
                 break;
             }
             case IDLE: {
-                // Minimal power or full stop; ensure PID not driving
-                motorExtake.setPower(0.0);
+                // Small power to slow down motor, keep in mind motor is set to float
+                motorExtake.setPower(0.01);
                 break;
             }
         }

@@ -61,7 +61,6 @@ public class BaboOS extends OpMode {
         deviceIntake.update(gamepad1);
         deviceIntake.update(t);
 
-        deviceDrive.setRotationalOffset(deviceIntake.getRotationalOffset());
         deviceDrive.updatePose(deviceCamera.update(), now);
         deviceDrive.update(gamepad1);
 
