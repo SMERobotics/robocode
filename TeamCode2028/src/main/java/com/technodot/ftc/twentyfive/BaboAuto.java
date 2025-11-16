@@ -28,7 +28,7 @@ public class BaboAuto extends OpMode {
     public Batch runtime = new Batch();
     public ArrayDeque<Artifact> artifactQuene = new ArrayDeque<>();
 
-    private boolean nextShotLeft = true;
+    private boolean nextShotLeft = false;
 
     public Team team = Team.BLUE;
     public Obelisk obelisk = Obelisk.PPG;
@@ -91,8 +91,8 @@ public class BaboAuto extends OpMode {
             }
 
             // TODO: ts obelisk solver doesnt work, fix
-            if (!obelisk.equals(Obelisk.GPP)) {
-                nextShotLeft = false;
+            if (obelisk.equals(Obelisk.GPP)) {
+                nextShotLeft = true;
             }
 
             return false;
