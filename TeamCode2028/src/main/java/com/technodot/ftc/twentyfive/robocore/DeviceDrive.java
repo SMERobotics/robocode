@@ -7,6 +7,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.Controls;
 import com.technodot.ftc.twentyfive.common.Toggle;
 import com.technodot.ftc.twentyfive.common.PIDController;
+import com.technodot.ftc.twentyfive.shotsolver.ShotSolver;
+import com.technodot.ftc.twentyfive.shotsolver.RelativeRBE;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
@@ -154,19 +156,18 @@ public class DeviceDrive extends Device {
             if (aimPid != null) aimPid.reset();
         }
         if (aimToggle.getState()) {
-            // Implement PID aiming with bearing of currentTag
-            // Overwrite the rotate value
-            // THE FUCKING CAMERA IS UPSIDE DOWN
-            // BEARING NEGATED AS A RESULT
+            // Implement PID aiming using ShotSolver to project goal point offset from tag
             if (currentTag != null && currentTag.ftcPose != null) {
-                float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
+                // Use ShotSolver to compute the goal point accounting for tag offsets and yaw
+                RelativeRBE goalPose = ShotSolver.projectGoal(currentTag);
+                float goalBearingDeg = (float) goalPose.bearing; // bearing to goal point
 
                 // If within tolerance, stop and reset PID state
-                if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {
+                if (Math.abs(goalBearingDeg) <= AIM_TOLERANCE_DEG) {
                     if (aimPid != null) aimPid.reset();
                     rotate = 0f;
                 } else {
-                    double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
+                    double output = aimPid.calculate(goalBearingDeg, lastTagTime / 1_000_000_000.0);
                     rotate = (float) output;
                 }
             } else {
@@ -250,19 +251,18 @@ public class DeviceDrive extends Device {
     public void updateAim() {
         float rotate = 0f;
 
-        // Implement PID aiming with bearing of currentTag
-        // Overwrite the rotate value
-        // THE FUCKING CAMERA IS UPSIDE DOWN
-        // BEARING NEGATED AS A RESULT
+        // Implement PID aiming using ShotSolver to project goal point offset from tag
         if (currentTag != null && currentTag.ftcPose != null) {
-            float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
+            // Use ShotSolver to compute the goal point accounting for tag offsets and yaw
+            RelativeRBE goalPose = ShotSolver.projectGoal(currentTag);
+            float goalBearingDeg = (float) goalPose.bearing; // bearing to goal point
 
             // If within tolerance, stop and reset PID state
-            if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {
+            if (Math.abs(goalBearingDeg) <= AIM_TOLERANCE_DEG) {
                 if (aimPid != null) aimPid.reset();
                 rotate = 0f;
             } else {
-                double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
+                double output = aimPid.calculate(goalBearingDeg, lastTagTime / 1_000_000_000.0);
                 rotate = (float) output;
             }
         } else {
