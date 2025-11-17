@@ -179,15 +179,7 @@ public class DeviceIntake extends Device {
         }
     }
 
-    public void report(Telemetry telemetry) {
-        telemetry.addData("l_dist", colorLeft.getDistance(DistanceUnit.CM));
-        telemetry.addData("l_artifact", inventory.getArtifact(ArtifactInventory.Side.LEFT));
-
-        telemetry.addData("r_dist", colorRight.getDistance(DistanceUnit.CM));
-        telemetry.addData("r_artifact", inventory.getArtifact(ArtifactInventory.Side.RIGHT));
-    }
-
-    public void report() {
+    public void update() {
         // Servo control: respect autonomous override if enabled
         long now = System.currentTimeMillis();
 
@@ -223,6 +215,14 @@ public class DeviceIntake extends Device {
         } else {
             inventory.setArtifact(ArtifactInventory.Side.RIGHT, Artifact.NONE);
         }
+    }
+
+    public void report(Telemetry telemetry) {
+        telemetry.addData("l_dist", colorLeft.getDistance(DistanceUnit.CM));
+        telemetry.addData("l_artifact", inventory.getArtifact(ArtifactInventory.Side.LEFT));
+
+        telemetry.addData("r_dist", colorRight.getDistance(DistanceUnit.CM));
+        telemetry.addData("r_artifact", inventory.getArtifact(ArtifactInventory.Side.RIGHT));
     }
 
     @Override

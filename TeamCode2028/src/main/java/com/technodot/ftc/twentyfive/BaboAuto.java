@@ -162,7 +162,7 @@ public class BaboAuto extends OpMode {
         // This combines all movement requests from the last loop, and sends a single command to the motors.
         deviceDrive.flushMovement();
         deviceExtake.update();
-        deviceIntake.report();
+        deviceIntake.update();
 
 //        t.addData("fl", deviceDrive.motorFrontLeft.getCurrentPosition());
 //        t.addData("fr", deviceDrive.motorFrontRight.getCurrentPosition());
