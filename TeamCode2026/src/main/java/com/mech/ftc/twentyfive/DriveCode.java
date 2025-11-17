@@ -10,6 +10,7 @@ import com.mech.ftc.twentyfive.defaults.Launcher;
 import com.mech.ftc.twentyfive.defaults.Velocity;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 @Config
 @TeleOp(name="DriveCode")
@@ -35,6 +36,14 @@ public class DriveCode extends OpMode {
     FtcDashboard dashboard = FtcDashboard.getInstance();
     com.acmerobotics.dashboard.telemetry.TelemetryPacket packet = new com.acmerobotics.dashboard.telemetry.TelemetryPacket();
 
+    private PIDController headingController;
+    public static double headingP = 0.03;
+    public static double headingI = 0.0;
+    public static double headingD = 0.001;
+    public static double headingToleranceDeg = 0.2;
+    public static double headingMaxPower = 0.6;
+    private boolean prevY = false;
+
     @Override
     public void init() {
         driveTrain.init(hardwareMap);
@@ -47,6 +56,8 @@ public class DriveCode extends OpMode {
 
         controller = new PIDController(p, i, d);
 
+        headingController = new PIDController(headingP, headingI, headingD);
+
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
     }
 
@@ -55,14 +66,13 @@ public class DriveCode extends OpMode {
 
     @Override
     public void loop() {
-        driveTrain.drive(gamepad1);
+        //driveTrain.drive(gamepad1);
 
         boolean fire = gamepad1.right_trigger > 0.5;
         boolean tagVisible = camera.TagID() != -1;
         double distanceM = camera.getTagDistance();
 
         launcher.setEnabled(fire && tagVisible);
-        launcher.update(distanceM);
 
         if (gamepad1.b) {
             driveTrain.intake.setPower(1);
@@ -71,8 +81,45 @@ public class DriveCode extends OpMode {
         }
         if (gamepad1.a) {
             driveTrain.kicker.setPosition(0.25);
+            driveTrain.wall.setPosition(0);
         } else {
             driveTrain.kicker.setPosition(-.5);
+            driveTrain.wall.setPosition(.4);
+            if (gamepad1.dpad_down) {
+                driveTrain.wall.setPosition(0);
+            }
+        }
+
+        boolean yPressedOnce = gamepad1.y && !prevY;
+        if (yPressedOnce) {
+            headingController = new PIDController(headingP, headingI, headingD);
+        }
+
+        if (gamepad1.y && tagVisible) {
+            double bearing = camera.getTagBearing();
+            if (Math.abs(bearing) > headingToleranceDeg) {
+                double turn = headingController.calculate(bearing, 0);
+                turn = Math.max(Math.min(turn, headingMaxPower), -headingMaxPower);
+                driveTrain.drive(0, 0, (float) turn);
+            } else {
+                driveTrain.drive(0, 0, 0);
+            }
+        } else {
+            driveTrain.drive(gamepad1);
+        }
+
+        if (gamepad1.left_trigger > 0.5) {
+            driveTrain.launchMotor.setPower(0.5);
+        }
+        else {
+            launcher.update(distanceM);
+        }
+        if (gamepad1.dpad_up) {
+            driveTrain.indexMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            driveTrain.indexMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+        if (gamepad1.x) {
+            driveTrain.fieldOrientedVar(hardwareMap);
         }
 
         boolean rb = gamepad1.right_bumper;
@@ -90,14 +137,15 @@ public class DriveCode extends OpMode {
         driveTrain.indexMotor.setPower(power);
 
         if (rbPressedOnce) {
-            targetPosition += 112;
+            targetPosition += 115;
         } else if (lbPressedOnce) {
-            targetPosition -= 112;
+            targetPosition -= 115;
         }
-        if (targetPosition > 561) targetPosition = 0;
-        if (targetPosition < -561) targetPosition = 0;
+        if (targetPosition > 576) targetPosition = 0;
+        if (targetPosition < -576) targetPosition = 0;
         prevRightBumper = rb;
         prevLeftBumper = lb;
+        prevY = gamepad1.y;
         getTelemetry();
     }
 
@@ -105,11 +153,9 @@ public class DriveCode extends OpMode {
         telemetry.addData("Forward Velocity (m/s): ", v.getForwardVelocity());
         telemetry.addData("Lateral Velocity (m/s): ", v.getLateralVelocity());
         telemetry.addData("ID", camera.TagID() + " Tag Distance (m) " +  camera.getTagDistance());
-        telemetry.addData("Launch Applied Power", driveTrain.launchMotor.getPower());
         telemetry.addData("Index Current Pos", driveTrain.indexMotor.getCurrentPosition());
-        telemetry.addData("Index Power", driveTrain.indexMotor.getPower());
-        telemetry.addData("launch velocity", driveTrain.launchMotor.getVelocity());
         telemetry.addData("Target", targetPosition);
+        telemetry.addData("launch velocity", driveTrain.launchMotor.getVelocity());
         telemetry.addData("target Velocity", launcher.getTargetVelocity());
         dashboard.sendTelemetryPacket(packet);
         telemetry.update();
