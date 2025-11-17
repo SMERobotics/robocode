@@ -2,7 +2,6 @@ package com.technodot.ftc.twentyfive;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.Range;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
@@ -42,7 +41,7 @@ public class CalibrateExtake extends OpMode {
     @Override
     public void loop() {
         deviceIntake.update(gamepad1);
-        deviceIntake.update(telemetry);
+        deviceIntake.report(telemetry);
 
         if (gamepad1.dpad_up) {
             power += 0.01f;

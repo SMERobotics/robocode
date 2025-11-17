@@ -40,9 +40,9 @@ public class BaboAuto extends OpMode {
         t = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         deviceCamera.init(hardwareMap, team);
-        deviceDrive.init(hardwareMap);
-        deviceIntake.init(hardwareMap, team);
+        deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
+        deviceDrive.init(hardwareMap);
 
         runtime.plan(0, (long startMs, long durationMs, long executionMs) -> {
             // applyMovement adds a request to the queue. It does not command the motors directly.
@@ -59,12 +59,12 @@ public class BaboAuto extends OpMode {
 //            return false;
 //        });
 
-        runtime.plan(0, 4000, (long startMs, long durationMs, long executionMs) -> {
+        runtime.plan(0, 2000, (long startMs, long durationMs, long executionMs) -> {
            deviceCamera.update();
            return false;
         });
 
-        runtime.plan(4000, (long startMs, long durationMs, long executionMs) -> {
+        runtime.plan(2000, (long startMs, long durationMs, long executionMs) -> {
             deviceDrive.applyMovement(0.0f, 0.0f, team.equals(Team.BLUE) ? -54.0f : 54.0f);
 
             obelisk = deviceCamera.getObelisk();
@@ -98,21 +98,21 @@ public class BaboAuto extends OpMode {
             return false;
         });
 
-        runtime.plan(5000, 20000, (long startMs, long durationMs, long executionMs) -> {
+        runtime.plan(3000, 6000, (long startMs, long durationMs, long executionMs) -> {
             deviceDrive.updatePose(deviceCamera.update(), executionMs * 1_000_000L);
             deviceDrive.updateAim();
             t.addData("obelisk", obelisk);
             return false;
         });
 
-        runtime.plan(6000, (long startMs, long durationMs, long executionMs) -> shootNext());
+        runtime.plan(4000, (long startMs, long durationMs, long executionMs) -> shootNext());
 
 //        runtime.plan(6500, 8000, (long startMs, long durationMs, long executionMs) -> {
 //            deviceIntake.intake();
 //            return false;
 //        });
 
-        runtime.plan(10000, (long startMs, long durationMs, long executionMs) -> shootNext());
+        runtime.plan(8000, (long startMs, long durationMs, long executionMs) -> shootNext());
 
 //        runtime.plan(10500, 12000, (long startMs, long durationMs, long executionMs) -> {
 //            deviceIntake.intake();
@@ -127,12 +127,14 @@ public class BaboAuto extends OpMode {
 //            return false;
 //        });
 
-        runtime.plan(14000, (long startMs, long durationMs, long executionMs) -> {
+        runtime.plan(9000, (long startMs, long durationMs, long executionMs) -> {
             deviceExtake.setState(DeviceExtake.ExtakeState.IDLE);
             deviceExtake.clearVelocityOverride();
             deviceDrive.applyMovement(-3.0f, team.equals(Team.BLUE) ? -2.0f : 2.0f, 0.0f);
             return false;
         });
+
+        // done in 13000ms
     }
 
     @Override
@@ -144,9 +146,9 @@ public class BaboAuto extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
-        deviceDrive.start();
         deviceIntake.start();
         deviceExtake.start();
+        deviceDrive.start();
 
         t.addData("status", "starting");
         t.update();
@@ -160,7 +162,7 @@ public class BaboAuto extends OpMode {
         // This combines all movement requests from the last loop, and sends a single command to the motors.
         deviceDrive.flushMovement();
         deviceExtake.update();
-        deviceIntake.update();
+        deviceIntake.report();
 
 //        t.addData("fl", deviceDrive.motorFrontLeft.getCurrentPosition());
 //        t.addData("fr", deviceDrive.motorFrontRight.getCurrentPosition());
@@ -175,10 +177,12 @@ public class BaboAuto extends OpMode {
 
     @Override
     public void stop() {
-        runtime.reset();
-
         deviceCamera.stop();
-        deviceDrive.stop(); // Stops the drive motors.
+        deviceIntake.stop();
+        deviceExtake.stop();
+        deviceDrive.stop();
+
+        runtime.reset();
 
         t.addData("status", "stopping");
         t.update();

@@ -1,7 +1,6 @@
 package com.technodot.ftc.twentyfive;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfive.common.Team;
@@ -36,7 +35,7 @@ public class BaboOS extends OpMode {
 
         deviceCamera.init(hardwareMap, team);
         deviceDrive.init(hardwareMap);
-        deviceIntake.init(hardwareMap, team);
+        deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
     }
 
@@ -56,10 +55,11 @@ public class BaboOS extends OpMode {
 
     @Override
     public void loop() {
+        last = now;
         now = System.nanoTime();
 
         deviceIntake.update(gamepad1);
-        deviceIntake.update(t);
+//        deviceIntake.report(t);
 
         deviceDrive.updatePose(deviceCamera.update(), now);
         deviceDrive.update(gamepad1);
@@ -77,14 +77,15 @@ public class BaboOS extends OpMode {
         t.addData("exv", deviceExtake.motorExtake.getVelocity());
 
         delta = now - last;
-        t.addData("d", delta / 1_000_000.0);
-        t.addData("r", 1_000_000_000.0 / delta);
+        telemetry.addData("d", "%.3fms", delta / 1_000_000.0);
+        telemetry.addData("r", "%.2f UPS", 1_000_000_000.0 / delta);
+        t.addData("d", "%.3fms", delta / 1_000_000.0);
+        t.addData("r", "%.2f UPS", 1_000_000_000.0 / delta);
+
         t.update();
 
         telemetry.addData("status", "running");
         telemetry.update();
-
-        last = now;
     }
 
     @Override

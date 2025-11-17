@@ -9,7 +9,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.technodot.ftc.twentyfive.common.Artifact;
 import com.technodot.ftc.twentyfive.common.ArtifactInventory;
 import com.technodot.ftc.twentyfive.common.Controls;
-import com.technodot.ftc.twentyfive.common.Team;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -28,7 +27,6 @@ public class DeviceIntake extends Device {
     public float rotationalOffset = 0.0f;
 
     public ArtifactInventory inventory = new ArtifactInventory();
-    public Team team = Team.BLUE;
 
     public final float LEFT_DISTANCE = 3.5f;
     public final float RIGHT_DISTANCE = 4.0f;
@@ -52,22 +50,6 @@ public class DeviceIntake extends Device {
 
         colorLeft = hardwareMap.get(RevColorSensorV3.class, "colorLeft");
         colorRight = hardwareMap.get(RevColorSensorV3.class, "colorRight");
-
-        colorLeft.enableLed(true);
-        colorRight.enableLed(true);
-    }
-
-    public void init(HardwareMap hardwareMap, Team team) {
-        motorIntake = hardwareMap.get(DcMotorEx.class, "motorIntake");
-        motorIntake.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
-
-        servoLeft = hardwareMap.get(Servo.class, "servoLeft");
-        servoRight = hardwareMap.get(Servo.class, "servoRight");
-
-        colorLeft = hardwareMap.get(RevColorSensorV3.class, "colorLeft");
-        colorRight = hardwareMap.get(RevColorSensorV3.class, "colorRight");
-
-        this.team = team;
 
         colorLeft.enableLed(true);
         colorRight.enableLed(true);
@@ -197,7 +179,7 @@ public class DeviceIntake extends Device {
         }
     }
 
-    public void update(Telemetry telemetry) {
+    public void report(Telemetry telemetry) {
         telemetry.addData("l_dist", colorLeft.getDistance(DistanceUnit.CM));
         telemetry.addData("l_artifact", inventory.getArtifact(ArtifactInventory.Side.LEFT));
 
@@ -205,7 +187,7 @@ public class DeviceIntake extends Device {
         telemetry.addData("r_artifact", inventory.getArtifact(ArtifactInventory.Side.RIGHT));
     }
 
-    public void update() {
+    public void report() {
         // Servo control: respect autonomous override if enabled
         long now = System.currentTimeMillis();
 
