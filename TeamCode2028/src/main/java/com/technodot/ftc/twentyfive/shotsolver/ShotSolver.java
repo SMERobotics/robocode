@@ -1,5 +1,7 @@
 package com.technodot.ftc.twentyfive.shotsolver;
 
+import com.technodot.ftc.twentyfive.common.Team;
+
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 public class ShotSolver {
@@ -17,23 +19,15 @@ public class ShotSolver {
     private static final double CAMERA_OFFSET_Y_R = 0.0;
     private static final double CAMERA_OFFSET_Z_R = 0.0;
 
-    public static RelativeRBE projectGoal(AprilTagDetection detection) {
+    public static RelativeRBE projectGoal(AprilTagDetection detection, Team team) {
         // angles are negated because cameraFront is upside down!
         return projectGoal(
                 detection.ftcPose.range,
                 -detection.ftcPose.bearing,
                 -detection.ftcPose.elevation,
                 -detection.ftcPose.yaw,
-                true
+                team
         );
-    }
-
-    /**
-     * Convenience overload: compute goal projection assuming the coordinates are expressed in
-     * the same frame as the reference point (no extra camera offset).
-     */
-    public static RelativeRBE projectGoal(double range, double bearing, double elevation, double yaw) {
-        return projectGoal(range, bearing, elevation, yaw, false);
     }
 
     /**
@@ -57,12 +51,10 @@ public class ShotSolver {
      * @param elevation    elevation angle from the camera X-Y plane toward +Z_R (degrees)
      * @param yaw          yaw of the tag about +Z_R (degrees). This must be used so the tag lies
      *                     flat on the XZ plane in its own frame.
-     * @param applyCameraOffset whether to apply the fixed camera offset constants to convert from
-     *                          camera coordinates to robot-reference coordinates before solving.
+     * @param team         what team are we on chat
      * @return RelativeRBE to the goal point, in inches/degrees.
      */
-    public static RelativeRBE projectGoal(double range, double bearing, double elevation, double yaw,
-                                          boolean applyCameraOffset) {
+    public static RelativeRBE projectGoal(double range, double bearing, double elevation, double yaw, Team team) {
         // ---- Step 1: polar (range, bearing, elevation) -> Cartesian in camera frame (aligned with R) ----
         double bRad = Math.toRadians(bearing);
         double eRad = Math.toRadians(elevation);
@@ -77,11 +69,9 @@ public class ShotSolver {
         double xR = xCam;
         double yR = yCam;
         double zR = zCam;
-        if (applyCameraOffset) {
-            xR += CAMERA_OFFSET_X_R;
-            yR += CAMERA_OFFSET_Y_R;
-            zR += CAMERA_OFFSET_Z_R;
-        }
+        xR += CAMERA_OFFSET_X_R;
+        yR += CAMERA_OFFSET_Y_R;
+        zR += CAMERA_OFFSET_Z_R;
 
         // ---- Step 2: rotate into tag frame T using yaw so the tag lies on XZ plane ----
         double yawRad = Math.toRadians(yaw);
@@ -94,7 +84,7 @@ public class ShotSolver {
         double zT =  zR; // yaw is about Z, so Z component is unchanged
 
         // ---- Step 3: add fixed offsets in tag frame to reach the goal point ----
-        double xGoalT = xT + GOAL_OFFSET_X_T;
+        double xGoalT = xT + team.apply(GOAL_OFFSET_X_T);
         double yGoalT = yT + GOAL_OFFSET_Y_T;
         double zGoalT = zT + GOAL_OFFSET_Z_T;
 

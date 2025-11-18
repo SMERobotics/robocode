@@ -42,7 +42,7 @@ public class BaboAuto extends OpMode {
         deviceCamera.init(hardwareMap, team);
         deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
-        deviceDrive.init(hardwareMap);
+        deviceDrive.init(hardwareMap, team);
 
         runtime.plan(0, (long startMs, long durationMs, long executionMs) -> {
             // applyMovement adds a request to the queue. It does not command the motors directly.
@@ -50,7 +50,7 @@ public class BaboAuto extends OpMode {
             deviceExtake.setState(DeviceExtake.ExtakeState.SHOOTING_LOW);
 
 //            deviceDrive.applyMovement(-3.8f, team.equals(Team.BLUE) ? -0.1f : 0.1f, 0.0f);
-            deviceDrive.applyMovement(-3.8f, team.equals(Team.BLUE) ? -0.1f : 0.1f, team.equals(Team.BLUE) ? 54.0f : -54.0f);
+            deviceDrive.applyMovement(-3.8f, team.apply(-0.1f), team.apply(54.0f));
             return false;
         });
 
@@ -65,7 +65,7 @@ public class BaboAuto extends OpMode {
         });
 
         runtime.plan(2000, (long startMs, long durationMs, long executionMs) -> {
-            deviceDrive.applyMovement(0.0f, 0.0f, team.equals(Team.BLUE) ? -54.0f : 54.0f);
+            deviceDrive.applyMovement(0.0f, 0.0f, team.apply(-54.0f));
 
             obelisk = deviceCamera.getObelisk();
             artifactQuene.clear();
@@ -130,7 +130,7 @@ public class BaboAuto extends OpMode {
         runtime.plan(9000, (long startMs, long durationMs, long executionMs) -> {
             deviceExtake.setState(DeviceExtake.ExtakeState.IDLE);
             deviceExtake.clearVelocityOverride();
-            deviceDrive.applyMovement(-3.0f, team.equals(Team.BLUE) ? -2.0f : 2.0f, 0.0f);
+            deviceDrive.applyMovement(-3.0f, team.apply(-2.0f), 0.0f);
             return false;
         });
 

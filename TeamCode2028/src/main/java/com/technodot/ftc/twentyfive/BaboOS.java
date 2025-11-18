@@ -34,9 +34,9 @@ public class BaboOS extends OpMode {
         t = FtcDashboard.getInstance().getTelemetry();
 
         deviceCamera.init(hardwareMap, team);
-        deviceDrive.init(hardwareMap);
         deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
+        deviceDrive.init(hardwareMap, team);
     }
 
     @Override
@@ -48,9 +48,12 @@ public class BaboOS extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
+        deviceIntake.start();
+        deviceExtake.start();
+        deviceDrive.start();
 
-        telemetry.addData("status", "starting");
-        telemetry.update();
+        t.addData("status", "starting");
+        t.update();
     }
 
     @Override
@@ -91,9 +94,12 @@ public class BaboOS extends OpMode {
     @Override
     public void stop() {
         deviceCamera.stop();
+        deviceIntake.stop();
+        deviceExtake.stop();
+        deviceDrive.stop();
 
-        telemetry.addData("status", "stopping");
-        telemetry.update();
+        t.addData("status", "stopping");
+        t.update();
     }
 
     public void config() {

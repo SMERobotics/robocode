@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.Controls;
+import com.technodot.ftc.twentyfive.common.Team;
 import com.technodot.ftc.twentyfive.common.Toggle;
 import com.technodot.ftc.twentyfive.common.PIDController;
 import com.technodot.ftc.twentyfive.shotsolver.ShotSolver;
@@ -63,6 +64,7 @@ public class DeviceDrive extends Device {
 
     // A list to hold movement requests from various callbacks
     private final List<Movement> movementRequests = new ArrayList<>();
+    private Team team = Team.BLUE;
 
     // Represents a single movement request.
     public static class Movement {
@@ -78,7 +80,14 @@ public class DeviceDrive extends Device {
     }
 
     @Override
+    @Deprecated
     public void init(HardwareMap hardwareMap) {
+        init(hardwareMap, Team.BLUE);
+    }
+
+    public void init(HardwareMap hardwareMap, Team team) {
+        this.team = team;
+
         motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
         motorFrontRight = hardwareMap.get(DcMotorEx.class, "motorFrontRight");
         motorBackLeft = hardwareMap.get(DcMotorEx.class, "motorBackLeft");
@@ -159,7 +168,7 @@ public class DeviceDrive extends Device {
             // Implement PID aiming using ShotSolver to project goal point offset from tag
             if (currentTag != null && currentTag.ftcPose != null) {
                 // Use ShotSolver to compute the goal point accounting for tag offsets and yaw
-                RelativeRBE goalPose = ShotSolver.projectGoal(currentTag);
+                RelativeRBE goalPose = ShotSolver.projectGoal(currentTag, team);
                 float goalBearingDeg = (float) goalPose.bearing; // bearing to goal point
 
                 // If within tolerance, stop and reset PID state
@@ -254,7 +263,7 @@ public class DeviceDrive extends Device {
         // Implement PID aiming using ShotSolver to project goal point offset from tag
         if (currentTag != null && currentTag.ftcPose != null) {
             // Use ShotSolver to compute the goal point accounting for tag offsets and yaw
-            RelativeRBE goalPose = ShotSolver.projectGoal(currentTag);
+            RelativeRBE goalPose = ShotSolver.projectGoal(currentTag, team);
             float goalBearingDeg = (float) goalPose.bearing; // bearing to goal point
 
             // If within tolerance, stop and reset PID state
