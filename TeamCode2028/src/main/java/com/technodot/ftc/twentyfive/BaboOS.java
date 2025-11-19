@@ -1,7 +1,6 @@
 package com.technodot.ftc.twentyfive;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfive.common.Team;
@@ -25,6 +24,8 @@ public class BaboOS extends OpMode {
     public Telemetry t;
 
     public long now = 0;
+    public long last = 0;
+    public long delta = 0;
 
     @Override
     public void init() {
@@ -33,9 +34,9 @@ public class BaboOS extends OpMode {
         t = FtcDashboard.getInstance().getTelemetry();
 
         deviceCamera.init(hardwareMap, team);
-        deviceDrive.init(hardwareMap);
-        deviceIntake.init(hardwareMap, team);
+        deviceIntake.init(hardwareMap);
         deviceExtake.init(hardwareMap);
+        deviceDrive.init(hardwareMap, team);
     }
 
     @Override
@@ -47,26 +48,26 @@ public class BaboOS extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
+        deviceIntake.start();
+        deviceExtake.start();
+        deviceDrive.start();
 
-        telemetry.addData("status", "starting");
-        telemetry.update();
+        t.addData("status", "starting");
+        t.update();
     }
 
     @Override
     public void loop() {
+        last = now;
         now = System.nanoTime();
 
         deviceIntake.update(gamepad1);
-        deviceIntake.update(t);
+//        deviceIntake.report(t);
 
-        deviceDrive.setRotationalOffset(deviceIntake.getRotationalOffset());
         deviceDrive.updatePose(deviceCamera.update(), now);
         deviceDrive.update(gamepad1);
 
         deviceExtake.update(gamepad1);
-
-        t.addData("exv", deviceExtake.motorExtake.getVelocity());
-        t.update();
 
         telemetry.addData("lt", gamepad1.left_trigger);
         telemetry.addData("rt", gamepad1.right_trigger);
@@ -75,6 +76,17 @@ public class BaboOS extends OpMode {
         telemetry.addData("rx", gamepad1.right_stick_x);
         telemetry.addData("ry", gamepad1.right_stick_y);
 
+        telemetry.addData("exv", deviceExtake.motorExtake.getVelocity());
+        t.addData("exv", deviceExtake.motorExtake.getVelocity());
+
+        delta = now - last;
+        telemetry.addData("d", "%.3fms", delta / 1_000_000.0);
+        telemetry.addData("r", "%.2f UPS", 1_000_000_000.0 / delta);
+        t.addData("d", "%.3fms", delta / 1_000_000.0);
+        t.addData("r", "%.2f UPS", 1_000_000_000.0 / delta);
+
+        t.update();
+
         telemetry.addData("status", "running");
         telemetry.update();
     }
@@ -82,9 +94,12 @@ public class BaboOS extends OpMode {
     @Override
     public void stop() {
         deviceCamera.stop();
+        deviceIntake.stop();
+        deviceExtake.stop();
+        deviceDrive.stop();
 
-        telemetry.addData("status", "stopping");
-        telemetry.update();
+        t.addData("status", "stopping");
+        t.update();
     }
 
     public void config() {

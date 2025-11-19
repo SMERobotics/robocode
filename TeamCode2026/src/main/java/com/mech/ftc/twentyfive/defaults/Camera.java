@@ -84,6 +84,40 @@ public class Camera {
         }
         return tagDistance*0.0254;
     }
+    public double getTagDistanceY() {
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        double tagDistance = 0;
+        for (AprilTagDetection tagDetected : detections) {
+            if (tagDetected.metadata == null) {
+                return 0;
+            }
+            tagDistance = tagDetected.ftcPose.y;
+        }
+        return tagDistance*0.0254;
+    }
+    public double getTagDistanceX() {
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        double tagDistance = 0;
+        for (AprilTagDetection tagDetected : detections) {
+            if (tagDetected.metadata == null) {
+                return 0;
+            }
+            tagDistance = tagDetected.ftcPose.x;
+        }
+        return tagDistance*0.0254;
+    }
+    public double getTagBearing() {
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        double bearing = 0;
+        for (AprilTagDetection tagDetected : detections) {
+            if (tagDetected.metadata == null) {
+                return 0;
+            }
+            bearing = tagDetected.ftcPose.bearing;
+        }
+        return bearing;
+    }
+
 
 
 }

@@ -5,8 +5,11 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfive.common.Controls;
+import com.technodot.ftc.twentyfive.common.Team;
 import com.technodot.ftc.twentyfive.common.Toggle;
 import com.technodot.ftc.twentyfive.common.PIDController;
+import com.technodot.ftc.twentyfive.shotsolver.ShotSolver;
+import com.technodot.ftc.twentyfive.shotsolver.RelativeRBE;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
@@ -61,6 +64,7 @@ public class DeviceDrive extends Device {
 
     // A list to hold movement requests from various callbacks
     private final List<Movement> movementRequests = new ArrayList<>();
+    private Team team = Team.BLUE;
 
     // Represents a single movement request.
     public static class Movement {
@@ -76,7 +80,14 @@ public class DeviceDrive extends Device {
     }
 
     @Override
+    @Deprecated
     public void init(HardwareMap hardwareMap) {
+        init(hardwareMap, Team.BLUE);
+    }
+
+    public void init(HardwareMap hardwareMap, Team team) {
+        this.team = team;
+
         motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
         motorFrontRight = hardwareMap.get(DcMotorEx.class, "motorFrontRight");
         motorBackLeft = hardwareMap.get(DcMotorEx.class, "motorBackLeft");
@@ -116,19 +127,20 @@ public class DeviceDrive extends Device {
 
     public void update(Gamepad gamepad) {
         // If rotational offset is active, ignore user input and execute rotation
+        // TODO: ts bot fixed. remove legacy code at some point
 
-        if (rotationalOffset != 0 && lastRotationalOffset != rotationalOffset) {
-            resetMovement();
-            // Apply the rotational offset as a movement request
-            applyMovement(0, 0, rotationalOffset);
-            // Execute the movement using autonomous system
-            flushMovement();
-
-            lastRotationalOffset = rotationalOffset;
-            return;
-        } else if (rotationalOffset == 0) {
-            lastRotationalOffset = 0;
-        }
+//        if (rotationalOffset != 0 && lastRotationalOffset != rotationalOffset) {
+//            resetMovement();
+//            // Apply the rotational offset as a movement request
+//            applyMovement(0, 0, rotationalOffset);
+//            // Execute the movement using autonomous system
+//            flushMovement();
+//
+//            lastRotationalOffset = rotationalOffset;
+//            return;
+//        } else if (rotationalOffset == 0) {
+//            lastRotationalOffset = 0;
+//        }
 
         float forward = Controls.driveForward(gamepad);
         float strafe = Controls.driveStrafe(gamepad);
@@ -153,19 +165,18 @@ public class DeviceDrive extends Device {
             if (aimPid != null) aimPid.reset();
         }
         if (aimToggle.getState()) {
-            // Implement PID aiming with bearing of currentTag
-            // Overwrite the rotate value
-            // THE FUCKING CAMERA IS UPSIDE DOWN
-            // BEARING NEGATED AS A RESULT
+            // Implement PID aiming using ShotSolver to project goal point offset from tag
             if (currentTag != null && currentTag.ftcPose != null) {
-                float yawDeg = (float) -currentTag.ftcPose.bearing; // +CCW, degrees
+                // Use ShotSolver to compute the goal point accounting for tag offsets and yaw
+                RelativeRBE goalPose = ShotSolver.projectGoal(currentTag, team);
+                float goalBearingDeg = (float) goalPose.bearing; // bearing to goal point
 
                 // If within tolerance, stop and reset PID state
-                if (Math.abs(yawDeg) <= AIM_TOLERANCE_DEG) {
+                if (Math.abs(goalBearingDeg) <= AIM_TOLERANCE_DEG) {
                     if (aimPid != null) aimPid.reset();
                     rotate = 0f;
                 } else {
-                    double output = aimPid.calculate(yawDeg, lastTagTime / 1_000_000_000.0);
+                    double output = aimPid.calculate(goalBearingDeg, lastTagTime / 1_000_000_000.0);
                     rotate = (float) output;
                 }
             } else {
@@ -244,6 +255,32 @@ public class DeviceDrive extends Device {
 
     public void resetMultiplier() {
         speedMultiplier = 1.0F;
+    }
+
+    public void updateAim() {
+        float rotate = 0f;
+
+        // Implement PID aiming using ShotSolver to project goal point offset from tag
+        if (currentTag != null && currentTag.ftcPose != null) {
+            // Use ShotSolver to compute the goal point accounting for tag offsets and yaw
+            RelativeRBE goalPose = ShotSolver.projectGoal(currentTag, team);
+            float goalBearingDeg = (float) goalPose.bearing; // bearing to goal point
+
+            // If within tolerance, stop and reset PID state
+            if (Math.abs(goalBearingDeg) <= AIM_TOLERANCE_DEG) {
+                if (aimPid != null) aimPid.reset();
+                rotate = 0f;
+            } else {
+                double output = aimPid.calculate(goalBearingDeg, lastTagTime / 1_000_000_000.0);
+                rotate = (float) output;
+            }
+        } else {
+            // no tag to aim at; don't spin
+            rotate = 0f;
+            if (aimPid != null) aimPid.reset();
+        }
+
+        update(0, 0, rotate);
     }
 
     /**
@@ -371,13 +408,13 @@ public class DeviceDrive extends Device {
         movementRequests.clear();
     }
 
-    public void getRotationalOffset(float offset) {
-        rotationalOffset = offset;
-    }
-
-    public void setRotationalOffset(float offset) {
-        rotationalOffset = offset;
-    }
+//    public void getRotationalOffset(float offset) {
+//        rotationalOffset = offset;
+//    }
+//
+//    public void setRotationalOffset(float offset) {
+//        rotationalOffset = offset;
+//    }
 
     private float scaleInput(float value) {
         if (value > 0) {

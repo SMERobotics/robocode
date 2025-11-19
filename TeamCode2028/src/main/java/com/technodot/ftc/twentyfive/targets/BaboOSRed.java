@@ -1,6 +1,7 @@
-package com.technodot.ftc.twentyfive;
+package com.technodot.ftc.twentyfive.targets;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.technodot.ftc.twentyfive.BaboOS;
 import com.technodot.ftc.twentyfive.common.Team;
 
 @TeleOp(name = "BaboOS Red", group = "TechnoCode")
@@ -10,4 +11,3 @@ public class BaboOSRed extends BaboOS {
         team = Team.RED;
     }
 }
-

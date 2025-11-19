@@ -67,10 +67,10 @@ public class Launcher {
 
     public double launchPower(double distanceMeters) {
         double y = 0.789;
-        double x = distanceMeters - 2.5*0.0254;
+        double x = distanceMeters;
         double u = v.getForwardVelocity();
-        double maxInitialSpeed = 7;
-        double angle = Math.toRadians(70);
+        double maxInitialSpeed = 8.1;
+        double angle = Math.toRadians(50);
         double g = 9.8;
 
         double initialNeeded = initialNeeded(x, y, u, angle, g);

@@ -35,7 +35,8 @@ public final class Controls {
     }
 
     public static boolean driveAim(Gamepad gamepad) {
-        return gamepad != null && gamepad.x;
+//        return gamepad != null && gamepad.x;
+        return gamepad != null && (gamepad.x || gamepad.a || gamepad.y); // aim will activate at same time as extake shoot
     }
 
     public static boolean intakeIn(Gamepad gamepad) {
