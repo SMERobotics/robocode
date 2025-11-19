@@ -51,7 +51,7 @@ public class BALLAUTO extends LinearOpMode {
                     if (shooter.getVelocity() > 1675) {
                         i++;
                         index.setPower(1);
-                        sleep(2000);
+                        sleep(1900);
                         index.setPower(-1);
                         intakey.setPower(-1);
                         sleep(2000);
