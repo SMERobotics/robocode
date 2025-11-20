@@ -58,7 +58,7 @@ public class nutele extends LinearOpMode {
                 isShooterHyper = !isShooterHyper;
             }
             if (isShooterHyper) {
-                hypervelocity = 625;
+                hypervelocity = 525;
             } else {
                 hypervelocity = 0;
             }
