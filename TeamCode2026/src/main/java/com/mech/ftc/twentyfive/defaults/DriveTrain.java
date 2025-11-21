@@ -24,6 +24,11 @@ public class DriveTrain {
     public Servo kicker;
     public Servo wall;
 
+    public static double launchP = 50;
+    public static double launchI = 0;
+    public static double launchD = 50;
+    public static double launchF = 13.53;
+
     BNO055IMU imu;
     Orientation angles = new Orientation();
     double originalYaw;
@@ -44,6 +49,7 @@ public class DriveTrain {
 
         indexMotor.setZeroPowerBehavior(com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE);
         fieldOrientedVar(hardwareMap);
+        launchMotor.setVelocityPIDFCoefficients(launchP, launchI, launchD, launchF);
     }
 
 
