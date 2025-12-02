@@ -89,7 +89,7 @@ public class nutele extends LinearOpMode {
 
 //tank drive
             left.setPower(gamepad1.right_stick_y);
-            right.setPower(gamepad1.left_stick_y/1.2773475);
+            right.setPower(gamepad1.left_stick_y);
         }
 
     }
