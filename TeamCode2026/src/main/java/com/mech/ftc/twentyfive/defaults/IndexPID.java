@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @Config
 @TeleOp
-public class indexPID extends OpMode {
+public class IndexPID extends OpMode {
     private PIDController controller;
 
     public static double p = 0.01, i = 0.01, d = 0.000277;
@@ -18,8 +18,6 @@ public class indexPID extends OpMode {
 
 
     public static int targetPosition = 0;
-
-    private final double TICKS_PER_REV = 28*27;
 
     private DcMotorEx indexMotor;
 
@@ -38,6 +36,7 @@ public class indexPID extends OpMode {
         controller.setPID(p,i,d);
         int indexPosition = indexMotor.getCurrentPosition();
         double pid = controller.calculate(indexPosition, targetPosition);
+        double TICKS_PER_REV = 28 * 27;
         double ff = Math.cos(Math.toRadians(targetPosition / TICKS_PER_REV * 360)) * f;
 
         double power = pid + ff;

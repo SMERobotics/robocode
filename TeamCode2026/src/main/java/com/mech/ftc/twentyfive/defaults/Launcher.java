@@ -17,9 +17,6 @@ public class Launcher {
     private double targetFrac = 0.0;
 
     private final double slew = 0.05;
-    private final double minPower = 0.10;
-    private final double minRange = 0.5;
-    private final double maxRange = 4.0;
 
     private final double maxTicksPerSec;
 
@@ -42,17 +39,18 @@ public class Launcher {
             else filteredDistance = alpha * distanceMeters + (1 - alpha) * filteredDistance;
         }
 
-        if (enabled && Double.isFinite(filteredDistance)
-                && filteredDistance >= minRange && filteredDistance <= maxRange) {
+        if (enabled && Double.isFinite(filteredDistance)) {
 
             double p = launchPower(filteredDistance);
             if (p > 0 && Double.isFinite(p)) {
-                targetFrac = Math.max(minPower, Math.min(1.0, p));
-            } else {
-                targetFrac = 0.0;
+                targetFrac = p;
             }
-        } else {
-            targetFrac = 0.0;
+            else {
+                targetFrac = 0;
+            }
+        }
+        else {
+            targetFrac = 0;
         }
 
         double delta = targetFrac - lastFrac;
@@ -67,6 +65,7 @@ public class Launcher {
 
     public double launchPower(double distanceMeters) {
         double y = 0.789;
+        //noinspection UnnecessaryLocalVariable
         double x = distanceMeters;
         double u = v.getForwardVelocity();
         double maxInitialSpeed = 8.1;
