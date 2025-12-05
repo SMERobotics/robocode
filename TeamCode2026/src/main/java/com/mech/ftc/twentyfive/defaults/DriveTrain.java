@@ -2,6 +2,7 @@
 package com.mech.ftc.twentyfive.defaults;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.hardware.ColorRangeSensor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -13,6 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
+/** @noinspection UnnecessaryLocalVariable*/
 public class DriveTrain {
     public DcMotorEx frontLeft;
     public DcMotorEx backRight;
@@ -23,6 +25,7 @@ public class DriveTrain {
     public DcMotorEx indexMotor;
     public Servo kicker;
     public Servo wall;
+    public ColorRangeSensor colorSensor;
 
     public static double launchP = 50;
     public static double launchI = 0;
@@ -43,6 +46,7 @@ public class DriveTrain {
         indexMotor = hardwareMap.get(DcMotorEx.class, "indexMotor");
         kicker = hardwareMap.get(Servo.class, "servo");
         wall = hardwareMap.get(Servo.class, "servoTwo");
+        colorSensor = hardwareMap.get(ColorRangeSensor.class, "colorSensor");
 
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         launchMotor.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -79,15 +83,28 @@ public class DriveTrain {
     }
 
     public void drive(float vertical, float horizontal, float pivot) {
-        float frontRightPower = vertical + horizontal + pivot;
-        float backRightPower = -vertical + horizontal - pivot;
-        float frontLeftPower = -vertical + horizontal + pivot;
-        float backLeftPower = vertical + horizontal - pivot;
+        angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        double headingRad = Math.toRadians(angles.firstAngle);
+
+        double x = horizontal;
+        double y = -vertical;
+        double rx = pivot;
+
+        double cos = Math.cos(-headingRad);
+        double sin = Math.sin(-headingRad);
+        double rotX = x * cos - y * sin;
+        double rotY = x * sin + y * cos;
+
+        double frontLeftPower = -rotY - rotX + rx;
+        double frontRightPower = rotY - rotX + rx;
+        double backLeftPower = rotY - rotX - rx;
+        double backRightPower = -rotY - rotX - rx;
+
 
         frontLeft.setPower(frontLeftPower);
         frontRight.setPower(frontRightPower);
-        backRight.setPower(backRightPower);
         backLeft.setPower(backLeftPower);
+        backRight.setPower(backRightPower);
     }
 
     public void fieldOrientedVar(HardwareMap hardwareMap) {

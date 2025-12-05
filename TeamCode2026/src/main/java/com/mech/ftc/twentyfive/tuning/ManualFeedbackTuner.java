@@ -1,6 +1,7 @@
 package com.mech.ftc.twentyfive.tuning;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -10,7 +11,6 @@ import com.mech.ftc.twentyfive.ThreeDeadWheelLocalizer;
 import com.mech.ftc.twentyfive.TwoDeadWheelLocalizer;
 
 public final class ManualFeedbackTuner extends LinearOpMode {
-    public static double DISTANCE = 64;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -31,8 +31,8 @@ public final class ManualFeedbackTuner extends LinearOpMode {
             while (opModeIsActive()) {
                 Actions.runBlocking(
                     drive.actionBuilder(new Pose2d(0, 0, 0))
-                            .lineToX(DISTANCE)
-                            .lineToX(0)
+                            .strafeToConstantHeading(new Vector2d(0, 32))
+                            .strafeToConstantHeading(new Vector2d(0, 0))
                             .build());
             }
         } else if (TuningOpModes.DRIVE_CLASS.equals(TankDrive.class)) {
@@ -52,7 +52,6 @@ public final class ManualFeedbackTuner extends LinearOpMode {
             while (opModeIsActive()) {
                 Actions.runBlocking(
                     drive.actionBuilder(new Pose2d(0, 0, 0))
-                            .lineToX(DISTANCE)
                             .lineToX(0)
                             .build());
             }

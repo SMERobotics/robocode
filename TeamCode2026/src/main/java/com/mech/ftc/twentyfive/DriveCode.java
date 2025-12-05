@@ -12,10 +12,16 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
 @Config
 @TeleOp(name="DriveCode")
 @SuppressWarnings("FieldCanBeLocal")
 public class DriveCode extends OpMode {
+    private int x = 1;
+    private int y = 0;
+
+    private boolean active;
 
     private PIDController controller;
 
@@ -29,12 +35,7 @@ public class DriveCode extends OpMode {
     private boolean prevRightBumper = false;
     private boolean prevLeftBumper = false;
 
-    DriveTrain driveTrain = new DriveTrain();
-    Velocity v;
-    Launcher launcher;
-    Camera camera = new Camera();
-    FtcDashboard dashboard = FtcDashboard.getInstance();
-    com.acmerobotics.dashboard.telemetry.TelemetryPacket packet = new com.acmerobotics.dashboard.telemetry.TelemetryPacket();
+    public static double rotateDistance = 4;
 
     private PIDController headingController;
     public static double headingP = 0.03;
@@ -42,7 +43,13 @@ public class DriveCode extends OpMode {
     public static double headingD = 0.001;
     public static double headingToleranceDeg = 0.2;
     public static double headingMaxPower = 0.6;
-    private boolean prevY = false;
+
+    DriveTrain driveTrain = new DriveTrain();
+    Velocity v;
+    Launcher launcher;
+    Camera camera = new Camera();
+    FtcDashboard dashboard = FtcDashboard.getInstance();
+    com.acmerobotics.dashboard.telemetry.TelemetryPacket packet = new com.acmerobotics.dashboard.telemetry.TelemetryPacket();
 
     @Override
     public void init() {
@@ -74,11 +81,26 @@ public class DriveCode extends OpMode {
 
         launcher.setEnabled(fire && tagVisible);
 
-        if (gamepad1.b) {
-            driveTrain.intake.setPower(1);
-        } else {
-            driveTrain.intake.setPower(0);
+        if (gamepad1.b && y == 0) {
+            switch (x) {
+                case 1:
+                    driveTrain.intake.setPower(1);
+                    x = 2;
+                    y = 1;
+                    break;
+                case 2:
+                    driveTrain.intake.setPower(0);
+                    x = 1;
+                    y = 1;
+                    break;
+                default:
+                    break;
+            }
         }
+        else if (!gamepad1.b) {
+            y = 0;
+        }
+
         if (gamepad1.a) {
             driveTrain.kicker.setPosition(0.25);
             driveTrain.wall.setPosition(0);
@@ -90,19 +112,16 @@ public class DriveCode extends OpMode {
             }
         }
 
-        boolean yPressedOnce = gamepad1.y && !prevY;
-        if (yPressedOnce) {
-            headingController = new PIDController(headingP, headingI, headingD);
-        }
+        headingController = new PIDController(headingP, headingI, headingD);
 
-        if (gamepad1.y && tagVisible) {
+        if (gamepad1.right_trigger > 0.5 && tagVisible) {
             double bearing = camera.getTagBearing();
             if (Math.abs(bearing) > headingToleranceDeg) {
                 double turn = headingController.calculate(bearing, 0);
                 turn = Math.max(Math.min(turn, headingMaxPower), -headingMaxPower);
-                driveTrain.drive(0, 0, (float) turn);
+                driveTrain.drive(gamepad1.left_stick_y, gamepad1.left_stick_x, (float) turn);
             } else {
-                driveTrain.drive(0, 0, 0);
+                driveTrain.drive(gamepad1);
             }
         } else {
             driveTrain.drive(gamepad1);
@@ -141,11 +160,29 @@ public class DriveCode extends OpMode {
         } else if (lbPressedOnce) {
             targetPosition -= 115;
         }
-        if (targetPosition > 576) targetPosition = 0;
-        if (targetPosition < -576) targetPosition = 0;
+        if (targetPosition > 576) {
+            if (driveTrain.intake.getPower() == 0) {
+                targetPosition = 0;
+            }
+        }
+        if (targetPosition < -576) {
+            if (driveTrain.intake.getPower() == 0) {
+                targetPosition = 0;
+            }
+        }
+        if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && driveTrain.intake.getPower() > 0 && active) {
+            if (targetPosition >= 0) {
+                targetPosition += 230;
+            } else {
+                targetPosition -= 230;
+            }
+            active = false;
+        }
+        if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) >= 6) {
+            active = true;
+        }
         prevRightBumper = rb;
         prevLeftBumper = lb;
-        prevY = gamepad1.y;
         getTelemetry();
     }
 
@@ -157,6 +194,8 @@ public class DriveCode extends OpMode {
         telemetry.addData("Target", targetPosition);
         telemetry.addData("launch velocity", driveTrain.launchMotor.getVelocity());
         telemetry.addData("target Velocity", launcher.getTargetVelocity());
+        telemetry.addData("Color", driveTrain.colorSensor.getNormalizedColors().toColor());
+        telemetry.addData("Ball Distance from Sensor(cm)", driveTrain.colorSensor.getDistance(DistanceUnit.CM));
         dashboard.sendTelemetryPacket(packet);
         telemetry.update();
     }

@@ -60,7 +60,12 @@ public class Launcher {
 
         double targetVelocity = lastFrac * maxTicksPerSec;
 
-        launcherMotor.setVelocity(targetVelocity);
+        if (distanceMeters > 2 && enabled) {
+            launcherMotor.setVelocity(targetVelocity+100);
+        }
+        else {
+            launcherMotor.setVelocity(targetVelocity);
+        }
     }
 
     public double launchPower(double distanceMeters) {
