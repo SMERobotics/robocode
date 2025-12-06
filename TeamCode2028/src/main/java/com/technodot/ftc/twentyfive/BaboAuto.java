@@ -3,6 +3,7 @@ package com.technodot.ftc.twentyfive;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.technodot.ftc.twentyfive.batch.Batch;
 import com.technodot.ftc.twentyfive.common.Artifact;
@@ -16,6 +17,7 @@ import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
 
 import java.util.ArrayDeque;
 
+@Disabled
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends OpMode {
 

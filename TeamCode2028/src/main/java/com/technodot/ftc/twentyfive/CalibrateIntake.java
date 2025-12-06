@@ -1,6 +1,7 @@
 package com.technodot.ftc.twentyfive;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -8,6 +9,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.technodot.ftc.twentyfive.common.Artifact;
 import com.technodot.ftc.twentyfive.common.Controls;
 
+@Disabled
 @TeleOp(name="CalibrateIntake", group="TechnoCode")
 public class CalibrateIntake extends OpMode {
 

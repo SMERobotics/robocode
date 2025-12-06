@@ -1,10 +1,9 @@
-package com.technodot.ftc.twentyfive;
+package com.technodot.ftc.twentyfivebeta;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@Disabled
 @TeleOp(name="Nothing", group="TechnoCode")
 public class Nothing extends OpMode {
     @Override

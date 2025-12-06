@@ -1,11 +1,13 @@
 package com.technodot.ftc.twentyfive;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.Range;
 import com.technodot.ftc.twentyfive.robocore.DeviceIntake;
 
+@Disabled
 @TeleOp(name="CalibrateExtake", group="TechnoCode")
 public class CalibrateExtake extends OpMode {
 

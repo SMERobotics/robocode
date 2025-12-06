@@ -1,11 +1,13 @@
 package com.technodot.ftc.twentyfive;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfive.common.IMUCalibrationData;
 import com.technodot.ftc.twentyfive.common.TimedVector3;
 import com.technodot.ftc.twentyfive.robocore.MPU6050;
 
+@Disabled
 @TeleOp(name="CalibrateIMU", group="TechnoCode")
 public class CalibrateIMU extends OpMode {
 
