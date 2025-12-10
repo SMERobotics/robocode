@@ -16,7 +16,7 @@ apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
 
 android {
-    namespace = 'com.technodot.ftc.twentyfive'
+    namespace = 'com.technodot.ftc.twentyfivebeta'
 
     packagingOptions {
         jniLibs.useLegacyPackaging true

@@ -74,14 +74,14 @@ public class SilentRunner101 extends InputController {
     }
 
     public float driveForward() {
-        return ready() && Math.abs(gamepad1.left_stick_y) > Configuration.DRIVE_DEADZONE ? -gamepad1.left_stick_y : 0.0f;
+        return ready() && Math.abs(gamepad1.left_stick_y) > Configuration.DRIVE_CONTROLLER_DEADZONE ? -gamepad1.left_stick_y : 0.0f;
     }
 
     public float driveStrafe() {
-        return ready() && Math.abs(gamepad1.left_stick_x) > Configuration.DRIVE_DEADZONE ? gamepad1.left_stick_x : 0.0f;
+        return ready() && Math.abs(gamepad1.left_stick_x) > Configuration.DRIVE_CONTROLLER_DEADZONE ? gamepad1.left_stick_x : 0.0f;
     }
 
     public float driveRotate() {
-        return ready() && Math.abs(gamepad1.right_stick_x) > Configuration.DRIVE_DEADZONE ? gamepad1.right_stick_x : 0.0f;
+        return ready() && Math.abs(gamepad1.right_stick_x) > Configuration.DRIVE_CONTROLLER_DEADZONE ? gamepad1.right_stick_x : 0.0f;
     }
 }

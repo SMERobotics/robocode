@@ -21,7 +21,7 @@ public class DeviceCamera extends Device {
 
     public Obelisk obelisk; // last seen obelisk state
     public AprilTagDetection goalTagDetection;
-    public Optional<Double> fieldOffset;
+    public static Optional<Double> fieldOffset;
 
     public int allianceTag;
 

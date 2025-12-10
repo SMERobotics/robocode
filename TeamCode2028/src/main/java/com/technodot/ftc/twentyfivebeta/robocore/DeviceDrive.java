@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfivebeta.Configuration;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
+import com.technodot.ftc.twentyfivebeta.common.Vector2D;
 import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 
 public class DeviceDrive extends Device {
@@ -52,7 +53,15 @@ public class DeviceDrive extends Device {
     }
 
     public void update(float forward, float strafe, float rotate) {
-        // TODO: field-centric kinematics
+        // counteract strafe friction
+        strafe *= Configuration.DRIVE_STRAFE_MULTIPLIER;
+
+        // ts field-centric kinematic model
+        Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(forward, strafe));
+        forward = (float) fieldCentric.x;
+        strafe = (float) fieldCentric.y;
+
+        // ts mecanum drive kinematic model
         float fl = forward + strafe + rotate;
         float fr = forward - strafe - rotate;
         float bl = forward - strafe + rotate;
@@ -63,10 +72,10 @@ public class DeviceDrive extends Device {
         fl /= max; fr /= max; bl /= max; br /= max;
 
         // respect speed configuration
-        fl *= Configuration.DRIVE_MULTIPLIER;
-        fr *= Configuration.DRIVE_MULTIPLIER;
-        bl *= Configuration.DRIVE_MULTIPLIER;
-        br *= Configuration.DRIVE_MULTIPLIER;
+        fl *= Configuration.DRIVE_SPEED_MULTIPLIER;
+        fr *= Configuration.DRIVE_SPEED_MULTIPLIER;
+        bl *= Configuration.DRIVE_SPEED_MULTIPLIER;
+        br *= Configuration.DRIVE_SPEED_MULTIPLIER;
 
         // safely update motors
         update(fl, fr, bl, br);
@@ -80,10 +89,12 @@ public class DeviceDrive extends Device {
     }
 
     private float scaleInput(float value) {
+        // robot does not begin to move until power overcomes ts weight and friction forces idk
+        // but yeah it doesnt start moving at 0.0 power so we gotta scale it
         if (value > 0) {
-            return -value * Configuration.DRIVE_ACTIVATION + value + Configuration.DRIVE_ACTIVATION;
+            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value + Configuration.DRIVE_MOTOR_ACTIVATION;
         } else if (value < 0) {
-            return -value * Configuration.DRIVE_ACTIVATION + value - Configuration.DRIVE_ACTIVATION;
+            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value - Configuration.DRIVE_MOTOR_ACTIVATION;
         } else {
             return 0;
         }
