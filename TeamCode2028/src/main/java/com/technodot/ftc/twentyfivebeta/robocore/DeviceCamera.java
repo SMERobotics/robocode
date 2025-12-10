@@ -25,6 +25,8 @@ public class DeviceCamera extends Device {
 
     public int allianceTag;
 
+    public final double GOAL_DEG = Math.atan(4/3);
+
     public DeviceCamera(Alliance alliance) {
         super(alliance);
     }
@@ -69,7 +71,7 @@ public class DeviceCamera extends Device {
                         continue;
                     case 20:
                     case 24:
-                        fieldOffset = Optional.of((tag.id == 20 ? -56.0 : 56.0) + tag.ftcPose.yaw - tag.ftcPose.bearing + (this.alliance == Alliance.RED ? -90 : 90));
+                        fieldOffset = Optional.of((tag.id == 20 ? -GOAL_DEG : GOAL_DEG) + tag.ftcPose.yaw - tag.ftcPose.bearing + (this.alliance == Alliance.RED ? -90 : 90));
                         if (tag.id == allianceTag) {
                             goalTagDetection = tag;
                         }
