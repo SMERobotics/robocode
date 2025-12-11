@@ -1,4 +1,4 @@
-package com.technodot.ftc.twentyfivebeta;
+package com.technodot.ftc.twentyfivebeta.tests;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;

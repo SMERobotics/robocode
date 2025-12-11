@@ -7,6 +7,7 @@ import com.technodot.ftc.twentyfivebeta.Configuration;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
 import com.technodot.ftc.twentyfivebeta.common.Vector2D;
 import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
+import com.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
@@ -25,6 +26,8 @@ public class DeviceIMU extends Device {
 
     @Override
     public void init(HardwareMap hardwareMap, InputController inputController) {
+        this.inputController = inputController;
+
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(orientationOnRobot));
     }
@@ -36,6 +39,8 @@ public class DeviceIMU extends Device {
 
     @Override
     public void update() {
+        SilentRunner101 ctrl = (SilentRunner101) inputController;
+        if (ctrl.resetYaw()) zeroYaw();
         yaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
         updateHeadingOffset();
     }
@@ -46,7 +51,7 @@ public class DeviceIMU extends Device {
     }
 
     public void updateHeadingOffset() {
-        DeviceCamera.fieldOffset.ifPresent(offset -> headingOffset = offset - yaw);
+        if (DeviceCamera.fieldOffset != null) DeviceCamera.fieldOffset.ifPresent(offset -> headingOffset = offset - yaw);
     }
 
     public double getHeadingOffset() {
@@ -58,7 +63,8 @@ public class DeviceIMU extends Device {
     }
 
     public static Vector2D rotateVector(Vector2D movement) {
-        return movement.rotate(-Math.toRadians(yaw + headingOffset));
+//        return movement.rotate(Math.toRadians(yaw + headingOffset));
+        return movement.rotate(Math.toRadians(yaw));
     }
 
     public void zeroYaw() {

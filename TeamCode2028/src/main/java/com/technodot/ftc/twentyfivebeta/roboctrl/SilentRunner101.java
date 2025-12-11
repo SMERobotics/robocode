@@ -84,4 +84,22 @@ public class SilentRunner101 extends InputController {
     public float driveRotate() {
         return ready() && Math.abs(gamepad1.right_stick_x) > Configuration.DRIVE_CONTROLLER_DEADZONE ? gamepad1.right_stick_x : 0.0f;
     }
+
+    public boolean extakeClose() {
+        return ready() && (gamepad1.a || gamepad1.dpad_up);
+    }
+
+    public boolean extakeFar() {
+        return ready() && gamepad1.y;
+    }
+
+    public boolean extakeReverse() {
+        return ready() && gamepad1.dpad_down;
+    }
+
+    // TODO: other gamepad ctrls
+
+    public boolean resetYaw() {
+        return ready() && gamepad1.start;
+    }
 }

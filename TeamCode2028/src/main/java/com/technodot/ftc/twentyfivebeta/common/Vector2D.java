@@ -14,8 +14,9 @@ public class Vector2D {
     }
 
     public Vector2D rotate(double thetaRad) {
+        double skibidi = this.x;
         this.x = x * Math.cos(thetaRad) - y * Math.sin(thetaRad);
-        this.y = x * Math.sin(thetaRad) + y * Math.cos(thetaRad);
+        this.y = skibidi * Math.sin(thetaRad) + y * Math.cos(thetaRad);
         return this;
     }
 

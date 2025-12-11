@@ -6,6 +6,7 @@ import com.technodot.ftc.twentyfivebeta.Configuration;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
 import com.technodot.ftc.twentyfivebeta.common.Vector2D;
 import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
+import com.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 public class DeviceDrive extends Device {
 
@@ -20,6 +21,8 @@ public class DeviceDrive extends Device {
 
     @Override
     public void init(HardwareMap hardwareMap, InputController inputController) {
+        this.inputController = inputController;
+
         motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
         motorFrontRight = hardwareMap.get(DcMotorEx.class, "motorFrontRight");
         motorBackLeft = hardwareMap.get(DcMotorEx.class, "motorBackLeft");
@@ -44,7 +47,8 @@ public class DeviceDrive extends Device {
 
     @Override
     public void update() {
-
+        SilentRunner101 ctrl = (SilentRunner101) inputController;
+        this.update(ctrl.driveForward(), ctrl.driveStrafe(), ctrl.driveRotate());
     }
 
     @Override
@@ -52,23 +56,23 @@ public class DeviceDrive extends Device {
 
     }
 
-    public void update(float forward, float strafe, float rotate) {
+    public void update(double forward, double strafe, double rotate) {
+        // ts field-centric kinematic model
+        Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(forward, strafe));
+        forward = fieldCentric.x;
+        strafe = fieldCentric.y;
+
         // counteract strafe friction
         strafe *= Configuration.DRIVE_STRAFE_MULTIPLIER;
 
-        // ts field-centric kinematic model
-        Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(forward, strafe));
-        forward = (float) fieldCentric.x;
-        strafe = (float) fieldCentric.y;
-
         // ts mecanum drive kinematic model
-        float fl = forward + strafe + rotate;
-        float fr = forward - strafe - rotate;
-        float bl = forward - strafe + rotate;
-        float br = forward + strafe - rotate;
+        double fl = forward + strafe + rotate;
+        double fr = forward - strafe - rotate;
+        double bl = forward - strafe + rotate;
+        double br = forward + strafe - rotate;
 
         // normalization to 1.0f
-        float max = Math.max(1.0f, Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
+        double max = Math.max(1.0f, Math.max(Math.abs(fl), Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
         fl /= max; fr /= max; bl /= max; br /= max;
 
         // respect speed configuration
@@ -81,14 +85,14 @@ public class DeviceDrive extends Device {
         update(fl, fr, bl, br);
     }
 
-    public void update(float fl, float fr, float bl, float br) {
+    public void update(double fl, double fr, double bl, double br) {
         if (motorFrontLeft != null) motorFrontLeft.setPower(scaleInput(fl));
         if (motorFrontRight != null) motorFrontRight.setPower(scaleInput(fr));
         if (motorBackLeft != null) motorBackLeft.setPower(scaleInput(bl));
         if (motorBackRight != null) motorBackRight.setPower(scaleInput(br));
     }
 
-    private float scaleInput(float value) {
+    private double scaleInput(double value) {
         // robot does not begin to move until power overcomes ts weight and friction forces idk
         // but yeah it doesnt start moving at 0.0 power so we gotta scale it
         if (value > 0) {
