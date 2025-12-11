@@ -43,6 +43,8 @@ public class DeviceExtake extends Device {
 
         motorExtakeLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motorExtakeRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+
+        extakeState = ExtakeState.IDLE;
     }
 
     @Override
@@ -75,9 +77,10 @@ public class DeviceExtake extends Device {
             extakeState = extakeState == ExtakeState.SHORT ? ExtakeState.IDLE : ExtakeState.SHORT;
         } else if (extakeState == ExtakeState.REVERSE) {
             extakeState = ExtakeState.ZERO;
-        } else {
-            extakeState = ExtakeState.IDLE;
         }
+//        } else {
+//            extakeState = ExtakeState.IDLE;
+//        }
 
         prevExtakeFar = extakeFar;
         prevExtakeClose = extakeClose;

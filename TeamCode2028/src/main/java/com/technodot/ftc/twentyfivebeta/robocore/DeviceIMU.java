@@ -63,8 +63,8 @@ public class DeviceIMU extends Device {
     }
 
     public static Vector2D rotateVector(Vector2D movement) {
-//        return movement.rotate(Math.toRadians(yaw + headingOffset));
-        return movement.rotate(Math.toRadians(yaw));
+        return movement.rotate(Math.toRadians(yaw - headingOffset));
+//        return movement.rotate(Math.toRadians(yaw));
     }
 
     public void zeroYaw() {
