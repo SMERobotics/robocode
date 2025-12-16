@@ -55,16 +55,6 @@ public class DeviceExtake extends Device {
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-//        if (ctrl.extakeFar()) {
-//            motorExtakeLeft.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
-//            motorExtakeRight.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
-//        } else if (ctrl.extakeShort()) {
-//            motorExtakeLeft.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
-//            motorExtakeRight.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
-//        } else {
-//            motorExtakeLeft.setVelocity(0);
-//            motorExtakeRight.setVelocity(0);
-//        }
 
         boolean extakeFar = ctrl.extakeFar();
         boolean extakeClose = ctrl.extakeClose();
@@ -78,9 +68,6 @@ public class DeviceExtake extends Device {
         } else if (extakeState == ExtakeState.REVERSE) {
             extakeState = ExtakeState.ZERO;
         }
-//        } else {
-//            extakeState = ExtakeState.IDLE;
-//        }
 
         prevExtakeFar = extakeFar;
         prevExtakeClose = extakeClose;
@@ -114,23 +101,52 @@ public class DeviceExtake extends Device {
 
     }
 
+    /**
+     * Set the extake state. Changes will take effect next motor update.
+     * @param extakeState The ExtakeState to set.
+     */
     public void setExtakeState(ExtakeState extakeState) {
         this.extakeState = extakeState;
     }
 
+    /**
+     * Get the current extake state.
+     * @return Current extake state.
+     */
     public ExtakeState getExtakeState() {
         return this.extakeState;
     }
 
+    /**
+     * Set the extake override velocity. Velocity is only applied when DeviceExtake.currentState == ExtakeState.OVERRIDE.
+     * @param extakeOverride The velocity in default units.
+     */
     public void setExtakeOverride(double extakeOverride) {
         this.extakeOverride = extakeOverride;
     }
 
+    /**
+     * Get the extake override velocity.
+     * @return The velocity in default units.
+     */
     public double getExtakeOverride() {
         return this.extakeOverride;
     }
 
+    /**
+     * Check if the extake motors are physically idle (not spinning).
+     * @return If the extake motors are idle.
+     */
+    public boolean isIdle() {
+        return this.motorExtakeLeft.getVelocity() <= 20 && this.motorExtakeRight.getVelocity() <= 20;
+    }
+
+    /**
+     * Set the velocity of both extake motors.
+     * @param extakeVelocity The velocity in default units.
+     */
     private void setExtakeVelocity(double extakeVelocity) {
+        // TODO: real PID ctrlr impl
         motorExtakeLeft.setVelocity(extakeVelocity);
         motorExtakeRight.setVelocity(extakeVelocity);
     }

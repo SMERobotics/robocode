@@ -4,8 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
-@TeleOp(name="CalibrateExtake", group="TechnoCode")
-public class CalibrateExtake extends OpMode {
+@TeleOp(name="TestExtakeMotor", group="TechnoCode")
+public class TestExtakeMotor extends OpMode {
 
     public DcMotorEx motorExtakeLeft;
     public DcMotorEx motorExtakeRight;
