@@ -4,10 +4,9 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfivebeta.Configuration;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
-import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import com.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
-public class DeviceExtake extends Device {
+public class DeviceExtake extends Device<SilentRunner101> {
 
     public DcMotorEx motorExtakeLeft;
     public DcMotorEx motorExtakeRight;
@@ -32,7 +31,7 @@ public class DeviceExtake extends Device {
     }
 
     @Override
-    public void init(HardwareMap hardwareMap, InputController inputController) {
+    public void init(HardwareMap hardwareMap, SilentRunner101 inputController) {
         this.inputController = inputController;
 
         motorExtakeLeft = hardwareMap.get(DcMotorEx.class, "motorExtakeLeft");
@@ -54,11 +53,10 @@ public class DeviceExtake extends Device {
 
     @Override
     public void update() {
-        SilentRunner101 ctrl = (SilentRunner101) inputController;
-//        if (ctrl.extakeFar()) {
+//        if (inputController.extakeFar()) {
 //            motorExtakeLeft.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
 //            motorExtakeRight.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
-//        } else if (ctrl.extakeShort()) {
+//        } else if (inputController.extakeShort()) {
 //            motorExtakeLeft.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
 //            motorExtakeRight.setVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
 //        } else {
@@ -66,10 +64,10 @@ public class DeviceExtake extends Device {
 //            motorExtakeRight.setVelocity(0);
 //        }
 
-        boolean extakeFar = ctrl.extakeFar();
-        boolean extakeClose = ctrl.extakeClose();
+        boolean extakeFar = inputController.extakeFar();
+        boolean extakeClose = inputController.extakeClose();
 
-        if (ctrl.extakeReverse()) {
+        if (inputController.extakeReverse()) {
             extakeState = ExtakeState.REVERSE;
         } else if (extakeFar && !prevExtakeFar) {
             extakeState = extakeState == ExtakeState.LONG ? ExtakeState.IDLE : ExtakeState.LONG;

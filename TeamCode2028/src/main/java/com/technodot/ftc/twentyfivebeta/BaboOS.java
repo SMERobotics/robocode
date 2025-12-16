@@ -21,6 +21,14 @@ public class BaboOS extends OpMode {
     public DeviceExtake deviceExtake;
     public DeviceIntake deviceIntake;
 
+    // To change the controller layout:
+    // 1. Create a new controller class that extends InputController (e.g., NewLayout)
+    // 2. Change line 34 to: inputController = new NewLayout(gamepad1, gamepad2);
+    // 3. For devices that need the new layout, change their class declaration:
+    //    - DeviceDrive: change "extends Device<SilentRunner101>" to "extends Device<NewLayout>"
+    //    - DeviceExtake: change "extends Device<SilentRunner101>" to "extends Device<NewLayout>"
+    //    - DeviceIMU: change "extends Device<SilentRunner101>" to "extends Device<NewLayout>"
+    // That's it! No need to change any update() methods or add casts.
     public InputController inputController;
 
     public Alliance alliance = Alliance.BLUE;

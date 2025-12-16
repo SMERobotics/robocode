@@ -5,10 +5,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfivebeta.Configuration;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
 import com.technodot.ftc.twentyfivebeta.common.Vector2D;
-import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import com.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
-public class DeviceDrive extends Device {
+public class DeviceDrive extends Device<SilentRunner101> {
 
     public DcMotorEx motorFrontLeft;
     public DcMotorEx motorFrontRight;
@@ -20,7 +19,7 @@ public class DeviceDrive extends Device {
     }
 
     @Override
-    public void init(HardwareMap hardwareMap, InputController inputController) {
+    public void init(HardwareMap hardwareMap, SilentRunner101 inputController) {
         this.inputController = inputController;
 
         motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
@@ -47,8 +46,7 @@ public class DeviceDrive extends Device {
 
     @Override
     public void update() {
-        SilentRunner101 ctrl = (SilentRunner101) inputController;
-        this.update(ctrl.driveForward(), ctrl.driveStrafe(), ctrl.driveRotate());
+        this.update(inputController.driveForward(), inputController.driveStrafe(), inputController.driveRotate());
     }
 
     @Override

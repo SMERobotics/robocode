@@ -14,7 +14,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.Optional;
 
-public class DeviceCamera extends Device {
+public class DeviceCamera extends Device<InputController> {
 
     public AprilTagProcessor aprilTagProcessorFront;
     public VisionPortal visionPortalFront;

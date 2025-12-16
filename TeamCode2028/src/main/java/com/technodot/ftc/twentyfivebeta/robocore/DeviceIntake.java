@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
 import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 
-public class DeviceIntake extends Device {
+public class DeviceIntake extends Device<InputController> {
 
     public RevColorSensorV3 colorLeft1;
     public RevColorSensorV3 colorLeft2;

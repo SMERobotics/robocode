@@ -6,12 +6,11 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.technodot.ftc.twentyfivebeta.Configuration;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
 import com.technodot.ftc.twentyfivebeta.common.Vector2D;
-import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import com.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-public class DeviceIMU extends Device {
+public class DeviceIMU extends Device<SilentRunner101> {
 
     public IMU imu;
 
@@ -25,7 +24,7 @@ public class DeviceIMU extends Device {
     }
 
     @Override
-    public void init(HardwareMap hardwareMap, InputController inputController) {
+    public void init(HardwareMap hardwareMap, SilentRunner101 inputController) {
         this.inputController = inputController;
 
         imu = hardwareMap.get(IMU.class, "imu");
@@ -39,8 +38,7 @@ public class DeviceIMU extends Device {
 
     @Override
     public void update() {
-        SilentRunner101 ctrl = (SilentRunner101) inputController;
-        if (ctrl.resetYaw()) zeroYaw();
+        if (inputController.resetYaw()) zeroYaw();
         yaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
         updateHeadingOffset();
     }

@@ -4,9 +4,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
 import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 
-public abstract class Device {
+public abstract class Device<T extends InputController> {
 
-    protected InputController inputController;
+    protected T inputController;
 
     protected final Alliance alliance;
 
@@ -14,7 +14,7 @@ public abstract class Device {
         this.alliance = alliance;
     }
 
-    public abstract void init(HardwareMap hardwareMap, InputController inputController);
+    public abstract void init(HardwareMap hardwareMap, T inputController);
 
     public abstract void start();
 
