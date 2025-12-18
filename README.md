@@ -6,7 +6,7 @@ This repo contains the code used by Shawnee Mission East Robotics for the FTC DE
 
 - [20181 (SME Lancers)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2026/src/main/java/com/mech/ftc) the oldest sibling
   - @SM-mech (Jake Winfield)
-- [26855 (SME Cavalry)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2028/src/main/java/com/technodot/ftc) the middle child 🥀
+- [26855 (SME Cavalry)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2028/src/main/java/org/technodot/ftc) the middle child 🥀
   - @TechDudie (TechnoDot)
 - [21692 (SME Knights)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2029/src/main/java/com/n0tasha4k/ftc) the youngest sibling
   - @n0tasha4k-glitch (???)
