@@ -1,6 +1,6 @@
 package org.technodot.ftc.twentyfour.autotask;
 
-import com.technodot.ftc.twentyfour.robocore.Device;
+import org.technodot.ftc.twentyfour.robocore.Device;
 
 public class AutoObjective {
     ObjectiveType type;

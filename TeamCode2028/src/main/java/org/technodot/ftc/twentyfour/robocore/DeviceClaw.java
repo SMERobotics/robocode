@@ -3,7 +3,7 @@ package org.technodot.ftc.twentyfour.robocore;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.technodot.ftc.twentyfour.Configuration;
+import org.technodot.ftc.twentyfour.Configuration;
 
 public class DeviceClaw extends Device {
     public Servo clawMain;

@@ -3,10 +3,10 @@ package org.technodot.ftc.twentyfour;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.technodot.ftc.twentyfour.maytag.MayTag;
-import com.technodot.ftc.twentyfour.robocore.DeviceClaw;
-import com.technodot.ftc.twentyfour.robocore.DeviceDrive;
-import com.technodot.ftc.twentyfour.robocore.DeviceSlide;
+import org.technodot.ftc.twentyfour.maytag.MayTag;
+import org.technodot.ftc.twentyfour.robocore.DeviceClaw;
+import org.technodot.ftc.twentyfour.robocore.DeviceDrive;
+import org.technodot.ftc.twentyfour.robocore.DeviceSlide;
 
 @Disabled
 @Autonomous(name="BaboAuto", group="TechnoCode")

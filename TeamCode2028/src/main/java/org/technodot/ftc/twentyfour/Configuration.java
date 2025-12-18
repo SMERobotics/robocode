@@ -1,7 +1,7 @@
 package org.technodot.ftc.twentyfour;
 
-import com.technodot.ftc.twentyfour.robocore.Drivetrain;
-import com.technodot.ftc.twentyfour.robocore.Drivetype;
+import org.technodot.ftc.twentyfour.robocore.Drivetrain;
+import org.technodot.ftc.twentyfour.robocore.Drivetype;
 
 public class Configuration {
     // enable controls

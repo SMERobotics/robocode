@@ -2,7 +2,7 @@ package org.technodot.ftc.twentyfour.robocore;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.technodot.ftc.twentyfour.Configuration;
+import org.technodot.ftc.twentyfour.Configuration;
 
 public class DeviceSlide extends Device {
     public DcMotor slideMain;

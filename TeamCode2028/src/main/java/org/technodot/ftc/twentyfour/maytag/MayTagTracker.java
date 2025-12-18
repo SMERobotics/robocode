@@ -1,6 +1,6 @@
 package org.technodot.ftc.twentyfour.maytag;
 
-import com.technodot.ftc.twentyfour.Configuration;
+import org.technodot.ftc.twentyfour.Configuration;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
