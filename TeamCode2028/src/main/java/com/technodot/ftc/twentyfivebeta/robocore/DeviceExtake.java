@@ -15,7 +15,7 @@ public class DeviceExtake extends Device {
     boolean prevExtakeClose;
     boolean prevExtakeFar;
 
-    public ExtakeState extakeState;
+    public ExtakeState extakeState = ExtakeState.IDLE;
     public double extakeOverride;
 
     public enum ExtakeState {
@@ -44,6 +44,9 @@ public class DeviceExtake extends Device {
         motorExtakeLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motorExtakeRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
+//        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+//        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+
         extakeState = ExtakeState.IDLE;
     }
 
@@ -71,6 +74,11 @@ public class DeviceExtake extends Device {
 
         prevExtakeFar = extakeFar;
         prevExtakeClose = extakeClose;
+
+        // PIDF coefficients should be applied only at init
+        // temp moved to update cycle so Configuration changes will take effect
+        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 
         switch (extakeState) {
             case IDLE:

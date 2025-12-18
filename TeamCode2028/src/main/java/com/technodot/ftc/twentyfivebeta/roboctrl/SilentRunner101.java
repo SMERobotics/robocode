@@ -97,7 +97,21 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.dpad_down;
     }
 
-    // TODO: other gamepad ctrls
+    public boolean intakeIn() {
+        return ready() && gamepad1.right_trigger > 0.1;
+    }
+
+    public boolean intakeOut() {
+        return ready() && gamepad1.left_trigger > 0.1;
+    }
+
+    public boolean intakeServoLeft() {
+        return ready() && gamepad1.dpad_left;
+    }
+
+    public boolean intakeServoRight() {
+        return ready() && gamepad1.dpad_right;
+    }
 
     public boolean resetYaw() {
         return ready() && gamepad1.start;

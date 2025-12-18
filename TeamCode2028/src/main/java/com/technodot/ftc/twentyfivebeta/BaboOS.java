@@ -1,5 +1,6 @@
 package com.technodot.ftc.twentyfivebeta;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.technodot.ftc.twentyfivebeta.common.Alliance;
@@ -10,6 +11,8 @@ import com.technodot.ftc.twentyfivebeta.robocore.DeviceIMU;
 import com.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import com.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import com.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
@@ -24,6 +27,8 @@ public class BaboOS extends OpMode {
     public InputController inputController;
 
     public Alliance alliance = Alliance.BLUE;
+
+    public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
     protected void config() {
     }
@@ -78,8 +83,14 @@ public class BaboOS extends OpMode {
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
         telemetry.addData("heading_offset", deviceIMU.getHeadingOffset());
 
-        if (deviceExtake.motorExtakeLeft != null) telemetry.addData("extake_left", deviceExtake.motorExtakeLeft.getCurrentPosition());
-        if (deviceExtake.motorExtakeRight != null) telemetry.addData("extake_right", deviceExtake.motorExtakeRight.getCurrentPosition());
+        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pos", deviceExtake.motorExtakeLeft.getCurrentPosition());
+        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pos", deviceExtake.motorExtakeRight.getCurrentPosition());
+        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());
+        if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel", deviceExtake.motorExtakeRight.getVelocity());
+        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pwr", deviceExtake.motorExtakeLeft.getPower());
+        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pwr", deviceExtake.motorExtakeRight.getPower());
+
+        t.update();
 
         telemetry.addData("status", "running");
         telemetry.update();
