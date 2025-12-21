@@ -20,7 +20,8 @@ public class DeviceCamera extends Device {
     public VisionPortal visionPortalFront;
 
     public Obelisk obelisk; // last seen obelisk state
-    public AprilTagDetection goalTagDetection;
+    public static AprilTagDetection goalTagDetection;
+    public static long goalTagTimestamp;
     public static Optional<Double> fieldOffset;
 
     public int allianceTag;
@@ -56,6 +57,7 @@ public class DeviceCamera extends Device {
 
     @Override
     public void update() {
+        goalTagDetection = null;
         if (aprilTagProcessorFront != null) {
             List<AprilTagDetection> frontDetections = aprilTagProcessorFront.getDetections();
             for (AprilTagDetection tag : frontDetections) {
@@ -74,6 +76,7 @@ public class DeviceCamera extends Device {
                         fieldOffset = Optional.of((tag.id == 20 ? -GOAL_DEG : GOAL_DEG) + tag.ftcPose.yaw - tag.ftcPose.bearing + (this.alliance == Alliance.RED ? -90 : 90));
                         if (tag.id == allianceTag) {
                             goalTagDetection = tag;
+                            goalTagTimestamp = System.nanoTime(); // TODO: i REALLY don't like this call when im literally calling ts in main update loop
                         }
                         continue;
                     default:

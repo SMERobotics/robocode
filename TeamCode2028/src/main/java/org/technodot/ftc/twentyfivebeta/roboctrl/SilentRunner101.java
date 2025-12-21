@@ -85,6 +85,10 @@ public class SilentRunner101 extends InputController {
         return ready() && Math.abs(gamepad1.right_stick_x) > Configuration.DRIVE_CONTROLLER_DEADZONE ? gamepad1.right_stick_x : 0.0f;
     }
 
+    public boolean driveAim() {
+        return ready() && (gamepad1.a || gamepad1.y);
+    }
+
     public boolean extakeClose() {
         return ready() && (gamepad1.a || gamepad1.dpad_up);
     }

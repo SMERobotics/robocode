@@ -2,10 +2,13 @@ package org.technodot.ftc.twentyfivebeta.robocore;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.PIDController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 public class DeviceDrive extends Device {
@@ -14,6 +17,9 @@ public class DeviceDrive extends Device {
     public DcMotorEx motorFrontRight;
     public DcMotorEx motorBackLeft;
     public DcMotorEx motorBackRight;
+
+    private boolean aiming = false;
+    private PIDController aimPID;
 
     public DeviceDrive(Alliance alliance) {
         super(alliance);
@@ -38,17 +44,30 @@ public class DeviceDrive extends Device {
         motorFrontRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         motorBackLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         motorBackRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+        aimPID = new PIDController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
+        aimPID.setSetpoint(0.0);
+        aimPID.setOutputLimits(-1.0, 1.0);
+        aimPID.setIntegralLimits(-1.0, 1.0);
     }
 
     @Override
     public void start() {
-
+        resetMovement();
     }
 
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-        this.update(ctrl.driveForward(), ctrl.driveStrafe(), ctrl.driveRotate());
+        if (ctrl.driveAim()) aiming = true;
+        double rotate = ctrl.driveRotate();
+        if (ctrl.driveRotate() != 0) aiming = false;
+        if (aiming) {
+            rotate = calculateAim();
+        } else {
+            if (aimPID != null) aimPID.reset();
+        }
+        this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
     }
 
     @Override
@@ -90,6 +109,50 @@ public class DeviceDrive extends Device {
         if (motorFrontRight != null) motorFrontRight.setPower(scaleInput(fr));
         if (motorBackLeft != null) motorBackLeft.setPower(scaleInput(bl));
         if (motorBackRight != null) motorBackRight.setPower(scaleInput(br));
+    }
+    
+    public double calculateAim() {
+        AprilTagDetection tag = DeviceCamera.goalTagDetection;
+
+        if (tag != null && tag.ftcPose != null) {
+            double bearing = tag.ftcPose.bearing;
+
+            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
+                if (aimPID != null) aimPID.reset();
+                return 0.0;
+            } else {
+                return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
+            }
+        } else {
+            if (aimPID != null) aimPID.reset();
+            return 0.0;
+        }
+    }
+
+    public void resetMovement() {
+        // Switch to RUN_WITHOUT_ENCODER to disable REV Control Hub PID
+        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Reset encoder positions to 0 for clean autonomous start
+        motorFrontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        motorFrontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        motorBackLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        motorBackRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+
+        // Switch back to RUN_WITHOUT_ENCODER (resetting clears the mode)
+        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Reset target positions to 0
+        motorFrontLeft.setTargetPosition(0);
+        motorFrontRight.setTargetPosition(0);
+        motorBackLeft.setTargetPosition(0);
+        motorBackRight.setTargetPosition(0);
     }
 
     private double scaleInput(double value) {

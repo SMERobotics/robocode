@@ -30,6 +30,8 @@ public class BaboOS extends OpMode {
 
     public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
+    public static long now;
+
     protected void config() {
     }
 
@@ -71,7 +73,7 @@ public class BaboOS extends OpMode {
 
     @Override
     public void loop() {
-        long now = System.nanoTime(); // ts call here ideally should be the only call
+        now = System.nanoTime(); // ts call here ideally should be the only call
 
         deviceCamera.update();
         deviceIMU.update();
@@ -79,7 +81,7 @@ public class BaboOS extends OpMode {
         deviceExtake.update();
         deviceIntake.update();
 
-        if (deviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("b=%f, y=%f", deviceCamera.goalTagDetection.ftcPose.bearing, deviceCamera.goalTagDetection.ftcPose.yaw));
+        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("b=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
         telemetry.addData("heading_offset", deviceIMU.getHeadingOffset());
 
