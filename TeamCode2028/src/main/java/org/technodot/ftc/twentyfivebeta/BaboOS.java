@@ -85,6 +85,7 @@ public class BaboOS extends OpMode {
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
         telemetry.addData("heading_offset", deviceIMU.getHeadingOffset());
 
+        t.addData("ext_vel", deviceExtake.targetVelocity);
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pos", deviceExtake.motorExtakeLeft.getCurrentPosition());
         if (deviceExtake.motorExtakeRight != null) t.addData("exr_pos", deviceExtake.motorExtakeRight.getCurrentPosition());
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());

@@ -86,7 +86,7 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean driveAim() {
-        return ready() && (gamepad1.a || gamepad1.y);
+        return ready() && (gamepad1.a || gamepad1.y || gamepad1.x);
     }
 
     public boolean extakeClose() {
@@ -119,5 +119,11 @@ public class SilentRunner101 extends InputController {
 
     public boolean resetYaw() {
         return ready() && gamepad1.start;
+    }
+
+    public void vibrateExtakeReady() {
+        if (ready()) {
+            gamepad1.rumble(0.0, 1.0, Configuration.GAMEPAD_RUMBLE_DURATION_MS);
+        }
     }
 }

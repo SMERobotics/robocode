@@ -105,10 +105,15 @@ public class DeviceDrive extends Device {
     }
 
     public void update(double fl, double fr, double bl, double br) {
-        if (motorFrontLeft != null) motorFrontLeft.setPower(scaleInput(fl));
-        if (motorFrontRight != null) motorFrontRight.setPower(scaleInput(fr));
-        if (motorBackLeft != null) motorBackLeft.setPower(scaleInput(bl));
-        if (motorBackRight != null) motorBackRight.setPower(scaleInput(br));
+//        if (motorFrontLeft != null) motorFrontLeft.setPower(scaleInput(fl));
+//        if (motorFrontRight != null) motorFrontRight.setPower(scaleInput(fr));
+//        if (motorBackLeft != null) motorBackLeft.setPower(scaleInput(bl));
+//        if (motorBackRight != null) motorBackRight.setPower(scaleInput(br));
+
+        if (motorFrontLeft != null) motorFrontLeft.setPower(fl);
+        if (motorFrontRight != null) motorFrontRight.setPower(fr);
+        if (motorBackLeft != null) motorBackLeft.setPower(bl);
+        if (motorBackRight != null) motorBackRight.setPower(br);
     }
     
     public double calculateAim() {

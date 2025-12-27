@@ -131,12 +131,14 @@ public class DeviceIntake extends Device {
 
         if (leftActive) {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_ACTIVATION);
+            DeviceExtake.unready();
         } else {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_DEACTIVATION);
         }
 
         if (rightActive) {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_ACTIVATION);
+            DeviceExtake.unready();
         } else {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_DEACTIVATION);
         }

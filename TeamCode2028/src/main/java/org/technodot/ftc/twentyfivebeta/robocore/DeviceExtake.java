@@ -11,12 +11,17 @@ public class DeviceExtake extends Device {
 
     public DcMotorEx motorExtakeLeft;
     public DcMotorEx motorExtakeRight;
+//    public PIDFController extakeLeftPIDF;
+//    public PIDFController extakeRightPIDF;
 
     boolean prevExtakeClose;
     boolean prevExtakeFar;
 
     public ExtakeState extakeState = ExtakeState.IDLE;
+    public double targetVelocity; // current vel setpoint
     public double extakeOverride;
+    public static int stabilizationCycles;
+    public boolean rumbled;
 
     public enum ExtakeState {
         IDLE,
@@ -44,8 +49,11 @@ public class DeviceExtake extends Device {
         motorExtakeLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motorExtakeRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
-//        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
-//        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+//        extakeLeftPIDF = new PIDFController(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+//        extakeRightPIDF = new PIDFController(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+
+        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 
         extakeState = ExtakeState.IDLE;
     }
@@ -77,8 +85,11 @@ public class DeviceExtake extends Device {
 
         // PIDF coefficients should be applied only at init
         // temp moved to update cycle so Configuration changes will take effect
-//        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
-//        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+
+//        extakeLeftPIDF.setPIDF(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+//        extakeRightPIDF.setPIDF(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 
         switch (extakeState) {
             case IDLE:
@@ -86,21 +97,28 @@ public class DeviceExtake extends Device {
                 motorExtakeRight.setPower(0.0);
                 break;
             case SHORT:
-                setExtakeVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
+                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
                 break;
             case LONG:
-                setExtakeVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
+                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
                 break;
             case REVERSE:
                 motorExtakeLeft.setPower(-1.0);
                 motorExtakeRight.setPower(-1.0);
                 break;
             case ZERO:
-                setExtakeVelocity(0.0);
+                setTargetVelocity(0.0);
                 break;
             case OVERRIDE:
-                setExtakeVelocity(extakeOverride);
+                setTargetVelocity(extakeOverride);
                 break;
+        }
+
+        if (isReady() && !rumbled) {
+            ctrl.vibrateExtakeReady();
+            rumbled = true;
+        } else if (!isReady()) {
+            rumbled = false;
         }
     }
 
@@ -149,13 +167,33 @@ public class DeviceExtake extends Device {
         return this.motorExtakeLeft.getVelocity() <= 20 && this.motorExtakeRight.getVelocity() <= 20;
     }
 
+    public boolean isReady() {
+        switch (extakeState) {
+            case SHORT:
+            case LONG:
+                stabilizationCycles = Math.abs(motorExtakeLeft.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE && Math.abs(motorExtakeRight.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE ? stabilizationCycles + 1 : stabilizationCycles;
+                break;
+            default:
+                stabilizationCycles = 0;
+                return false;
+        }
+        return stabilizationCycles >= Configuration.EXTAKE_STABILIZATION_CYCLES;
+    }
+
+    public static void unready() {
+        stabilizationCycles = 0;
+    }
+
     /**
      * Set the velocity of both extake motors.
-     * @param extakeVelocity The velocity in default units.
+     * @param targetVelocity The velocity in default units.
      */
-    private void setExtakeVelocity(double extakeVelocity) {
+    private void setTargetVelocity(double targetVelocity) {
         // TODO: real PID ctrlr impl
-        motorExtakeLeft.setVelocity(extakeVelocity);
-        motorExtakeRight.setVelocity(extakeVelocity);
+        this.targetVelocity = targetVelocity;
+        motorExtakeLeft.setVelocity(targetVelocity);
+        motorExtakeRight.setVelocity(targetVelocity);
+//        motorExtakeLeft.setPower(extakeLeftPIDF.calculate(motorExtakeLeft.getVelocity(), extakeVelocity));
+//        motorExtakeRight.setPower(extakeRightPIDF.calculate(motorExtakeRight.getVelocity(), extakeVelocity));
     }
 }
