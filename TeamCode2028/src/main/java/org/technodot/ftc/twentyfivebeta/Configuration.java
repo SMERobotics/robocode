@@ -13,20 +13,20 @@ public class Configuration {
     public static volatile double DRIVE_AIM_KD = 0.006;
     public static volatile double DRIVE_AIM_TOLERANCE = 1.0;
 
-    public static volatile double INTAKE_LEFT_ACTIVATION = 0.40;
-    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.26;
-    public static volatile double INTAKE_RIGHT_ACTIVATION = 0.40;
-    public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.6;
+    public static volatile double INTAKE_LEFT_ACTIVATION = 0.46;
+    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.23;
+    public static volatile double INTAKE_RIGHT_ACTIVATION = 0.50;
+    public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.72;
     public static volatile long INTAKE_SERVO_INTERVAL_MS = 200;
 
-    public static volatile double EXTAKE_MOTOR_KP = 300;
-    public static volatile double EXTAKE_MOTOR_KI = 0;
-    public static volatile double EXTAKE_MOTOR_KD = 1;
+    public static volatile double EXTAKE_MOTOR_KP = 300.0;
+    public static volatile double EXTAKE_MOTOR_KI = 0.0;
+    public static volatile double EXTAKE_MOTOR_KD = 1.0;
     public static volatile double EXTAKE_MOTOR_KF = 17.767;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200;
     public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1460;
     public static volatile double EXTAKE_MOTOR_SPEED_TOLERANCE = 20;
-    public static volatile int EXTAKE_STABILIZATION_CYCLES = 6;
+    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
 
-    public static volatile int GAMEPAD_RUMBLE_DURATION_MS = 200;
+    public static volatile int GAMEPAD_RUMBLE_DURATION_MS = 250;
 }

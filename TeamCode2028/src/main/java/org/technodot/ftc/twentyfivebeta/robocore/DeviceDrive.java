@@ -59,9 +59,9 @@ public class DeviceDrive extends Device {
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-        if (ctrl.driveAim()) aiming = true;
+        if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
         double rotate = ctrl.driveRotate();
-        if (ctrl.driveRotate() != 0) aiming = false;
+        if (ctrl.driveRotate() != 0) aiming = false; // rotation can ONLY override
         if (aiming) {
             rotate = calculateAim();
         } else {
