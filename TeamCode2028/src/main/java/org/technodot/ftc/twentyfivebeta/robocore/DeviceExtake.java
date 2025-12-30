@@ -74,8 +74,10 @@ public class DeviceExtake extends Device {
             extakeState = ExtakeState.REVERSE;
         } else if (extakeFar && !prevExtakeFar) {
             extakeState = extakeState == ExtakeState.LONG ? ExtakeState.IDLE : ExtakeState.LONG;
+            stabilizationCycles = 0;
         } else if (extakeClose && !prevExtakeClose) {
             extakeState = extakeState == ExtakeState.SHORT ? ExtakeState.IDLE : ExtakeState.SHORT;
+            stabilizationCycles = 0;
         } else if (extakeState == ExtakeState.REVERSE) {
             extakeState = ExtakeState.ZERO;
         }
@@ -85,8 +87,8 @@ public class DeviceExtake extends Device {
 
         // PIDF coefficients should be applied only at init
         // temp moved to update cycle so Configuration changes will take effect
-        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
-        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+//        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+//        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 
 //        extakeLeftPIDF.setPIDF(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 //        extakeRightPIDF.setPIDF(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
@@ -164,7 +166,7 @@ public class DeviceExtake extends Device {
      * @return If the extake motors are idle.
      */
     public boolean isIdle() {
-        return this.motorExtakeLeft.getVelocity() <= 20 && this.motorExtakeRight.getVelocity() <= 20;
+        return Math.abs(this.motorExtakeLeft.getVelocity()) <= 20 && Math.abs(this.motorExtakeRight.getVelocity()) <= 20;
     }
 
     public boolean isReady() {

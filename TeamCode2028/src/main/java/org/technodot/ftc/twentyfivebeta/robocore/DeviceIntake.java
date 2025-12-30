@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.technodot.ftc.twentyfive.common.Artifact;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
@@ -33,6 +35,9 @@ public class DeviceIntake extends Device {
     private boolean rightActive;
     private long leftActivationTime;
     private long rightActivationTime;
+
+    public Artifact leftArtifact = Artifact.NONE;
+    public Artifact rightArtifact = Artifact.NONE;
 
     public enum IntakeState {
         IDLE,
@@ -73,6 +78,28 @@ public class DeviceIntake extends Device {
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
+
+        // color sensors
+
+        if (isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM))) {
+            NormalizedRGBA cl1_n = colorLeft1.getNormalizedColors();
+            NormalizedRGBA cl2_n = colorLeft2.getNormalizedColors();
+            Artifact cl1_a = getArtifactColor(cl1_n);
+            Artifact cl2_a = getArtifactColor(cl2_n);
+            leftArtifact = combineArtifactColors(cl1_a, cl2_a);
+        } else {
+            leftArtifact = Artifact.NONE;
+        }
+
+        if (isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM))) {
+            NormalizedRGBA cr1_n = colorRight1.getNormalizedColors();
+            NormalizedRGBA cr2_n = colorRight2.getNormalizedColors();
+            Artifact cr1_a = getArtifactColor(cr1_n);
+            Artifact cr2_a = getArtifactColor(cr2_n);
+            rightArtifact = combineArtifactColors(cr1_a, cr2_a);
+        } else {
+            rightArtifact = Artifact.NONE;
+        }
 
         // intake motor
 
@@ -167,8 +194,19 @@ public class DeviceIntake extends Device {
         return System.currentTimeMillis() - rightActivationTime > Configuration.INTAKE_SERVO_INTERVAL_MS;
     }
 
-    public static Artifact getArtifactColor(NormalizedRGBA color, double distanceCM) {
+    public static boolean isArtifactLeft(double cm1, double cm2) {
+        return (cm1 <= 3.9) && (cm2 <= 7.5);
+    }
+
+    public static boolean isArtifactRight(double cm1, double cm2) {
+        return (cm1 <= 6.5) || (cm2 <= 3.1);
+    }
+
+    public static Artifact getArtifactColor(NormalizedRGBA color) {
         // TODO: ask ts gpt-5.2 to write ts algorithm
+        if (!(color.red >= 0.002 || color.green >= 0.002 || color.blue >= 0.002)) return Artifact.NONE;
+        if (color.blue >= color.green) return Artifact.PURPLE;
+        if (color.blue < color.green) return Artifact.GREEN;
         return Artifact.NONE;
     }
 

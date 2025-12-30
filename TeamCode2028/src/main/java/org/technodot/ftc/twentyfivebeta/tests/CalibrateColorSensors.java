@@ -20,33 +20,33 @@ public class CalibrateColorSensors extends OpMode {
     public RevColorSensorV3 colorRight1;
     public RevColorSensorV3 colorRight2;
 
-    public HashMap<String, RevColorSensorV3> colorSensors;
+    public HashMap<String, RevColorSensorV3> colorSensors = new HashMap<>();
 
     public Telemetry t;
 
     @Override
     public void init() {
         this.t = FtcDashboard.getInstance().getTelemetry();
-    }
 
-    @Override
-    public void init_loop() {
         colorLeft1 = hardwareMap.get(RevColorSensorV3.class, "colorLeft1");
         colorLeft2 = hardwareMap.get(RevColorSensorV3.class, "colorLeft2");
         colorRight1 = hardwareMap.get(RevColorSensorV3.class, "colorRight1");
         colorRight2 = hardwareMap.get(RevColorSensorV3.class, "colorRight2");
+    }
 
-        if (colorLeft1 != null) colorSensors.put("cl1", colorLeft1);
-        if (colorLeft2 != null) colorSensors.put("cl2", colorLeft2);
-        if (colorRight1 != null) colorSensors.put("cr1", colorRight1);
-        if (colorRight2 != null) colorSensors.put("cr2", colorRight2);
-
+    @Override
+    public void init_loop() {
         telemetry.addData("status", "initialized");
         telemetry.update();
     }
 
     @Override
     public void start() {
+        if (colorLeft1 != null) colorSensors.put("cl1", colorLeft1);
+        if (colorLeft2 != null) colorSensors.put("cl2", colorLeft2);
+        if (colorRight1 != null) colorSensors.put("cr1", colorRight1);
+        if (colorRight2 != null) colorSensors.put("cr2", colorRight2);
+
         telemetry.addData("status", "starting");
         telemetry.update();
     }
@@ -63,8 +63,8 @@ public class CalibrateColorSensors extends OpMode {
             t.addData(k + "_ca", color.alpha);
             t.addData(k + "_d", distanceCM);
             t.addData(k + "_l", v.getLightDetected());
-            t.addData(k + "_a", DeviceIntake.getArtifactColor(color, distanceCM));
-            telemetry.addData(k + "_a", DeviceIntake.getArtifactColor(color, distanceCM));
+            t.addData(k + "_a", DeviceIntake.getArtifactColor(color));
+            telemetry.addData(k + "_a", DeviceIntake.getArtifactColor(color));
         });
 
         t.update();

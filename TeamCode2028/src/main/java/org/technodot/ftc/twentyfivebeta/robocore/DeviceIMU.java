@@ -1,5 +1,7 @@
 package org.technodot.ftc.twentyfivebeta.robocore;
 
+import com.qualcomm.hardware.rev.Rev9AxisImu;
+import com.qualcomm.hardware.rev.Rev9AxisImuOrientationOnRobot;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
@@ -14,8 +16,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 public class DeviceIMU extends Device {
 
     public IMU imu;
+    public Rev9AxisImu rev;
 
     private final RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT);
+    private final Rev9AxisImuOrientationOnRobot revOrientationOnRobot = new Rev9AxisImuOrientationOnRobot(Rev9AxisImuOrientationOnRobot.LogoFacingDirection.DOWN, Rev9AxisImuOrientationOnRobot.I2cPortFacingDirection.RIGHT); // TODO: IDK IF LEFT OR RIGHT FIX THIS
 
     public static double headingOffset;
     public static double yaw;
@@ -30,6 +34,9 @@ public class DeviceIMU extends Device {
 
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(orientationOnRobot));
+
+        rev = hardwareMap.get(Rev9AxisImu.class, "rev");
+        rev.initialize(new Rev9AxisImu.Parameters(revOrientationOnRobot));
     }
 
     @Override
@@ -41,8 +48,9 @@ public class DeviceIMU extends Device {
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
         if (ctrl.resetYaw()) zeroYaw();
-        yaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        updateHeadingOffset();
+//        yaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        yaw = rev.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+//        updateHeadingOffset();
     }
 
     @Override
@@ -69,5 +77,6 @@ public class DeviceIMU extends Device {
 
     public void zeroYaw() {
         imu.resetYaw();
+        rev.resetYaw();
     }
 }

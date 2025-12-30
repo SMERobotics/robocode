@@ -31,6 +31,7 @@ public class BaboOS extends OpMode {
     public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
     public static long now;
+    public static long last;
 
     protected void config() {
     }
@@ -84,14 +85,22 @@ public class BaboOS extends OpMode {
         if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("b=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
         telemetry.addData("heading_offset", deviceIMU.getHeadingOffset());
+        telemetry.addData("h", DeviceIMU.yaw);
 
         t.addData("ext_vel", deviceExtake.targetVelocity);
-        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pos", deviceExtake.motorExtakeLeft.getCurrentPosition());
-        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pos", deviceExtake.motorExtakeRight.getCurrentPosition());
+//        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pos", deviceExtake.motorExtakeLeft.getCurrentPosition());
+//        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pos", deviceExtake.motorExtakeRight.getCurrentPosition());
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());
         if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel", deviceExtake.motorExtakeRight.getVelocity());
-        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pwr", deviceExtake.motorExtakeLeft.getPower());
-        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pwr", deviceExtake.motorExtakeRight.getPower());
+//        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pwr", deviceExtake.motorExtakeLeft.getPower());
+//        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pwr", deviceExtake.motorExtakeRight.getPower());
+
+        telemetry.addData("cl_a", deviceIntake.leftArtifact);
+        telemetry.addData("cr_a", deviceIntake.rightArtifact);
+
+        t.addData("t", (now - last) / 1e6);
+        telemetry.addData("t", (now - last) / 1e6);
+        last = now;
 
         t.update();
 
