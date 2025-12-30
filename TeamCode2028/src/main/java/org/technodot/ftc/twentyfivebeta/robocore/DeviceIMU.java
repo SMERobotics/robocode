@@ -19,7 +19,7 @@ public class DeviceIMU extends Device {
     public Rev9AxisImu rev;
 
     private final RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.FORWARD, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT);
-    private final Rev9AxisImuOrientationOnRobot revOrientationOnRobot = new Rev9AxisImuOrientationOnRobot(Rev9AxisImuOrientationOnRobot.LogoFacingDirection.DOWN, Rev9AxisImuOrientationOnRobot.I2cPortFacingDirection.RIGHT); // TODO: IDK IF LEFT OR RIGHT FIX THIS
+    private final Rev9AxisImuOrientationOnRobot revOrientationOnRobot = new Rev9AxisImuOrientationOnRobot(Rev9AxisImuOrientationOnRobot.LogoFacingDirection.DOWN, Rev9AxisImuOrientationOnRobot.I2cPortFacingDirection.RIGHT);
 
     public static double headingOffset;
     public static double yaw;

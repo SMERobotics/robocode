@@ -14,6 +14,9 @@ import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 public class DeviceIntake extends Device {
 
     public DcMotorEx motorIntake;
@@ -36,6 +39,9 @@ public class DeviceIntake extends Device {
     private long leftActivationTime;
     private long rightActivationTime;
 
+    public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
+    public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
+
     public Artifact leftArtifact = Artifact.NONE;
     public Artifact rightArtifact = Artifact.NONE;
 
@@ -44,6 +50,13 @@ public class DeviceIntake extends Device {
         IN,
         OUT,
         OVERRIDE
+    }
+
+    public enum IntakeSide {
+        LEFT,
+        RIGHT,
+        BOTH,
+        NONE
     }
 
     public DeviceIntake(Alliance alliance) {
@@ -101,6 +114,9 @@ public class DeviceIntake extends Device {
             rightArtifact = Artifact.NONE;
         }
 
+//        leftArtifact = isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorLeft1.getNormalizedColors()), getArtifactColor(colorLeft2.getNormalizedColors())) : Artifact.NONE;
+//        rightArtifact = isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorRight1.getNormalizedColors()), getArtifactColor(colorRight2.getNormalizedColors())) : Artifact.NONE;
+
         // intake motor
 
         if (intakeState != IntakeState.OVERRIDE) {
@@ -129,6 +145,26 @@ public class DeviceIntake extends Device {
         }
 
         // intake servo ctrl (L & R)
+
+        if (ctrl.sequenceShoot()) {
+            boolean hasLeft = leftArtifact != Artifact.NONE;
+            boolean hasRight = rightArtifact != Artifact.NONE;
+            
+            if (hasLeft && hasRight) {
+                // Both artifacts present: push left first, then right
+                sideDeque.push(IntakeSide.RIGHT);
+                sideDeque.push(IntakeSide.LEFT);
+            } else if (hasLeft) {
+                // Only left artifact present
+                sideDeque.push(IntakeSide.LEFT);
+            } else if (hasRight) {
+                // Only right artifact present
+                sideDeque.push(IntakeSide.RIGHT);
+            }
+            // If neither artifact is present, don't push anything
+
+            nextOptimizedTransfer = System.currentTimeMillis();
+        }
 
         boolean shouldActivateLeft = shouldActivateLeft();
         boolean shouldActivateRight = shouldActivateRight();
@@ -178,12 +214,40 @@ public class DeviceIntake extends Device {
 
     private boolean shouldActivateLeft() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-        return ctrl.intakeServoLeft();
+
+        // Manual control
+        if (ctrl.intakeServoLeft()) return true;
+
+        // Automatic sequence control
+        if (!sideDeque.isEmpty()) {
+            IntakeSide nextSide = sideDeque.peek();
+            if (nextSide == IntakeSide.LEFT && System.currentTimeMillis() >= nextOptimizedTransfer) {
+                sideDeque.poll();
+                nextOptimizedTransfer = System.currentTimeMillis() + Configuration.INTAKE_SERVO_DELAY_MS;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean shouldActivateRight() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-        return ctrl.intakeServoRight();
+
+        // Manual control
+        if (ctrl.intakeServoRight()) return true;
+
+        // Automatic sequence control
+        if (!sideDeque.isEmpty()) {
+            IntakeSide nextSide = sideDeque.peek();
+            if (nextSide == IntakeSide.RIGHT && System.currentTimeMillis() >= nextOptimizedTransfer) {
+                sideDeque.poll();
+                nextOptimizedTransfer = System.currentTimeMillis() + Configuration.INTAKE_SERVO_DELAY_MS;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean shouldDeactivateLeft() {
@@ -203,7 +267,6 @@ public class DeviceIntake extends Device {
     }
 
     public static Artifact getArtifactColor(NormalizedRGBA color) {
-        // TODO: ask ts gpt-5.2 to write ts algorithm
         if (!(color.red >= 0.002 || color.green >= 0.002 || color.blue >= 0.002)) return Artifact.NONE;
         if (color.blue >= color.green) return Artifact.PURPLE;
         if (color.blue < color.green) return Artifact.GREEN;

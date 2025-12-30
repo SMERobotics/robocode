@@ -191,7 +191,6 @@ public class DeviceExtake extends Device {
      * @param targetVelocity The velocity in default units.
      */
     private void setTargetVelocity(double targetVelocity) {
-        // TODO: real PID ctrlr impl
         this.targetVelocity = targetVelocity;
         motorExtakeLeft.setVelocity(targetVelocity);
         motorExtakeRight.setVelocity(targetVelocity);
