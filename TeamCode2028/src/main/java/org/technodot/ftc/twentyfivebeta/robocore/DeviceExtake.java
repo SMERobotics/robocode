@@ -43,6 +43,9 @@ public class DeviceExtake extends Device {
         motorExtakeLeft = hardwareMap.get(DcMotorEx.class, "motorExtakeLeft");
         motorExtakeRight = hardwareMap.get(DcMotorEx.class, "motorExtakeRight");
 
+        motorExtakeLeft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        motorExtakeRight.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
         motorExtakeLeft.setDirection(DcMotorEx.Direction.FORWARD);
         motorExtakeRight.setDirection(DcMotorEx.Direction.REVERSE);
 
@@ -97,6 +100,7 @@ public class DeviceExtake extends Device {
             case IDLE:
                 motorExtakeLeft.setPower(0.0);
                 motorExtakeRight.setPower(0.0);
+                targetVelocity = 0;
                 break;
             case SHORT:
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
@@ -107,6 +111,7 @@ public class DeviceExtake extends Device {
             case REVERSE:
                 motorExtakeLeft.setPower(-1.0);
                 motorExtakeRight.setPower(-1.0);
+                targetVelocity = 0;
                 break;
             case ZERO:
                 setTargetVelocity(0.0);
@@ -192,8 +197,24 @@ public class DeviceExtake extends Device {
      */
     private void setTargetVelocity(double targetVelocity) {
         this.targetVelocity = targetVelocity;
-        motorExtakeLeft.setVelocity(targetVelocity);
-        motorExtakeRight.setVelocity(targetVelocity);
+
+        // SUPER FEEDFORWARD 💪💪💪
+        double leftVelocity = motorExtakeLeft.getVelocity();
+        if (Math.abs(targetVelocity - leftVelocity) > Configuration.EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD) {
+            motorExtakeLeft.setPower(Math.signum(targetVelocity - leftVelocity));
+        } else {
+            motorExtakeLeft.setVelocity(targetVelocity);
+        }
+
+        double rightVelocity = motorExtakeRight.getVelocity();
+        if (Math.abs(targetVelocity - rightVelocity) > Configuration.EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD) {
+            motorExtakeRight.setPower(Math.signum(targetVelocity - rightVelocity));
+        } else {
+            motorExtakeRight.setVelocity(targetVelocity);
+        }
+
+//        motorExtakeLeft.setVelocity(targetVelocity);
+//        motorExtakeRight.setVelocity(targetVelocity);
 //        motorExtakeLeft.setPower(extakeLeftPIDF.calculate(motorExtakeLeft.getVelocity(), extakeVelocity));
 //        motorExtakeRight.setPower(extakeRightPIDF.calculate(motorExtakeRight.getVelocity(), extakeVelocity));
     }

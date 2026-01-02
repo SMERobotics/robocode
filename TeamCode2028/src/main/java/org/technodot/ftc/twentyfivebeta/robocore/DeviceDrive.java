@@ -19,7 +19,13 @@ public class DeviceDrive extends Device {
     public DcMotorEx motorBackRight;
 
     private boolean aiming = false;
+    private boolean rotating = false;
+    private long lastRotateNs = 0;
+    private boolean snapped = false;
+//    public boolean rotating = false; // TODO: temp for debugging
+//    public boolean adjusting = false; // TODO: also temp for debugging ts stupid rotation
     private PIDController aimPID;
+    private PIDController rotatePID;
 
     public DeviceDrive(Alliance alliance) {
         super(alliance);
@@ -49,23 +55,48 @@ public class DeviceDrive extends Device {
         aimPID.setSetpoint(0.0);
         aimPID.setOutputLimits(-1.0, 1.0);
         aimPID.setIntegralLimits(-1.0, 1.0);
+
+        rotatePID = new PIDController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
+        rotatePID.setSetpoint(0.0);
+        rotatePID.setOutputLimits(-1.0, 1.0);
+        rotatePID.setIntegralLimits(-1.0, 1.0);
     }
 
     @Override
     public void start() {
         resetMovement();
+        lastRotateNs = System.nanoTime();
     }
 
     @Override
     public void update() {
+        rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
+
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-        if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
         double rotate = ctrl.driveRotate();
-        if (ctrl.driveRotate() != 0) aiming = false; // rotation can ONLY override
+
+        if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
+        if (rotate != 0) aiming = false; // rotation can ONLY override
+
+        rotating = rotate != 0;
+        long nowish = System.nanoTime();
+
+        if (rotating) {
+            lastRotateNs = nowish;
+            snapped = false;
+        } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) {
+            DeviceIMU.setSnapshotYaw();
+            snapped = true;
+        }
+
         if (aiming) {
             rotate = calculateAim();
         } else {
             if (aimPID != null) aimPID.reset();
+            if (!rotating) {
+                double error = DeviceIMU.getSnapshotYawError();
+                rotate = rotatePID.calculate(error, DeviceIMU.timeNs / 1_000_000_000.0);
+            }
         }
         this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
     }
