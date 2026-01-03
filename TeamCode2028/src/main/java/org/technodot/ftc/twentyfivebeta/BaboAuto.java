@@ -8,7 +8,7 @@ import org.technodot.ftc.twentyfivebeta.common.Alliance;
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends OpMode {
 
-    Alliance alliance = Alliance.BLUE;
+    public Alliance alliance = Alliance.BLUE;
 
     protected void config() {
     }

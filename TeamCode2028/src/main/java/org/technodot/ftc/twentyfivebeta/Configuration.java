@@ -4,6 +4,8 @@ import com.acmerobotics.dashboard.config.Config;
 
 @Config
 public class Configuration {
+    public static volatile boolean DEBUG = true; // all targets override debug to false (should)
+
     public static volatile double DRIVE_CONTROLLER_DEADZONE = 0.02;
     public static volatile double DRIVE_MOTOR_ACTIVATION = 0.2;
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;

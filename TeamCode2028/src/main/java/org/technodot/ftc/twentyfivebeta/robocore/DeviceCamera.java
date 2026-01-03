@@ -2,6 +2,8 @@ package org.technodot.ftc.twentyfivebeta.robocore;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Obelisk;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
@@ -47,7 +49,7 @@ public class DeviceCamera extends Device {
                 .addProcessor(aprilTagProcessorFront)
                 .build();
 
-        FtcDashboard.getInstance().startCameraStream(visionPortalFront, 0);
+        if (Configuration.DEBUG) FtcDashboard.getInstance().startCameraStream(visionPortalFront, 0);
     }
 
     @Override

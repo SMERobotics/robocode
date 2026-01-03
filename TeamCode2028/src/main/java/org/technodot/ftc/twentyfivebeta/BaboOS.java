@@ -94,6 +94,7 @@ public class BaboOS extends OpMode {
         if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel", deviceExtake.motorExtakeRight.getVelocity());
 //        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pwr", deviceExtake.motorExtakeLeft.getPower());
 //        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pwr", deviceExtake.motorExtakeRight.getPower());
+        t.addData("int_srv" , deviceIntake.statusTelem); // intake servo status, displayed for timing purposes
 
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
         telemetry.addData("cr_a", deviceIntake.rightArtifact);

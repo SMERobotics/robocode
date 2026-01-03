@@ -31,6 +31,7 @@ public class DeviceIntake extends Device {
 
     public IntakeState intakeState = IntakeState.IDLE;
     public double intakeOverride;
+    public double statusTelem; // just a graphable number for telemetry and timing purposes;
 
     private boolean leftTriggered;
     private boolean rightTriggered;
@@ -39,6 +40,7 @@ public class DeviceIntake extends Device {
     private long leftActivationTime;
     private long rightActivationTime;
 
+    private boolean sequenceTriggered;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
 
@@ -94,28 +96,29 @@ public class DeviceIntake extends Device {
 
         // color sensors
 
-        if (isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM))) {
-            NormalizedRGBA cl1_n = colorLeft1.getNormalizedColors();
-            NormalizedRGBA cl2_n = colorLeft2.getNormalizedColors();
-            Artifact cl1_a = getArtifactColor(cl1_n);
-            Artifact cl2_a = getArtifactColor(cl2_n);
-            leftArtifact = combineArtifactColors(cl1_a, cl2_a);
-        } else {
-            leftArtifact = Artifact.NONE;
-        }
+//        if (isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM))) {
+//            NormalizedRGBA cl1_n = colorLeft1.getNormalizedColors();
+//            NormalizedRGBA cl2_n = colorLeft2.getNormalizedColors();
+//            Artifact cl1_a = getArtifactColor(cl1_n);
+//            Artifact cl2_a = getArtifactColor(cl2_n);
+//            leftArtifact = combineArtifactColors(cl1_a, cl2_a);
+//        } else {
+//            leftArtifact = Artifact.NONE;
+//        }
+//
+//        if (isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM))) {
+//            NormalizedRGBA cr1_n = colorRight1.getNormalizedColors();
+//            NormalizedRGBA cr2_n = colorRight2.getNormalizedColors();
+//            Artifact cr1_a = getArtifactColor(cr1_n);
+//            Artifact cr2_a = getArtifactColor(cr2_n);
+//            rightArtifact = combineArtifactColors(cr1_a, cr2_a);
+//        } else {
+//            rightArtifact = Artifact.NONE;
+//        }
 
-        if (isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM))) {
-            NormalizedRGBA cr1_n = colorRight1.getNormalizedColors();
-            NormalizedRGBA cr2_n = colorRight2.getNormalizedColors();
-            Artifact cr1_a = getArtifactColor(cr1_n);
-            Artifact cr2_a = getArtifactColor(cr2_n);
-            rightArtifact = combineArtifactColors(cr1_a, cr2_a);
-        } else {
-            rightArtifact = Artifact.NONE;
-        }
-
-//        leftArtifact = isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorLeft1.getNormalizedColors()), getArtifactColor(colorLeft2.getNormalizedColors())) : Artifact.NONE;
-//        rightArtifact = isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorRight1.getNormalizedColors()), getArtifactColor(colorRight2.getNormalizedColors())) : Artifact.NONE;
+        // holy oneliners
+        leftArtifact = isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorLeft1.getNormalizedColors()), getArtifactColor(colorLeft2.getNormalizedColors())) : Artifact.NONE;
+        rightArtifact = isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorRight1.getNormalizedColors()), getArtifactColor(colorRight2.getNormalizedColors())) : Artifact.NONE;
 
         // intake motor
 
@@ -146,12 +149,13 @@ public class DeviceIntake extends Device {
 
         // intake servo ctrl (L & R)
 
-        if (ctrl.sequenceShoot()) {
+        if (ctrl.sequenceShoot() && !sequenceTriggered) {
             boolean hasLeft = leftArtifact != Artifact.NONE;
             boolean hasRight = rightArtifact != Artifact.NONE;
             
             if (hasLeft && hasRight) {
                 // Both artifacts present: push left first, then right
+                // TODO: gamepad2 w/ color order ctrl
                 sideDeque.push(IntakeSide.RIGHT);
                 sideDeque.push(IntakeSide.LEFT);
             } else if (hasLeft) {
@@ -164,6 +168,9 @@ public class DeviceIntake extends Device {
             // If neither artifact is present, don't push anything
 
             nextOptimizedTransfer = System.currentTimeMillis();
+            sequenceTriggered = true;
+        } else if (!ctrl.sequenceShoot()) {
+            sequenceTriggered = false;
         }
 
         boolean shouldActivateLeft = shouldActivateLeft();
@@ -171,16 +178,16 @@ public class DeviceIntake extends Device {
 
         if (shouldActivateLeft && !leftTriggered) {
             leftActive = true;
-            leftTriggered = true;
             leftActivationTime = System.currentTimeMillis();
+            leftTriggered = true;
         } else if (!shouldActivateLeft) {
             leftTriggered = false;
         }
 
         if (shouldActivateRight && !rightTriggered) {
             rightActive = true;
-            rightTriggered = true;
             rightActivationTime = System.currentTimeMillis();
+            rightTriggered = true;
         } else if (!shouldActivateRight) {
             rightTriggered = false;
         }
@@ -195,15 +202,19 @@ public class DeviceIntake extends Device {
         if (leftActive) {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_ACTIVATION);
             DeviceExtake.unready();
+            statusTelem = 670;
         } else {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_DEACTIVATION);
+            statusTelem = 0;
         }
 
         if (rightActive) {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_ACTIVATION);
             DeviceExtake.unready();
+            statusTelem = 670;
         } else {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_DEACTIVATION);
+            statusTelem = 0;
         }
     }
 

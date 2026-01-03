@@ -174,6 +174,10 @@ public class DeviceExtake extends Device {
         return Math.abs(this.motorExtakeLeft.getVelocity()) <= 20 && Math.abs(this.motorExtakeRight.getVelocity()) <= 20;
     }
 
+    /**
+     * Check if the extake motors have reached and stabilized at the target velocity.
+     * @return If the extake motors are ready.
+     */
     public boolean isReady() {
         switch (extakeState) {
             case SHORT:

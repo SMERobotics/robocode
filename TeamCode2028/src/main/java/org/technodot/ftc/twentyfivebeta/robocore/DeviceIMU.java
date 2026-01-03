@@ -43,7 +43,7 @@ public class DeviceIMU extends Device {
 
     @Override
     public void start() {
-
+        DeviceIMU.setSnapshotYaw();
     }
 
     @Override

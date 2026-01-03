@@ -22,8 +22,6 @@ public class DeviceDrive extends Device {
     private boolean rotating = false;
     private long lastRotateNs = 0;
     private boolean snapped = false;
-//    public boolean rotating = false; // TODO: temp for debugging
-//    public boolean adjusting = false; // TODO: also temp for debugging ts stupid rotation
     private PIDController aimPID;
     private PIDController rotatePID;
 
@@ -70,7 +68,8 @@ public class DeviceDrive extends Device {
 
     @Override
     public void update() {
-        rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
+        aimPID.setPID(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
+//        rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
 
         SilentRunner101 ctrl = (SilentRunner101) inputController;
         double rotate = ctrl.driveRotate();
@@ -80,11 +79,10 @@ public class DeviceDrive extends Device {
 
         rotating = rotate != 0;
         long nowish = System.nanoTime();
-
         if (rotating) {
             lastRotateNs = nowish;
             snapped = false;
-        } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) {
+        } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
             DeviceIMU.setSnapshotYaw();
             snapped = true;
         }
@@ -93,9 +91,8 @@ public class DeviceDrive extends Device {
             rotate = calculateAim();
         } else {
             if (aimPID != null) aimPID.reset();
-            if (!rotating) {
-                double error = DeviceIMU.getSnapshotYawError();
-                rotate = rotatePID.calculate(error, DeviceIMU.timeNs / 1_000_000_000.0);
+            if (!rotating) { // if we're tryna stay still, we stay the fuck still
+                rotate = rotatePID.calculate(DeviceIMU.getSnapshotYawError(), DeviceIMU.timeNs / 1_000_000_000.0);
             }
         }
         this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
@@ -103,7 +100,8 @@ public class DeviceDrive extends Device {
 
     @Override
     public void stop() {
-
+        aimPID.reset();
+        rotatePID.reset();
     }
 
     public void update(double forward, double strafe, double rotate) {
@@ -153,14 +151,16 @@ public class DeviceDrive extends Device {
         if (tag != null && tag.ftcPose != null) {
             double bearing = tag.ftcPose.bearing;
 
-            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
-                if (aimPID != null) aimPID.reset();
-                return 0.0;
-            } else {
-                return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
-            }
+//            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
+//                if (aimPID != null) aimPID.reset();
+//                return 0.0;
+//            } else {
+//                return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
+//            }
+
+            return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
         } else {
-            if (aimPID != null) aimPID.reset();
+//            if (aimPID != null) aimPID.reset();
             return 0.0;
         }
     }
