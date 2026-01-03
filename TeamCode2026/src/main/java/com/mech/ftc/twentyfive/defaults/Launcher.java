@@ -13,11 +13,7 @@ public class Launcher {
     private double filteredDistance = Double.NaN;
     private final double alpha = 0.3;
 
-    private double lastFrac = 0.0;
     private double targetFrac = 0.0;
-
-    private final double slew = 0.05;
-
     private final double maxTicksPerSec;
 
     public Launcher(DcMotorEx motor, Velocity one) {
@@ -30,11 +26,11 @@ public class Launcher {
 
     public void setEnabled(boolean on) {
         enabled = on;
-        if (!enabled) targetFrac = 0.0;
+        if (!enabled) targetFrac = 0;
     }
 
     public void update(double distanceMeters) {
-        if (Double.isFinite(distanceMeters) && distanceMeters > 0) {
+        if (distanceMeters > 0) {
             if (Double.isNaN(filteredDistance)) filteredDistance = distanceMeters;
             else filteredDistance = alpha * distanceMeters + (1 - alpha) * filteredDistance;
         }
@@ -42,7 +38,7 @@ public class Launcher {
         if (enabled && Double.isFinite(filteredDistance)) {
 
             double p = launchPower(filteredDistance);
-            if (p > 0 && Double.isFinite(p)) {
+            if (p > 0) {
                 targetFrac = p;
             }
             else {
@@ -53,15 +49,10 @@ public class Launcher {
             targetFrac = 0;
         }
 
-        double delta = targetFrac - lastFrac;
-        if (delta > slew) delta = slew;
-        if (delta < -slew) delta = -slew;
-        lastFrac += delta;
+        double targetVelocity = targetFrac * maxTicksPerSec;
 
-        double targetVelocity = lastFrac * maxTicksPerSec;
-
-        if (distanceMeters > 2 && enabled) {
-            launcherMotor.setVelocity(targetVelocity+100);
+        if (distanceMeters > 2.3 && targetVelocity != 0 || distanceMeters == 0 && targetVelocity != 0) {
+            launcherMotor.setVelocity(targetVelocity+150);
         }
         else {
             launcherMotor.setVelocity(targetVelocity);
@@ -70,7 +61,6 @@ public class Launcher {
 
     public double launchPower(double distanceMeters) {
         double y = 0.789;
-        //noinspection UnnecessaryLocalVariable
         double x = distanceMeters;
         double u = v.getForwardVelocity();
         double maxInitialSpeed = 8.1;

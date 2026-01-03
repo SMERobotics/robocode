@@ -24,7 +24,7 @@ public class RedAuto extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        Pose2d beginPose = new Pose2d(-45, 45, Math.toRadians(315));
+        Pose2d beginPose = new Pose2d(0, 0, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         DcMotorEx launchMotor = hardwareMap.get(DcMotorEx.class, "launchMotor");
         DcMotorEx frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -38,31 +38,16 @@ public class RedAuto extends LinearOpMode {
 
         waitForStart();
 
-        Actions.runBlocking(
-                drive.actionBuilder(beginPose)
-                        .strafeToConstantHeading(new Vector2d(-15,15))
-                        .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, hardwareMap))
-                        .stopAndAdd(new Index(indexMotor, p, i, d, f, 0))
-                        .waitSeconds(1.5)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(1.25)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.5)
-                        .stopAndAdd(new Index(indexMotor, p, i, d, f, 220))
-                        .waitSeconds(1)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.5)
-                        .stopAndAdd(new Index(indexMotor, p, i, d, f, 440))
-                        .waitSeconds(1)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(100)
-                        .build());
+        while (opModeIsActive()) {
+            Actions.runBlocking(
+                    drive.actionBuilder(beginPose)
+                            .strafeToLinearHeading(new Vector2d(1, 0), Math.toRadians(45))
+                            .strafeToLinearHeading(new Vector2d(0, 0), Math.toRadians(0))
+                            .build());
 
-    }
+            }
+        }
+
     public class Kick implements Action {
         Servo kick;
         double pos;
@@ -92,7 +77,6 @@ public class RedAuto extends LinearOpMode {
             v = new Velocity(leftMotor, rightMotor);
             launcher = new Launcher(launcherMotor, v);
             camera.init(hardwareMap);
-            camera.start();
 
 
         }

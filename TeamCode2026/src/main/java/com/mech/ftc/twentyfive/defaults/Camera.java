@@ -37,15 +37,6 @@ public class Camera {
                 .build();
 
         visionPortal.setProcessorEnabled(aprilTagProcessor, true);
-//        visionPortal.setProcessorEnabled(aprilTagProcessor, false);
-//        visionPortal.stopStreaming();
-//        visionPortal.stopLiveView();
-    }
-    public void start() {
-//        visionPortal.setProcessorEnabled(aprilTagProcessor, true);
-//        visionPortal.resumeLiveView();
-//        visionPortal.resumeStreaming();
-
     }
     public int TagID() {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
@@ -81,28 +72,6 @@ public class Camera {
                 return 0;
             }
             tagDistance = tagDetected.ftcPose.range;
-        }
-        return tagDistance*0.0254;
-    }
-    public double getTagDistanceY() {
-        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
-        double tagDistance = 0;
-        for (AprilTagDetection tagDetected : detections) {
-            if (tagDetected.metadata == null) {
-                return 0;
-            }
-            tagDistance = tagDetected.ftcPose.y;
-        }
-        return tagDistance*0.0254;
-    }
-    public double getTagDistanceX() {
-        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
-        double tagDistance = 0;
-        for (AprilTagDetection tagDetected : detections) {
-            if (tagDetected.metadata == null) {
-                return 0;
-            }
-            tagDistance = tagDetected.ftcPose.x;
         }
         return tagDistance*0.0254;
     }

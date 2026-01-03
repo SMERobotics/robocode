@@ -20,6 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class DriveCode extends OpMode {
     private int x = 1;
     private int y = 0;
+    private int rotate = 0;
 
     private boolean active;
 
@@ -41,7 +42,7 @@ public class DriveCode extends OpMode {
     public static double headingP = 0.03;
     public static double headingI = 0.0;
     public static double headingD = 0.001;
-    public static double headingToleranceDeg = 0.2;
+    public static double headingToleranceDeg = 0;
     public static double headingMaxPower = 0.6;
 
     DriveTrain driveTrain = new DriveTrain();
@@ -55,7 +56,6 @@ public class DriveCode extends OpMode {
     public void init() {
         driveTrain.init(hardwareMap);
         camera.init(hardwareMap);
-        camera.start();
         dashboard.startCameraStream(camera.visionPortal, 30);
 
         v = new Velocity(driveTrain.frontLeft, driveTrain.frontRight);
@@ -73,8 +73,6 @@ public class DriveCode extends OpMode {
 
     @Override
     public void loop() {
-        //driveTrain.drive(gamepad1);
-
         boolean fire = gamepad1.right_trigger > 0.5;
         boolean tagVisible = camera.TagID() != -1;
         double distanceM = camera.getTagDistance();
@@ -114,7 +112,7 @@ public class DriveCode extends OpMode {
 
         headingController = new PIDController(headingP, headingI, headingD);
 
-        if (gamepad1.right_trigger > 0.5 && tagVisible) {
+        if (gamepad1.right_trigger > 0.5) {
             double bearing = camera.getTagBearing();
             if (Math.abs(bearing) > headingToleranceDeg) {
                 double turn = headingController.calculate(bearing, 0);
@@ -128,7 +126,7 @@ public class DriveCode extends OpMode {
         }
 
         if (gamepad1.left_trigger > 0.5) {
-            driveTrain.launchMotor.setPower(0.5);
+            driveTrain.launchMotor.setPower(1);
         }
         else {
             launcher.update(distanceM);
@@ -156,26 +154,23 @@ public class DriveCode extends OpMode {
         driveTrain.indexMotor.setPower(power);
 
         if (rbPressedOnce) {
-            targetPosition += 115;
+            targetPosition += 113;
         } else if (lbPressedOnce) {
-            targetPosition -= 115;
+            targetPosition -= 113;
         }
-        if (targetPosition > 576) {
+        if (targetPosition > 566 || targetPosition < -566) {
             if (driveTrain.intake.getPower() == 0) {
                 targetPosition = 0;
+                rotate = 0;
             }
         }
-        if (targetPosition < -576) {
-            if (driveTrain.intake.getPower() == 0) {
-                targetPosition = 0;
-            }
-        }
-        if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && driveTrain.intake.getPower() > 0 && active) {
+        if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && driveTrain.intake.getPower() > 0 && active && rotate < 3) {
             if (targetPosition >= 0) {
-                targetPosition += 230;
+                targetPosition += 226;
             } else {
-                targetPosition -= 230;
+                targetPosition -= 226;
             }
+            rotate++;
             active = false;
         }
         if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) >= 6) {
