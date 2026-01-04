@@ -109,6 +109,10 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.left_trigger > 0.1;
     }
 
+    public boolean intakeNudge() {
+        return ready() && gamepad1.left_bumper;
+    }
+
     public boolean intakeServoLeft() {
         return ready() && gamepad1.dpad_left;
     }

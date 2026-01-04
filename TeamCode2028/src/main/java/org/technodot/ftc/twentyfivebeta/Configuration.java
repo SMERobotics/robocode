@@ -11,9 +11,10 @@ public class Configuration {
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
     public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
-    public static volatile double DRIVE_AIM_KP = 0.013;
+    public static volatile double DRIVE_AIM_KP = 0.0267;
+    public static volatile double DRIVE_AIM_KD = 0.0;
     public static volatile double DRIVE_AIM_KI = 0.0;
-    public static volatile double DRIVE_AIM_KD = 0.006;
+//    public static volatile double DRIVE_AIM_KD = 0.000067;
     public static volatile double DRIVE_AIM_TOLERANCE = 1.0;
     public static volatile double DRIVE_ROTATE_KP = 0.03;
     public static volatile double DRIVE_ROTATE_KI = 0.0;
@@ -22,9 +23,13 @@ public class Configuration {
 //    public static volatile double DRIVE_ROTATE_TOLERANCE = 1.0;
     public static volatile long DRIVE_ROTATE_SNAPSHOT_DELAY_NS = 100_000000L;
 
+    public static volatile double INTAKE_MOTOR_NUDGE_POWER = 0.67;
+    public static volatile int INTAKE_MOTOR_NUDGE_TICKS = 670;
     public static volatile double INTAKE_LEFT_ACTIVATION = 0.46;
-    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.23;
+    public static volatile double INTAKE_LEFT_HOLD = 0.30;
+    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.24;
     public static volatile double INTAKE_RIGHT_ACTIVATION = 0.50;
+    public static volatile double INTAKE_RIGHT_HOLD = 0.66;
     public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.72;
     public static volatile long INTAKE_SERVO_INTERVAL_MS = 200;
     public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS

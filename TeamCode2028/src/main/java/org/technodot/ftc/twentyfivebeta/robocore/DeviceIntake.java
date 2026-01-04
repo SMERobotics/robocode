@@ -44,6 +44,9 @@ public class DeviceIntake extends Device {
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
 
+    private boolean nudging;
+    private boolean nudgeTriggered;
+
     public Artifact leftArtifact = Artifact.NONE;
     public Artifact rightArtifact = Artifact.NONE;
 
@@ -123,6 +126,18 @@ public class DeviceIntake extends Device {
         // intake motor
 
         if (intakeState != IntakeState.OVERRIDE) {
+            if (ctrl.intakeNudge() && !nudgeTriggered && intakeState == IntakeState.IDLE && !nudging) {
+                // Start nudge: set target position to current + INTAKE_MOTOR_NUDGE_TICKS
+                int targetPosition = motorIntake.getCurrentPosition() + Configuration.INTAKE_MOTOR_NUDGE_TICKS;
+                motorIntake.setTargetPosition(targetPosition);
+                motorIntake.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                motorIntake.setPower(Configuration.INTAKE_MOTOR_NUDGE_POWER);
+                nudging = true;
+                nudgeTriggered = true;
+            } else if (!ctrl.intakeNudge()) {
+                nudgeTriggered = false;
+            }
+            
             if (ctrl.intakeOut()) {
                 intakeState = IntakeState.OUT;
             } else if (ctrl.intakeIn()) {
@@ -132,9 +147,24 @@ public class DeviceIntake extends Device {
             }
         }
 
+        // Cancel nudge if state is not IDLE
+        if (intakeState != IntakeState.IDLE && nudging) {
+            motorIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            nudging = false;
+        }
+
+        // Check if nudge is complete
+        if (nudging && !motorIntake.isBusy()) {
+            motorIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            motorIntake.setPower(0);
+            nudging = false;
+        }
+
         switch (intakeState) {
             case IDLE:
-                motorIntake.setPower(0);
+                if (!nudging) {
+                    motorIntake.setPower(0);
+                }
                 break;
             case IN:
                 motorIntake.setPower(1.0);
@@ -192,7 +222,7 @@ public class DeviceIntake extends Device {
             rightTriggered = false;
         }
 
-        // should deactivate come after activate? or should activate have priority?
+        // self-note: should deactivate come after activate? or should activate have priority?
         boolean shouldDeactivateLeft = shouldDeactivateLeft();
         boolean shouldDeactivateRight = shouldDeactivateRight();
 
@@ -202,20 +232,18 @@ public class DeviceIntake extends Device {
         if (leftActive) {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_ACTIVATION);
             DeviceExtake.unready();
-            statusTelem = 670;
         } else {
-            servoLeft.setPosition(Configuration.INTAKE_LEFT_DEACTIVATION);
-            statusTelem = 0;
+            servoLeft.setPosition(leftArtifact == Artifact.NONE ? Configuration.INTAKE_LEFT_DEACTIVATION : Configuration.INTAKE_LEFT_HOLD);
         }
 
         if (rightActive) {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_ACTIVATION);
             DeviceExtake.unready();
-            statusTelem = 670;
         } else {
-            servoRight.setPosition(Configuration.INTAKE_RIGHT_DEACTIVATION);
-            statusTelem = 0;
+            servoRight.setPosition(rightArtifact == Artifact.NONE ? Configuration.INTAKE_RIGHT_DEACTIVATION : Configuration.INTAKE_RIGHT_HOLD);
         }
+
+        statusTelem = (leftActive || rightActive) ? 670 : 0; // HEHEHEHA
     }
 
     @Override

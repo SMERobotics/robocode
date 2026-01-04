@@ -7,8 +7,10 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
+import org.technodot.ftc.twentyfivebeta.common.Vector3D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.PIDController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 public class DeviceDrive extends Device {
@@ -68,7 +70,7 @@ public class DeviceDrive extends Device {
 
     @Override
     public void update() {
-        aimPID.setPID(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
+//        aimPID.setPID(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
 //        rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
 
         SilentRunner101 ctrl = (SilentRunner101) inputController;
@@ -79,7 +81,7 @@ public class DeviceDrive extends Device {
 
         rotating = rotate != 0;
         long nowish = System.nanoTime();
-        if (rotating) {
+        if (rotating) { // we need to take another snapshot
             lastRotateNs = nowish;
             snapped = false;
         } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
@@ -149,7 +151,8 @@ public class DeviceDrive extends Device {
         AprilTagDetection tag = DeviceCamera.goalTagDetection;
 
         if (tag != null && tag.ftcPose != null) {
-            double bearing = tag.ftcPose.bearing;
+            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? 3.0 : -3.0);
+//            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
 //            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
 //                if (aimPID != null) aimPID.reset();
