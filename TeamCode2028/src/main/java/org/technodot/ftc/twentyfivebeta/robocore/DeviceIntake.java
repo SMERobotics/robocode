@@ -47,8 +47,11 @@ public class DeviceIntake extends Device {
     private boolean nudging;
     private boolean nudgeTriggered;
 
-    public Artifact leftArtifact = Artifact.NONE;
-    public Artifact rightArtifact = Artifact.NONE;
+    public volatile Artifact leftArtifact = Artifact.NONE;
+    public volatile Artifact rightArtifact = Artifact.NONE;
+
+    private Thread colorSensorThread;
+    private volatile boolean colorSensorThreadRunning = false;
 
     public enum IntakeState {
         IDLE,
@@ -90,38 +93,14 @@ public class DeviceIntake extends Device {
 
     @Override
     public void start() {
-
+        startColorSensorThread();
     }
 
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
 
-        // color sensors
-
-//        if (isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM))) {
-//            NormalizedRGBA cl1_n = colorLeft1.getNormalizedColors();
-//            NormalizedRGBA cl2_n = colorLeft2.getNormalizedColors();
-//            Artifact cl1_a = getArtifactColor(cl1_n);
-//            Artifact cl2_a = getArtifactColor(cl2_n);
-//            leftArtifact = combineArtifactColors(cl1_a, cl2_a);
-//        } else {
-//            leftArtifact = Artifact.NONE;
-//        }
-//
-//        if (isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM))) {
-//            NormalizedRGBA cr1_n = colorRight1.getNormalizedColors();
-//            NormalizedRGBA cr2_n = colorRight2.getNormalizedColors();
-//            Artifact cr1_a = getArtifactColor(cr1_n);
-//            Artifact cr2_a = getArtifactColor(cr2_n);
-//            rightArtifact = combineArtifactColors(cr1_a, cr2_a);
-//        } else {
-//            rightArtifact = Artifact.NONE;
-//        }
-
-        // holy oneliners
-        leftArtifact = isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorLeft1.getNormalizedColors()), getArtifactColor(colorLeft2.getNormalizedColors())) : Artifact.NONE;
-        rightArtifact = isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorRight1.getNormalizedColors()), getArtifactColor(colorRight2.getNormalizedColors())) : Artifact.NONE;
+//        this.updateColorSensors();
 
         // intake motor
 
@@ -248,7 +227,72 @@ public class DeviceIntake extends Device {
 
     @Override
     public void stop() {
+        stopColorSensorThread();
+    }
 
+    public void updateColorSensors() {
+        // color sensors
+
+        // TODO: implement color cacheing
+        // HOWEVER, one color sensor (i forgot) is exhibiting a lot of false positives
+        // this would fuck cacheing over. if it works, don't touch it
+
+//        if (isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM))) {
+//            NormalizedRGBA cl1_n = colorLeft1.getNormalizedColors();
+//            NormalizedRGBA cl2_n = colorLeft2.getNormalizedColors();
+//            Artifact cl1_a = getArtifactColor(cl1_n);
+//            Artifact cl2_a = getArtifactColor(cl2_n);
+//            leftArtifact = combineArtifactColors(cl1_a, cl2_a);
+//        } else {
+//            leftArtifact = Artifact.NONE;
+//        }
+//
+//        if (isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM))) {
+//            NormalizedRGBA cr1_n = colorRight1.getNormalizedColors();
+//            NormalizedRGBA cr2_n = colorRight2.getNormalizedColors();
+//            Artifact cr1_a = getArtifactColor(cr1_n);
+//            Artifact cr2_a = getArtifactColor(cr2_n);
+//            rightArtifact = combineArtifactColors(cr1_a, cr2_a);
+//        } else {
+//            rightArtifact = Artifact.NONE;
+//        }
+
+        // holy oneliners
+        leftArtifact = isArtifactLeft(colorLeft1.getDistance(DistanceUnit.CM), colorLeft2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorLeft1.getNormalizedColors()), getArtifactColor(colorLeft2.getNormalizedColors())) : Artifact.NONE;
+        rightArtifact = isArtifactRight(colorRight1.getDistance(DistanceUnit.CM), colorRight2.getDistance(DistanceUnit.CM)) ? combineArtifactColors(getArtifactColor(colorRight1.getNormalizedColors()), getArtifactColor(colorRight2.getNormalizedColors())) : Artifact.NONE;
+    }
+
+    private void startColorSensorThread() {
+        if (colorSensorThread != null && colorSensorThread.isAlive()) {
+            return;
+        }
+
+        colorSensorThreadRunning = true;
+        colorSensorThread = new Thread(() -> {
+            while (colorSensorThreadRunning) {
+                try {
+                    updateColorSensors();
+                    Thread.sleep(50);
+
+                } catch (Exception e) {
+                    // chill out
+                }
+            }
+        }, "UpdateColorSensors");
+        colorSensorThread.setDaemon(true);
+        colorSensorThread.start();
+    }
+
+    private void stopColorSensorThread() {
+        colorSensorThreadRunning = false;
+        if (colorSensorThread != null) {
+            try {
+                colorSensorThread.join(100); // be patient for 100ms
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            colorSensorThread = null;
+        }
     }
 
     private boolean shouldActivateLeft() {
