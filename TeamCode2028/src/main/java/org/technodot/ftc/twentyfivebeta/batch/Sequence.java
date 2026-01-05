@@ -6,6 +6,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Base Action that manages nested actions on a shared timeline.
+ */
 public class Sequence extends Action {
 
     private static final CallbackInterface NO_SEQUENCE_CALLBACK = new CallbackInterface() {};
@@ -20,14 +23,23 @@ public class Sequence extends Action {
     protected long timeShiftNs;
     private long plannedDurationNs;
 
+    /**
+     * Creates a sequence that starts immediately.
+     */
     public Sequence() {
         this(0);
     }
 
+    /**
+     * Creates a sequence that starts at the given delay.
+     */
     public Sequence(long startMs) {
         super(msToNs(startMs), 0, NO_SEQUENCE_CALLBACK);
     }
 
+    /**
+     * Adds a timed child action.
+     */
     public Sequence plan(long startMs, long durationMs, CallbackInterface callback) {
         long startNs = msToNs(startMs);
         long durationNs = msToNs(durationMs);
@@ -35,17 +47,26 @@ public class Sequence extends Action {
         return this;
     }
 
+    /**
+     * Adds an instantaneous child action.
+     */
     public Sequence plan(long startMs, CallbackInterface callback) {
         long startNs = msToNs(startMs);
         addAction(new Action(startNs, requireCallback(callback)));
         return this;
     }
 
+    /**
+     * Adds a prebuilt child action.
+     */
     public Sequence plan(Action action) {
         addAction(action);
         return this;
     }
 
+    /**
+     * Adds a delay placeholder.
+     */
     public Sequence delay(long startMs, long durationMs) {
         long startNs = msToNs(startMs);
         long durationNs = msToNs(durationMs);
@@ -53,19 +74,31 @@ public class Sequence extends Action {
         return this;
     }
 
+    /**
+     * Hook for subclasses to validate actions before storing them.
+     */
     protected void addAction(Action action) {
         addActionInternal(requireAction(action));
     }
 
+    /**
+     * Appends an action and updates duration bookkeeping.
+     */
     protected final void addActionInternal(Action action) {
         actions.add(action);
         updatePlannedDuration(action);
     }
 
+    /**
+     * Builds a no-op delay Action.
+     */
     protected Action createDelayAction(long startNs, long durationNs) {
         return new Action(startNs, durationNs, DELAY_CALLBACK);
     }
 
+    /**
+     * Returns the scheduled finish time of an action.
+     */
     protected long scheduledEndNs(Action action) {
         if (action instanceof Sequence) {
             long nestedLength = ((Sequence) action).getPlannedDurationNs();
@@ -77,6 +110,9 @@ public class Sequence extends Action {
         return action.endNs;
     }
 
+    /**
+     * Validates an action reference.
+     */
     protected final Action requireAction(Action action) {
         if (action == null) {
             throw new IllegalArgumentException(COOKED_ACTION);
@@ -84,6 +120,9 @@ public class Sequence extends Action {
         return action;
     }
 
+    /**
+     * Validates a callback reference.
+     */
     protected final CallbackInterface requireCallback(CallbackInterface callback) {
         if (callback == null) {
             throw new IllegalArgumentException(COOKED_ACTION);
@@ -91,20 +130,32 @@ public class Sequence extends Action {
         return callback;
     }
 
+    /**
+     * Expands the cached duration using the action span.
+     */
     protected void updatePlannedDuration(Action action) {
         plannedDurationNs = Math.max(plannedDurationNs, scheduledEndNs(action));
     }
 
+    /**
+     * @return total scheduled length in nanoseconds.
+     */
     public long getPlannedDurationNs() {
         return plannedDurationNs;
     }
 
+    /**
+     * Sequences stay active once their start time is reached.
+     */
     @Override
     public boolean isActive(long elapsedNs) {
         if (completed) return false;
         return elapsedNs >= startNs;
     }
 
+    /**
+     * Updates children using elapsed time relative to the sequence.
+     */
     @Override
     public void invoke(long elapsedNs) {
         if (completed) return;
@@ -136,10 +187,16 @@ public class Sequence extends Action {
         }
     }
 
+    /**
+     * Maps elapsed sequence time to child times.
+     */
     protected long mapElapsed(long sequenceElapsedNs) {
         return sequenceElapsedNs + timeShiftNs;
     }
 
+    /**
+     * Tracks completion state and allows subclasses to react.
+     */
     private boolean markActionFinished(Action action, long effectiveElapsedNs) {
         if (finishedActions.contains(action)) return false;
 
@@ -151,6 +208,9 @@ public class Sequence extends Action {
         return false;
     }
 
+    /**
+     * Determines when an action is fully done.
+     */
     protected boolean hasFinished(Action action, long effectiveElapsedNs) {
         if (action instanceof Sequence) {
             return action.completed;
@@ -158,9 +218,15 @@ public class Sequence extends Action {
         return action.completed || effectiveElapsedNs >= action.endNs;
     }
 
+    /**
+     * Optional hook invoked after a child ends.
+     */
     protected void handleActionCompletion(Action action, long effectiveElapsedNs) {
     }
 
+    /**
+     * Resets runtime state across the sequence tree.
+     */
     @Override
     public void reset() {
         super.reset();
@@ -173,6 +239,9 @@ public class Sequence extends Action {
         }
     }
 
+    /**
+     * Converts milliseconds to bounded nanoseconds.
+     */
     protected static long msToNs(long ms) {
         return Math.max(0L, ms) * 1_000_000L;
     }

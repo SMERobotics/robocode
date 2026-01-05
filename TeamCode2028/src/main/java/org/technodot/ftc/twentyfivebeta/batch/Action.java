@@ -1,5 +1,8 @@
 package org.technodot.ftc.twentyfivebeta.batch;
 
+/**
+ * Represents a single scheduled callback.
+ */
 public class Action {
 
     // relative to batch start time
@@ -9,6 +12,9 @@ public class Action {
     public final CallbackInterface callback;
     public boolean completed;
 
+    /**
+     * Creates a timed action.
+     */
     public Action(long startNs, long durationNs, CallbackInterface callback) {
         this.startNs = startNs;
         this.durationNs = durationNs;
@@ -16,6 +22,9 @@ public class Action {
         this.callback = callback;
     }
 
+    /**
+     * Creates an instantaneous action.
+     */
     public Action(long startNs, CallbackInterface callback) {
         this.startNs = startNs;
         this.durationNs = 0;
@@ -23,6 +32,9 @@ public class Action {
         this.callback = callback;
     }
 
+    /**
+     * Returns whether the action should run at the current elapsed time.
+     */
     public boolean isActive(long elapsedNs) {
         // relative to batch start time
         if (completed) return false;
@@ -30,6 +42,9 @@ public class Action {
         return elapsedNs >= startNs && elapsedNs < endNs;
     }
 
+    /**
+     * Executes the callback if active.
+     */
     public void invoke(long elapsedNs) {
         if (completed) return;
 
@@ -53,6 +68,9 @@ public class Action {
         }
     }
 
+    /**
+     * Clears completion state.
+     */
     public void reset() {
         completed = false;
     }

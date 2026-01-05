@@ -3,6 +3,9 @@ package org.technodot.ftc.twentyfivebeta.batch;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Schedules and runs Actions relative to a shared start time.
+ */
 public class Batch {
 
     public boolean running = false;
@@ -11,10 +14,16 @@ public class Batch {
 
     private final List<Action> actions = new ArrayList<>();
 
+    /**
+     * Creates an empty Batch.
+     */
     public Batch() {
 
     }
 
+    /**
+     * Adds a timed action that runs within a fixed window.
+     */
     public Batch plan(long startMs, long durationMs, CallbackInterface callback) {
         if (callback == null) {
             throw new IllegalArgumentException("action is cooked gng \uD83E\uDD40");
@@ -26,6 +35,9 @@ public class Batch {
         return this;
     }
 
+    /**
+     * Adds an instantaneous action triggered once.
+     */
     public Batch plan(long startMs, CallbackInterface callback) {
         if (callback == null) {
             throw new IllegalArgumentException("action is cooked gng \uD83E\uDD40");
@@ -36,11 +48,17 @@ public class Batch {
         return this;
     }
 
+    /**
+     * Adds a fully configured action.
+     */
     public Batch plan(Action action) {
         actions.add(action);
         return this;
     }
 
+    /**
+     * Invokes all actions that are active at the current time.
+     */
     public void run() {
         currentNs = System.nanoTime();
         if (!running) {
@@ -55,6 +73,9 @@ public class Batch {
         }
     }
 
+    /**
+     * Clears runtime state so the batch can run again.
+     */
     public void reset() {
         running = false;
         startNs = 0;
