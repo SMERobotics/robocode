@@ -4,6 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+// You thought there was something here, didn't you?
+// I wouldn't lie to you like that, would I?
+@Disabled
 @TeleOp(name="Nothing", group="TechnoCode")
 public class Nothing extends OpMode {
 

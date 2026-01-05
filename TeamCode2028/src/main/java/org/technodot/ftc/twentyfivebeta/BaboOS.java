@@ -1,6 +1,7 @@
 package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
@@ -14,8 +15,13 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import java.util.List;
+
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
+
+    // WARNING: ts could not be very fun
+    List<LynxModule> hubs;
 
     // all updates should be theoretically done in this order, based on usage
     public DeviceCamera deviceCamera;
@@ -40,6 +46,10 @@ public class BaboOS extends OpMode {
     public void init() {
         config();
         inputController = new SilentRunner101(gamepad1, gamepad2);
+
+        // WARNING: ts could not be very fun
+        hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         deviceCamera = new DeviceCamera(alliance);
         deviceIMU = new DeviceIMU(alliance);
@@ -75,6 +85,9 @@ public class BaboOS extends OpMode {
     @Override
     public void loop() {
         now = System.nanoTime(); // ts call here ideally should be the only call
+
+        // WARNING: ts could ESPECIALLY not be very fun
+        for (LynxModule hub : hubs) hub.clearBulkCache();
 
         deviceCamera.update();
         deviceIMU.update();

@@ -1,6 +1,9 @@
 package org.technodot.ftc.twentyfivebeta.batch;
 
 @FunctionalInterface
-public interface Callback {
-    void invoke();
+public interface Callback extends CallbackInterface {
+    /**
+     * Executes the callback.
+     */
+    void execute();
 }
