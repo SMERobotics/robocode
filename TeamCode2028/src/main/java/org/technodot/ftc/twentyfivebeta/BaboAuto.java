@@ -16,6 +16,8 @@ public class BaboAuto extends OpMode {
     @Override
     public void init() {
         config();
+
+        // deviceDrive.setDriveState(DeviceDrive.DriveState.AUTO);
     }
 
     @Override

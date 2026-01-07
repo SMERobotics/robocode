@@ -51,7 +51,7 @@ public class ShotSolver {
      */
     public static double projectGoal(Vector3D tagPosition, double yawDeg) {
         Vector3D goalRBE = new Vector3D(GOAL_OFFSET);
-        goalRBE.y += Math.toRadians(yawDeg); // y is bearing in (range, bearing, elevation)
+        goalRBE.y += Math.toRadians(yawDeg); // y is bearing in (range, bearing, elevation) // MIGHT BE -= INSTEAD IDK TEST!!!
         Vector3D goalXYZ = traceXYZ(goalRBE.x, goalRBE.y, goalRBE.z);
 
         return Math.toDegrees(traceRBE(new Vector3D(

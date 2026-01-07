@@ -1,5 +1,7 @@
 package org.technodot.ftc.twentyfivebeta.robocore;
 
+import android.util.Size;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -39,13 +41,16 @@ public class DeviceCamera extends Device {
         allianceTag = this.alliance == Alliance.RED ? 24 : 20;
 
         aprilTagProcessorFront = new AprilTagProcessor.Builder()
-                .setDrawAxes(true)
-                .setDrawCubeProjection(true)
-                .setDrawTagOutline(true)
+                .setDrawAxes(Configuration.DEBUG)
+                .setDrawCubeProjection(Configuration.DEBUG)
+                .setDrawTagOutline(Configuration.DEBUG)
                 .build();
 
         visionPortalFront = new VisionPortal.Builder()
                 .setCamera(hardwareMap.get(WebcamName.class, "cameraFront"))
+//                .setCameraResolution(new Size(1280, 720))
+                .setCameraResolution(new Size(640, 360))
+                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .addProcessor(aprilTagProcessorFront)
                 .build();
 

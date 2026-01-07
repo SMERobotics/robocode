@@ -6,12 +6,13 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.common.Movement;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
-import org.technodot.ftc.twentyfivebeta.common.Vector3D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.PIDController;
-import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
+
+import java.util.List;
 
 public class DeviceDrive extends Device {
 
@@ -20,12 +21,23 @@ public class DeviceDrive extends Device {
     public DcMotorEx motorBackLeft;
     public DcMotorEx motorBackRight;
 
-    private boolean aiming = false;
-    private boolean rotating = false;
-    private long lastRotateNs = 0;
-    private boolean snapped = false;
+    public DriveState driveState;
+    private DcMotorEx.RunMode runMode;
+
+    private boolean aiming;
+    private boolean rotating;
+    private long lastRotateNs;
+    private boolean snapped;
     private PIDController aimPID;
     private PIDController rotatePID;
+
+    private List<Movement> movements;
+
+    // actually i need to think about how i'm gonna build ts
+    public enum DriveState {
+        TELEOP,
+        AUTO
+    }
 
     public DeviceDrive(Alliance alliance) {
         super(alliance);
@@ -34,6 +46,7 @@ public class DeviceDrive extends Device {
     @Override
     public void init(HardwareMap hardwareMap, InputController inputController) {
         this.inputController = inputController;
+        this.driveState = DriveState.TELEOP;
 
         motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
         motorFrontRight = hardwareMap.get(DcMotorEx.class, "motorFrontRight");
@@ -65,39 +78,126 @@ public class DeviceDrive extends Device {
     @Override
     public void start() {
         resetMovement();
+        if (driveState == DriveState.TELEOP) {
+            setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        }
         lastRotateNs = System.nanoTime();
     }
 
     @Override
     public void update() {
-//        aimPID.setPID(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
-//        rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
+        switch (driveState) {
+            case TELEOP:
+//                aimPID.setPID(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
+//                rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
 
-        SilentRunner101 ctrl = (SilentRunner101) inputController;
-        double rotate = ctrl.driveRotate();
+                SilentRunner101 ctrl = (SilentRunner101) inputController;
+                double rotate = ctrl.driveRotate();
 
-        if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
-        if (rotate != 0) aiming = false; // rotation can ONLY override
+                if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
+                if (rotate != 0) aiming = false; // rotation can ONLY override
 
-        rotating = rotate != 0;
-        long nowish = System.nanoTime();
-        if (rotating) { // we need to take another snapshot
-            lastRotateNs = nowish;
-            snapped = false;
-        } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
-            DeviceIMU.setSnapshotYaw();
-            snapped = true;
+                rotating = rotate != 0;
+                long nowish = System.nanoTime();
+                if (rotating) { // we need to take another snapshot
+                    lastRotateNs = nowish;
+                    snapped = false;
+                } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
+                    DeviceIMU.setSnapshotYaw();
+                    snapped = true;
+                }
+
+                if (aiming) {
+                    rotate = calculateAim();
+                } else {
+                    if (aimPID != null) aimPID.reset();
+                    if (!rotating) { // if we're tryna stay still, we stay the fuck still
+                        rotate = rotatePID.calculate(DeviceIMU.getSnapshotYawError(), DeviceIMU.timeNs / 1_000_000_000.0);
+                    }
+                }
+                this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
+                break;
+            case AUTO:
+                if (aiming) {
+                    setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+                    this.update(0, 0, calculateAim());
+                    aiming = false;
+                } else {
+                    // tell ts sdk that we wanna run to position
+                    setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
+                    // sum all the queued requests
+                    double totalForward = 0;
+                    double totalStrafe = 0;
+                    double totalRotate = 0;
+
+                    for (Movement mvmt : movements) {
+                        totalForward += mvmt.forward;
+                        totalStrafe += mvmt.strafe;
+                        totalRotate += mvmt.rotate;
+                    }
+
+                    // translate feet & degrees into encoder ticks
+                    int encoderForward = (int) (totalForward * Configuration.DRIVE_MOTOR_FORWARD_TILE_TICKS / 2);
+                    int encoderStrafe = (int) (totalStrafe * Configuration.DRIVE_MOTOR_STRAFE_TILE_TICKS / 2);
+                    int encoderRotate = (int) (totalRotate * Configuration.DRIVE_MOTOR_ROTATE_CIRCLE_TICKS / 360);
+
+                    // calculate target positions for each motor
+                    int flIncrement = encoderForward + encoderStrafe + encoderRotate;
+                    int frIncrement = encoderForward - encoderStrafe - encoderRotate;
+                    int blIncrement = encoderForward - encoderStrafe + encoderRotate;
+                    int brIncrement = encoderForward + encoderStrafe - encoderRotate;
+
+                    int flTarget = motorFrontLeft.getTargetPosition() + flIncrement;
+                    int frTarget = motorFrontRight.getTargetPosition() + frIncrement;
+                    int blTarget = motorBackLeft.getTargetPosition() + blIncrement;
+                    int brTarget = motorBackRight.getTargetPosition() + brIncrement;
+
+                    // get current positions
+                    int flCurrent = motorFrontLeft.getCurrentPosition();
+                    int frCurrent = motorFrontRight.getCurrentPosition();
+                    int blCurrent = motorBackLeft.getCurrentPosition();
+                    int brCurrent = motorBackRight.getCurrentPosition();
+
+                    // calculate distance each motor needs to travel
+                    double flDistance = Math.abs(flTarget - flCurrent);
+                    double frDistance = Math.abs(frTarget - frCurrent);
+                    double blDistance = Math.abs(blTarget - blCurrent);
+                    double brDistance = Math.abs(brTarget - brCurrent);
+
+                    // find the max dist to normalize velocities
+                    double maxDistance = Math.max(flDistance, Math.max(frDistance, Math.max(blDistance, brDistance)));
+
+                    // calculate normalized velocities (proportional to distance, capped at max velocity)
+                    double flVelocity = 0;
+                    double frVelocity = 0;
+                    double blVelocity = 0;
+                    double brVelocity = 0;
+
+                    if (maxDistance > 0) {
+                        flVelocity = (flDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+                        frVelocity = (frDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+                        blVelocity = (blDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+                        brVelocity = (brDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+                    }
+
+                    // Set target positions
+                    motorFrontLeft.setTargetPosition(flTarget);
+                    motorFrontRight.setTargetPosition(frTarget);
+                    motorBackLeft.setTargetPosition(blTarget);
+                    motorBackRight.setTargetPosition(brTarget);
+
+                    // Set motor velocities
+                    motorFrontLeft.setVelocity(flVelocity);
+                    motorFrontRight.setVelocity(frVelocity);
+                    motorBackLeft.setVelocity(blVelocity);
+                    motorBackRight.setVelocity(brVelocity);
+
+                    movements.clear();
+                }
+
+                break;
         }
-
-        if (aiming) {
-            rotate = calculateAim();
-        } else {
-            if (aimPID != null) aimPID.reset();
-            if (!rotating) { // if we're tryna stay still, we stay the fuck still
-                rotate = rotatePID.calculate(DeviceIMU.getSnapshotYawError(), DeviceIMU.timeNs / 1_000_000_000.0);
-            }
-        }
-        this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
     }
 
     @Override
@@ -168,30 +268,99 @@ public class DeviceDrive extends Device {
         }
     }
 
+    /**
+     * Stage an aim command to be processed in next ts update cycle.
+     */
+    public void stageAim() {
+        aiming = true;
+    }
+
+    /**
+     * Stage a movement command to be processed in next ts update cycle.
+     * @param forward robot-centric forward, in feet
+     * @param strafe robot-centric strafe, in feet
+     * @param rotate robot-centric rotate, in degrees
+     */
+    public void addMovement(double forward, double strafe, double rotate) {
+        movements.add(new Movement(forward, strafe, rotate));
+    }
+
+    /**
+     * Stage a movement command to be processed in next ts update cycle.
+     * @param movement The movement to add.
+     */
+    public void addMovement(Movement movement) {
+        movements.add(movement);
+    }
+
+    /**
+     * Reset all movement commands and encoder targets.
+     */
     public void resetMovement() {
         // Switch to RUN_WITHOUT_ENCODER to disable REV Control Hub PID
-        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Reset encoder positions to 0 for clean autonomous start
-        motorFrontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorFrontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorBackLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorBackRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+//        motorFrontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+//        motorFrontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+//        motorBackLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+//        motorBackRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        setRunMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
         // Switch back to RUN_WITHOUT_ENCODER (resetting clears the mode)
-        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorFrontLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorFrontRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorBackLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Reset target positions to 0
-        motorFrontLeft.setTargetPosition(0);
-        motorFrontRight.setTargetPosition(0);
-        motorBackLeft.setTargetPosition(0);
-        motorBackRight.setTargetPosition(0);
+//        motorFrontLeft.setTargetPosition(0);
+//        motorFrontRight.setTargetPosition(0);
+//        motorBackLeft.setTargetPosition(0);
+//        motorBackRight.setTargetPosition(0);
+
+        movements.clear();
+    }
+
+    /**
+     * Set the drive state (TELEOP or AUTO). Changes will take effect next update cycle.
+     * @param state The DriveState to set.
+     */
+    public void setDriveState(DriveState state) {
+        this.driveState = state;
+    }
+
+    /**
+     * Check if any drive motors are busy (AUTO mode only).
+     * @return If any drive motors are busy.
+     */
+    public boolean isBusy() {
+        return motorFrontLeft.isBusy() || motorFrontRight.isBusy() || motorBackLeft.isBusy() || motorBackRight.isBusy();
+    }
+
+    /**
+     * Check if the drive is ready for next command (AUTO mode only).
+     * @return If the drive is ready.
+     */
+    public boolean isReady() {
+        return !isBusy();
+    }
+
+    /**
+     * Set the run mode for all drive motors.
+     * @param mode The DcMotorEx.RunMode to set.
+     */
+    private void setRunMode(DcMotorEx.RunMode mode) {
+        if (this.runMode == mode) return;
+        this.runMode = mode;
+        motorFrontLeft.setMode(mode);
+        motorFrontRight.setMode(mode);
+        motorBackLeft.setMode(mode);
+        motorBackRight.setMode(mode);
     }
 
     private double scaleInput(double value) {

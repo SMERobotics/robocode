@@ -7,13 +7,17 @@ public class Configuration {
     public static volatile boolean DEBUG = true; // all targets override debug to false (should)
 
     public static volatile double DRIVE_CONTROLLER_DEADZONE = 0.02;
+    public static volatile int DRIVE_MOTOR_FORWARD_TILE_TICKS = 0; // TEMP
+    public static volatile int DRIVE_MOTOR_STRAFE_TILE_TICKS = 0; // TEMP
+    public static volatile int DRIVE_MOTOR_ROTATE_CIRCLE_TICKS = 0; // TEMP
+    public static volatile double DRIVE_AUTO_MAX_VELOCITY = 670;
     public static volatile double DRIVE_MOTOR_ACTIVATION = 0.2;
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
     public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
     public static volatile double DRIVE_AIM_KP = 0.0267;
-    public static volatile double DRIVE_AIM_KD = 0.0;
     public static volatile double DRIVE_AIM_KI = 0.0;
+    public static volatile double DRIVE_AIM_KD = 0.0;
 //    public static volatile double DRIVE_AIM_KD = 0.000067;
     public static volatile double DRIVE_AIM_TOLERANCE = 1.0;
     public static volatile double DRIVE_ROTATE_KP = 0.03;
@@ -45,7 +49,13 @@ public class Configuration {
     public static volatile double EXTAKE_MOTOR_SPEED_TOLERANCE = 20;
     public static volatile double EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD = 60;
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
-    public static volatile int EXTAKE_STABILIZATION_CYCLES = 0; // TODO: test zero because human and intake latency should be enough time
+    public static volatile int EXTAKE_STABILIZATION_CYCLES = 1; // TODO: test zero because human and intake latency should be enough time
+    // y (ticks/sec) = 340.130269893 x (m/sec) - 783.609122293 @ r = 0.9969, R^2 = 0.9937
+    public static volatile double EXTAKE_MODEL_VELOCITY_M = 340.130269893;
+    public static volatile double EXTAKE_MODEL_VELOCITY_B = -783.609122293;
+    // y (deg) = -9.04083 x (m/sec) + 109.38517 @ r = -0.9975, R^2 = 0.9950
+    public static volatile double EXTAKE_MODEL_ANGLE_M = -9.04083;
+    public static volatile double EXTAKE_MODEL_ANGLE_B = 109.38517;
 
     public static volatile int GAMEPAD_RUMBLE_DURATION_MS = 200; // rev ps4 gamepad is the worst gamepad ever, negative build quality, need the dualshock 5
 }
