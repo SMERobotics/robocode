@@ -37,7 +37,7 @@ public class BALLAUTO extends LinearOpMode {
         if (opModeIsActive()) {
             while (opModeIsActive()) {
                 left.setPower(-1);
-                right.setPower((1 / 1.2773475));
+                right.setPower(1);
                 sleep(1600);
                 left.setPower(0);
                 right.setPower(0);
