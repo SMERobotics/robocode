@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "Straight?3BasicAuto")
+@Autonomous(name = "Straight3BasicAuto")
 public class BALLAUTO extends LinearOpMode {
 
     private DcMotor left;
