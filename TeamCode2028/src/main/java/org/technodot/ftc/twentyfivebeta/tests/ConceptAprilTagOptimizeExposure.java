@@ -31,6 +31,7 @@ package org.technodot.ftc.twentyfivebeta.tests;
 
 import android.util.Size;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -66,7 +67,7 @@ import java.util.concurrent.TimeUnit;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
 
-//@Disabled
+@Disabled
 @TeleOp(name="Optimize AprilTag Exposure", group = "Concept")
 public class ConceptAprilTagOptimizeExposure extends LinearOpMode
 {
@@ -166,10 +167,12 @@ public class ConceptAprilTagOptimizeExposure extends LinearOpMode
         // Create the WEBCAM vision portal by using a builder.
         visionPortal = new VisionPortal.Builder()
                 .setCamera(hardwareMap.get(WebcamName.class, "cameraFront"))
-                .setCameraResolution(new Size(1280, 720))
+                .setCameraResolution(new Size(640, 360))
                 .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .addProcessor(aprilTag)
                 .build();
+
+        FtcDashboard.getInstance().startCameraStream(visionPortal, 0);
     }
 
     /*

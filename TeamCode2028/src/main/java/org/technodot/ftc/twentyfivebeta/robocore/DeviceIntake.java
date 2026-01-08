@@ -29,7 +29,7 @@ public class DeviceIntake extends Device {
     public RevColorSensorV3 colorRight1;
     public RevColorSensorV3 colorRight2;
 
-    public IntakeState intakeState = IntakeState.IDLE;
+    public static IntakeState intakeState = IntakeState.IDLE;
     public double intakeOverride;
     public double statusTelem; // just a graphable number for telemetry and timing purposes;
 
@@ -306,7 +306,7 @@ public class DeviceIntake extends Device {
             IntakeSide nextSide = sideDeque.peek();
             if (nextSide == IntakeSide.LEFT && System.currentTimeMillis() >= nextOptimizedTransfer) {
                 sideDeque.poll();
-                nextOptimizedTransfer = System.currentTimeMillis() + Configuration.INTAKE_SERVO_DELAY_MS;
+                nextOptimizedTransfer = System.currentTimeMillis() + (DeviceExtake.extakeState == DeviceExtake.ExtakeState.SHORT ? Configuration.INTAKE_SERVO_SHORT_DELAY_MS : Configuration.INTAKE_SERVO_LONG_DELAY_MS);
                 return true;
             }
         }
@@ -325,7 +325,7 @@ public class DeviceIntake extends Device {
             IntakeSide nextSide = sideDeque.peek();
             if (nextSide == IntakeSide.RIGHT && System.currentTimeMillis() >= nextOptimizedTransfer) {
                 sideDeque.poll();
-                nextOptimizedTransfer = System.currentTimeMillis() + Configuration.INTAKE_SERVO_DELAY_MS;
+                nextOptimizedTransfer = System.currentTimeMillis() + (DeviceExtake.extakeState == DeviceExtake.ExtakeState.SHORT ? Configuration.INTAKE_SERVO_SHORT_DELAY_MS : Configuration.INTAKE_SERVO_LONG_DELAY_MS);
                 return true;
             }
         }
@@ -342,7 +342,7 @@ public class DeviceIntake extends Device {
     }
 
     public static boolean isArtifactLeft(double cm1, double cm2) {
-        return (cm1 <= 3.9) && (cm2 <= 7.5);
+        return (cm1 <= 3.9) && (cm2 <= 7.5); // LEFT SENSOR TWITCHING, RETUNE
     }
 
     public static boolean isArtifactRight(double cm1, double cm2) {

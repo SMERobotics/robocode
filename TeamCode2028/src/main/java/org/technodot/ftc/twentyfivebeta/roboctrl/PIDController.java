@@ -2,6 +2,10 @@ package org.technodot.ftc.twentyfivebeta.roboctrl;
 
 import com.qualcomm.robotcore.util.Range;
 
+/**
+ * Legacy PIDController implementation. Will be phased out eventually (when i get off my ass)
+ */
+@Deprecated
 public class PIDController {
     private double kP;  // Proportional gain
     private double kI;  // Integral gain

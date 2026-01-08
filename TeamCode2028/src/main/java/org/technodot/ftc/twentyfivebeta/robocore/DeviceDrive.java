@@ -2,6 +2,7 @@ package org.technodot.ftc.twentyfivebeta.robocore;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
@@ -9,10 +10,10 @@ import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Movement;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
-import org.technodot.ftc.twentyfivebeta.roboctrl.PIDController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.PIDFController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
-import java.util.List;
+import java.util.ArrayList;
 
 public class DeviceDrive extends Device {
 
@@ -21,17 +22,18 @@ public class DeviceDrive extends Device {
     public DcMotorEx motorBackLeft;
     public DcMotorEx motorBackRight;
 
-    public DriveState driveState;
+    public static DriveState driveState;
     private DcMotorEx.RunMode runMode;
 
     private boolean aiming;
     private boolean rotating;
     private long lastRotateNs;
     private boolean snapped;
-    private PIDController aimPID;
-    private PIDController rotatePID;
 
-    private List<Movement> movements;
+    private PIDFController aimPID;
+    private PIDFController rotatePID;
+
+    private ArrayList<Movement> movements = new ArrayList<>();
 
     // actually i need to think about how i'm gonna build ts
     public enum DriveState {
@@ -64,15 +66,13 @@ public class DeviceDrive extends Device {
         motorBackLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         motorBackRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        aimPID = new PIDController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
-        aimPID.setSetpoint(0.0);
-        aimPID.setOutputLimits(-1.0, 1.0);
-        aimPID.setIntegralLimits(-1.0, 1.0);
+        aimPID = new PIDFController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+        aimPID.setSetPoint(0.0);
+        aimPID.setIntegrationBounds(-1.0, 1.0);
 
-        rotatePID = new PIDController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
-        rotatePID.setSetpoint(0.0);
-        rotatePID.setOutputLimits(-1.0, 1.0);
-        rotatePID.setIntegralLimits(-1.0, 1.0);
+        rotatePID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
+        rotatePID.setSetPoint(0.0);
+        rotatePID.setIntegrationBounds(-1.0, 1.0);
     }
 
     @Override
@@ -88,8 +88,8 @@ public class DeviceDrive extends Device {
     public void update() {
         switch (driveState) {
             case TELEOP:
-//                aimPID.setPID(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD);
-//                rotatePID.setPID(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD);
+                aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+                rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
                 SilentRunner101 ctrl = (SilentRunner101) inputController;
                 double rotate = ctrl.driveRotate();
@@ -112,7 +112,7 @@ public class DeviceDrive extends Device {
                 } else {
                     if (aimPID != null) aimPID.reset();
                     if (!rotating) { // if we're tryna stay still, we stay the fuck still
-                        rotate = rotatePID.calculate(DeviceIMU.getSnapshotYawError(), DeviceIMU.timeNs / 1_000_000_000.0);
+                        rotate = Range.clip(rotatePID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
                     }
                 }
                 this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
@@ -251,7 +251,7 @@ public class DeviceDrive extends Device {
         AprilTagDetection tag = DeviceCamera.goalTagDetection;
 
         if (tag != null && tag.ftcPose != null) {
-            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? 3.0 : -3.0);
+            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? 2.0 : -2.0);
 //            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
 //            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
@@ -261,7 +261,7 @@ public class DeviceDrive extends Device {
 //                return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
 //            }
 
-            return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
+            return Range.clip(aimPID.calculate(bearing), -1.0, 1.0);
         } else {
 //            if (aimPID != null) aimPID.reset();
             return 0.0;

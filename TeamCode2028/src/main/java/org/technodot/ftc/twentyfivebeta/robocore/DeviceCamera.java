@@ -5,6 +5,8 @@ import android.util.Size;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Obelisk;
@@ -17,6 +19,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class DeviceCamera extends Device {
 
@@ -29,6 +32,7 @@ public class DeviceCamera extends Device {
     public static Optional<Double> fieldOffset;
 
     public int allianceTag;
+    public boolean configured;
 
     public final double GOAL_DEG = Math.atan(4/3);
 
@@ -49,8 +53,10 @@ public class DeviceCamera extends Device {
         visionPortalFront = new VisionPortal.Builder()
                 .setCamera(hardwareMap.get(WebcamName.class, "cameraFront"))
 //                .setCameraResolution(new Size(1280, 720))
-                .setCameraResolution(new Size(640, 360))
-                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+//                .setCameraResolution(new Size(640, 360))
+                .setCameraResolution(new Size(800, 448))
+                .setStreamFormat(VisionPortal.StreamFormat.YUY2)
+//                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .addProcessor(aprilTagProcessorFront)
                 .build();
 
@@ -59,11 +65,13 @@ public class DeviceCamera extends Device {
 
     @Override
     public void start() {
-
+        configured = false;
     }
 
     @Override
     public void update() {
+        configureCamera();
+
         goalTagDetection = null;
         if (aprilTagProcessorFront != null) {
             List<AprilTagDetection> frontDetections = aprilTagProcessorFront.getDetections();
@@ -107,5 +115,19 @@ public class DeviceCamera extends Device {
 
     public AprilTagDetection getGoalDetection() {
         return goalTagDetection;
+    }
+
+    private void configureCamera() {
+        if (configured || visionPortalFront.getCameraState() != VisionPortal.CameraState.STREAMING || visionPortalFront == null) return;
+
+        ExposureControl exposureControl = visionPortalFront.getCameraControl(ExposureControl.class);
+        if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
+            exposureControl.setMode(ExposureControl.Mode.Manual);
+        }
+        exposureControl.setExposure(1L, TimeUnit.MILLISECONDS);
+        GainControl gainControl = visionPortalFront.getCameraControl(GainControl.class);
+        gainControl.setGain(255);
+
+        configured = true;
     }
 }

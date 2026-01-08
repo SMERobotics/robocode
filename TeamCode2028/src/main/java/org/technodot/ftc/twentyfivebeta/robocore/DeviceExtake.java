@@ -17,7 +17,7 @@ public class DeviceExtake extends Device {
     boolean prevExtakeClose;
     boolean prevExtakeFar;
 
-    public ExtakeState extakeState = ExtakeState.IDLE;
+    public static ExtakeState extakeState = ExtakeState.IDLE;
     public double targetVelocity; // current vel setpoint
     public double extakeOverride;
     public static int stabilizationCycles;
