@@ -34,7 +34,7 @@ public class DeviceCamera extends Device {
     public int allianceTag;
     public boolean configured;
 
-    public final double GOAL_DEG = Math.atan(4/3);
+    public static final double GOAL_DEG = Math.toDegrees(Math.atan((double) 4 / 3));
 
     public DeviceCamera(Alliance alliance) {
         super(alliance);

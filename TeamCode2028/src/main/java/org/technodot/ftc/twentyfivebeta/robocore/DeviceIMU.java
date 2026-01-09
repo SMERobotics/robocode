@@ -26,6 +26,8 @@ public class DeviceIMU extends Device {
     public static double targetYaw;
     public static double timeNs;
 
+    public static final double GOAL_DEG = Math.toDegrees(Math.atan((double) 4 / 3));
+
     public DeviceIMU(Alliance alliance) {
         super(alliance);
     }
@@ -43,6 +45,7 @@ public class DeviceIMU extends Device {
 
     @Override
     public void start() {
+        headingOffset = 0;
         DeviceIMU.setSnapshotYaw();
     }
 
@@ -51,7 +54,7 @@ public class DeviceIMU extends Device {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
         if (ctrl.resetYaw()) zeroYaw();
 //        yaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        yaw = rev.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        yaw = rev.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + headingOffset; // previously was -, does ts cause problems?
         timeNs = System.nanoTime();
 //        updateHeadingOffset();
     }
@@ -81,6 +84,7 @@ public class DeviceIMU extends Device {
     public void zeroYaw() {
 //        imu.resetYaw();
         targetYaw -= rev.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        headingOffset = 0;
         rev.resetYaw();
     }
 

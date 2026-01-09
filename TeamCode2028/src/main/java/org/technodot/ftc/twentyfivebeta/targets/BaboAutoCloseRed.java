@@ -6,11 +6,12 @@ import org.technodot.ftc.twentyfivebeta.BaboAuto;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 
-@Autonomous(name="BaboAuto/BLUE", group="_")
-public class BaboAutoBlue extends BaboAuto {
+@Autonomous(name="BaboAuto/CLOSE/RED", group="_")
+public class BaboAutoCloseRed extends BaboAuto {
     @Override
     public void config() {
-        alliance = Alliance.BLUE;
+        alliance = Alliance.RED;
+        autoType = AutoType.CLOSE;
         Configuration.DEBUG = false;
     }
 }

@@ -88,6 +88,7 @@ public class DeviceDrive extends Device {
     public void update() {
         switch (driveState) {
             case TELEOP:
+                // uncommented for testing purposes only
                 aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
                 rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
@@ -339,6 +340,7 @@ public class DeviceDrive extends Device {
      * @return If any drive motors are busy.
      */
     public boolean isBusy() {
+        if (aiming) return DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) >= Configuration.DRIVE_AIM_TOLERANCE;
         return motorFrontLeft.isBusy() || motorFrontRight.isBusy() || motorBackLeft.isBusy() || motorBackRight.isBusy();
     }
 

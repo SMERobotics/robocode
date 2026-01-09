@@ -48,7 +48,6 @@ public class BaboOS extends OpMode {
         inputController = new SilentRunner101(gamepad1, gamepad2);
 
         // WARNING: ts could not be very fun
-        // especially in auto, bulk reading could result in poorer quality data
         hubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : hubs) hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 

@@ -41,6 +41,7 @@ public class DeviceIntake extends Device {
     private long rightActivationTime;
 
     private boolean sequenceTriggered;
+    private boolean sequenceOverride;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
 
@@ -158,7 +159,7 @@ public class DeviceIntake extends Device {
 
         // intake servo ctrl (L & R)
 
-        if (ctrl.sequenceShoot() && !sequenceTriggered) {
+        if ((ctrl.sequenceShoot() || sequenceOverride) && !sequenceTriggered) {
             boolean hasLeft = leftArtifact != Artifact.NONE;
             boolean hasRight = rightArtifact != Artifact.NONE;
             
@@ -176,6 +177,7 @@ public class DeviceIntake extends Device {
             }
             // If neither artifact is present, don't push anything
 
+            sequenceOverride = false;
             nextOptimizedTransfer = System.currentTimeMillis();
             sequenceTriggered = true;
         } else if (!ctrl.sequenceShoot()) {
@@ -228,6 +230,25 @@ public class DeviceIntake extends Device {
     @Override
     public void stop() {
         stopColorSensorThread();
+    }
+
+    public void triggerSequenceShoot() {
+        sequenceOverride = true;
+    }
+
+    public int getArtifactCount() {
+        int count = 0;
+        if (leftArtifact != Artifact.NONE) count++;
+        if (rightArtifact != Artifact.NONE) count++;
+        return count;
+    }
+
+    public boolean isEmpty() {
+        return leftArtifact == Artifact.NONE && rightArtifact == Artifact.NONE;
+    }
+
+    public boolean isFull() {
+        return leftArtifact != Artifact.NONE && rightArtifact != Artifact.NONE;
     }
 
     public void updateColorSensors() {
