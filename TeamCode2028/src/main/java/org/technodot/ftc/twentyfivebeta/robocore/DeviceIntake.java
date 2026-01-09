@@ -342,7 +342,7 @@ public class DeviceIntake extends Device {
     }
 
     public static boolean isArtifactLeft(double cm1, double cm2) {
-        return (cm1 <= 3.9) && (cm2 <= 7.5); // LEFT SENSOR TWITCHING, RETUNE
+        return (cm1 <= 3.9) && (cm2 <= 7.5); // TODO: LEFT SENSOR TWITCHING, RETUNE
     }
 
     public static boolean isArtifactRight(double cm1, double cm2) {
@@ -350,8 +350,10 @@ public class DeviceIntake extends Device {
     }
 
     public static Artifact getArtifactColor(NormalizedRGBA color) {
+        // TODO: rewrite to use hue instead of generic RGB comparisons
         if (!(color.red >= 0.002 || color.green >= 0.002 || color.blue >= 0.002)) return Artifact.NONE;
         if (color.blue >= color.green) return Artifact.PURPLE;
+        if (color.red > color.green) return Artifact.NONE; // orange ramp should trigger this, TEST!!!
         if (color.blue < color.green) return Artifact.GREEN;
         return Artifact.NONE;
     }

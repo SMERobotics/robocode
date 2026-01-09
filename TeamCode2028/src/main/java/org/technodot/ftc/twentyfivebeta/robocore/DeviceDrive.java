@@ -68,7 +68,7 @@ public class DeviceDrive extends Device {
 
         aimPID = new PIDFController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
         aimPID.setSetPoint(0.0);
-        aimPID.setIntegrationBounds(-1.0, 1.0);
+        aimPID.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
 
         rotatePID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
         rotatePID.setSetPoint(0.0);
@@ -251,7 +251,7 @@ public class DeviceDrive extends Device {
         AprilTagDetection tag = DeviceCamera.goalTagDetection;
 
         if (tag != null && tag.ftcPose != null) {
-            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? 2.0 : -2.0);
+            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET);
 //            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
 //            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
