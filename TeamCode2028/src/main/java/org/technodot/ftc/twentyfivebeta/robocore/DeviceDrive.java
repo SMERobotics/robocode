@@ -124,9 +124,6 @@ public class DeviceDrive extends Device {
                     this.update(0, 0, calculateAim());
                     aiming = false;
                 } else {
-                    // tell ts sdk that we wanna run to position
-                    setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-
                     // sum all the queued requests
                     double totalForward = 0;
                     double totalStrafe = 0;
@@ -193,6 +190,9 @@ public class DeviceDrive extends Device {
                     motorFrontRight.setVelocity(frVelocity);
                     motorBackLeft.setVelocity(blVelocity);
                     motorBackRight.setVelocity(brVelocity);
+
+                    // tell ts sdk that we wanna run to position
+                    setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
                     movements.clear();
                 }
@@ -340,7 +340,7 @@ public class DeviceDrive extends Device {
      * @return If any drive motors are busy.
      */
     public boolean isBusy() {
-        if (aiming) return DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) >= Configuration.DRIVE_AIM_TOLERANCE;
+        if (aiming && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) return DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) >= Configuration.DRIVE_AIM_TOLERANCE;
         return motorFrontLeft.isBusy() || motorFrontRight.isBusy() || motorBackLeft.isBusy() || motorBackRight.isBusy();
     }
 

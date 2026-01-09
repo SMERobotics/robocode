@@ -59,9 +59,7 @@ public class BaboAuto extends OpMode {
         switch (autoType) {
             case CLOSE:
                 runtime.plan(new ContiguousSequence()
-                        .then((Callback) () -> {
-                            deviceDrive.addMovement(-3.8, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG));
-                        })
+                        .then((Callback) () -> deviceDrive.addMovement(-3.8, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG)))
                         .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
 
                         .then((Callback) () -> {
@@ -149,6 +147,7 @@ public class BaboAuto extends OpMode {
         // recalibrate IMU heading
         double headingOffset = 0;
         switch (autoType) {
+            //  only one is correct, test to find what sign is correct for blue!
             case CLOSE:
                 headingOffset = alliance.apply(90 - DeviceIMU.GOAL_DEG);
                 break;
@@ -183,20 +182,17 @@ public class BaboAuto extends OpMode {
 
         if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("b=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
-//        telemetry.addData("heading_offset", deviceIMU.getHeadingOffset());
         telemetry.addData("h", DeviceIMU.yaw);
 
         t.addData("ext_vel", deviceExtake.targetVelocity);
-//        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pos", deviceExtake.motorExtakeLeft.getCurrentPosition());
-//        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pos", deviceExtake.motorExtakeRight.getCurrentPosition());
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());
-        if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel", deviceExtake.motorExtakeRight.getVelocity());
-//        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pwr", deviceExtake.motorExtakeLeft.getPower());
-//        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pwr", deviceExtake.motorExtakeRight.getPower());
+        if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel" , deviceExtake.motorExtakeRight.getVelocity());
         t.addData("int_srv" , deviceIntake.statusTelem); // intake servo status, displayed for timing purposes
 
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
         telemetry.addData("cr_a", deviceIntake.rightArtifact);
+
+        if (DeviceCamera.goalTagDetection != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
 
         t.addData("t", (now - last) / 1e6);
         telemetry.addData("t", (now - last) / 1e6);

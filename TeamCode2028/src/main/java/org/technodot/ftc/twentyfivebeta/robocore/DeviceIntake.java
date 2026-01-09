@@ -1,5 +1,6 @@
 package org.technodot.ftc.twentyfivebeta.robocore;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -363,11 +364,13 @@ public class DeviceIntake extends Device {
     }
 
     public static boolean isArtifactLeft(double cm1, double cm2) {
-        return (cm1 <= 3.9) && (cm2 <= 7.5); // TODO: LEFT SENSOR TWITCHING, RETUNE
+        return (cm1 <= 3.9) && (cm2 <= 7.5);
     }
 
     public static boolean isArtifactRight(double cm1, double cm2) {
-        return (cm1 <= 6.5) || (cm2 <= 3.1);
+        FtcDashboard.getInstance().getTelemetry().addData("r_cm1", cm1);
+        FtcDashboard.getInstance().getTelemetry().addData("r_cm2", cm2);
+        return (cm1 <= 6.5) || (cm2 <= 3.1); // it was actually the right servo mb
     }
 
     public static Artifact getArtifactColor(NormalizedRGBA color) {
