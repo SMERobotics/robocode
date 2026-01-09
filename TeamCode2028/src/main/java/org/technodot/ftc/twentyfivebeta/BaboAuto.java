@@ -78,7 +78,7 @@ public class BaboAuto extends OpMode {
                             deviceDrive.stageAim();
                             return deviceDrive.isReady();
                         })
-                        .then((InterruptibleCallback) () -> deviceExtake.isReady())
+                        .then(X, (InterruptibleCallback) () -> deviceExtake.isReady())
 
                         // DOES NOT UTILIZE OBELISK & COLOR SENSOR YET, ONLY SHOOTS 2
                         // TODO: dynamically reconfigure shots based on obelisk
