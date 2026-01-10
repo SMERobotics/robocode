@@ -15,10 +15,10 @@ public class Configuration {
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
     public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
-    public static volatile double DRIVE_AIM_OFFSET = 2.0; // degrees, blue goal to the left, red goal to the right.
-    public static volatile double DRIVE_AIM_KP = 0.0267; // prev 0.0267
-    public static volatile double DRIVE_AIM_KI = 0.067;
-    public static volatile double DRIVE_AIM_KD = 0.0;
+    public static volatile double DRIVE_AIM_OFFSET = 3.0; // degrees, blue goal to the left, red goal to the right.
+    public static volatile double DRIVE_AIM_KP = 0.03; // prev 0.0267
+    public static volatile double DRIVE_AIM_KI = 0.15;
+    public static volatile double DRIVE_AIM_KD = 0.002;
     public static volatile double DRIVE_AIM_KF = 0.0;
     public static volatile double DRIVE_AIM_INTEGRATION_BOUNDS = 1.0;
 //    public static volatile double DRIVE_AIM_KD = 0.000067;
@@ -32,23 +32,24 @@ public class Configuration {
 
     public static volatile double INTAKE_MOTOR_NUDGE_POWER = 0.67;
     public static volatile int INTAKE_MOTOR_NUDGE_TICKS = 300;
-    public static volatile double INTAKE_LEFT_ACTIVATION = 0.46;
-    public static volatile double INTAKE_LEFT_HOLD = 0.30;
-    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.24;
+    public static volatile double INTAKE_LEFT_ACTIVATION = 0.33;
+    public static volatile double INTAKE_LEFT_HOLD = 0.17;
+    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.11;
     public static volatile double INTAKE_RIGHT_ACTIVATION = 0.50;
     public static volatile double INTAKE_RIGHT_HOLD = 0.66;
     public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.72;
     public static volatile long INTAKE_SERVO_INTERVAL_MS = 200;
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 500;
-    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
+//    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
+    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 800;
 
     public static volatile double EXTAKE_MOTOR_KP = 300.0;
     public static volatile double EXTAKE_MOTOR_KI = 0.0;
     public static volatile double EXTAKE_MOTOR_KD = 1.0; // TODO: *maybe* increase?
     public static volatile double EXTAKE_MOTOR_KF = 17.767;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200; // TODO: adjust
-    public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1460; // TODO: adjust
+    public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1540; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_TOLERANCE = 20;
     public static volatile double EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD = 60;
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
@@ -61,4 +62,7 @@ public class Configuration {
     public static volatile double EXTAKE_MODEL_ANGLE_B = 109.38517;
 
     public static volatile int GAMEPAD_RUMBLE_DURATION_MS = 200; // rev ps4 gamepad is the worst gamepad ever, negative build quality, need the dualshock 5
+    public static volatile int GAMEPAD_RUMBLE_STRONG_MS = 500;
+    public static volatile int GAMEPAD_RUMBLE_WEAK_MS = 100;
+    public static volatile int GAMEPAD_RUMBLE_FINALE_MS = 6767;
 }

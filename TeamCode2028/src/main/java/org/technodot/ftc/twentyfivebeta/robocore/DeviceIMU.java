@@ -45,7 +45,7 @@ public class DeviceIMU extends Device {
 
     @Override
     public void start() {
-        headingOffset = 0;
+//        headingOffset = 0;
         DeviceIMU.setSnapshotYaw();
     }
 

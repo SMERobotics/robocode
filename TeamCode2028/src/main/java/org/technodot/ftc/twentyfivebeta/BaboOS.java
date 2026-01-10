@@ -36,8 +36,12 @@ public class BaboOS extends OpMode {
 
     public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
+    public static long begin;
     public static long now;
     public static long last;
+
+    // Endgame vibration state machine
+    private int lastVibrationSecond = -1;
 
     protected void config() {
     }
@@ -78,6 +82,8 @@ public class BaboOS extends OpMode {
         deviceExtake.start();
         deviceIntake.start();
 
+        begin = System.nanoTime();
+
         telemetry.addData("status", "starting");
         telemetry.update();
     }
@@ -111,6 +117,24 @@ public class BaboOS extends OpMode {
 
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
         telemetry.addData("cr_a", deviceIntake.rightArtifact);
+        
+        // Time-based vibration reminders for endgame (only when not in DEBUG mode)
+        if (!Configuration.DEBUG && inputController instanceof SilentRunner101) {
+            SilentRunner101 controller = (SilentRunner101) inputController;
+            int elapsedSeconds = (int) ((now - begin) / 1_000_000_000L);
+
+            if (elapsedSeconds >= 100 && elapsedSeconds <= 120 && elapsedSeconds != lastVibrationSecond) {
+                lastVibrationSecond = elapsedSeconds;
+
+                if (elapsedSeconds == 100 || elapsedSeconds == 110 || elapsedSeconds == 115) {
+                    controller.vibrateEndgame();
+                } else if (elapsedSeconds == 120) {
+                    controller.vibrateEndgameFinale();
+                } else {
+                    controller.vibrateEndgameTick();
+                }
+            }
+        }
 
         t.addData("t", (now - last) / 1e6);
         telemetry.addData("t", (now - last) / 1e6);

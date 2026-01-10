@@ -58,6 +58,8 @@ public class DeviceCamera extends Device {
                 .setStreamFormat(VisionPortal.StreamFormat.YUY2)
 //                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .addProcessor(aprilTagProcessorFront)
+//                .enableLiveView(Configuration.DEBUG)
+//                .setAutoStartStreamOnBuild(true)
                 .build();
 
         if (Configuration.DEBUG) FtcDashboard.getInstance().startCameraStream(visionPortalFront, 0);
@@ -124,7 +126,7 @@ public class DeviceCamera extends Device {
         if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
             exposureControl.setMode(ExposureControl.Mode.Manual);
         }
-        exposureControl.setExposure(1L, TimeUnit.MILLISECONDS);
+        exposureControl.setExposure(2L, TimeUnit.MILLISECONDS); // 100% increase!!!
         GainControl gainControl = visionPortalFront.getCameraControl(GainControl.class);
         gainControl.setGain(255);
 

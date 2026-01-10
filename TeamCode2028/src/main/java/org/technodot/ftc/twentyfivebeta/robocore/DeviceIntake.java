@@ -51,6 +51,7 @@ public class DeviceIntake extends Device {
 
     public volatile Artifact leftArtifact = Artifact.NONE;
     public volatile Artifact rightArtifact = Artifact.NONE;
+    public Artifact queueArtifact = Artifact.PURPLE; // just a type
 
     private Thread colorSensorThread;
     private volatile boolean colorSensorThreadRunning = false;
@@ -79,6 +80,9 @@ public class DeviceIntake extends Device {
 
         motorIntake = hardwareMap.get(DcMotorEx.class, "motorIntake");
 
+        motorIntake.setDirection(DcMotorEx.Direction.FORWARD);
+        motorIntake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
         servoLeft = hardwareMap.get(Servo.class, "servoLeft");
         servoRight = hardwareMap.get(Servo.class, "servoRight");
 
@@ -86,9 +90,6 @@ public class DeviceIntake extends Device {
         colorLeft2 = hardwareMap.get(RevColorSensorV3.class, "colorLeft2");
         colorRight1 = hardwareMap.get(RevColorSensorV3.class, "colorRight1");
         colorRight2 = hardwareMap.get(RevColorSensorV3.class, "colorRight2");
-
-        motorIntake.setDirection(DcMotorEx.Direction.FORWARD);
-        motorIntake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         intakeState = IntakeState.IDLE;
     }
@@ -103,6 +104,12 @@ public class DeviceIntake extends Device {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
 
 //        this.updateColorSensors();
+
+        if (ctrl.queuePurple()) {
+            queueArtifact = Artifact.PURPLE;
+        } else if (ctrl.queueGreen()) {
+            queueArtifact = Artifact.GREEN;
+        }
 
         // intake motor
 
@@ -165,16 +172,34 @@ public class DeviceIntake extends Device {
             boolean hasRight = rightArtifact != Artifact.NONE;
             
             if (hasLeft && hasRight) {
-                // Both artifacts present: push left first, then right
-                // TODO: gamepad2 w/ color order ctrl
-                sideDeque.push(IntakeSide.RIGHT);
-                sideDeque.push(IntakeSide.LEFT);
+                // Both artifacts present: prioritize side matching queueArtifact
+                boolean leftMatchesQueue = leftArtifact == queueArtifact;
+                boolean rightMatchesQueue = rightArtifact == queueArtifact;
+
+                if (leftMatchesQueue && !rightMatchesQueue) {
+                    // Left matches queue: launch left first
+                    sideDeque.addLast(IntakeSide.LEFT);
+                    sideDeque.addLast(IntakeSide.RIGHT);
+                } else if (rightMatchesQueue && !leftMatchesQueue) {
+                    // Right matches queue: launch right first
+                    sideDeque.addLast(IntakeSide.RIGHT);
+                    sideDeque.addLast(IntakeSide.LEFT);
+                } else {
+                    // Both or neither match: use alliance-based order
+                    if (alliance == Alliance.BLUE) {
+                        sideDeque.addLast(IntakeSide.LEFT);
+                        sideDeque.addLast(IntakeSide.RIGHT);
+                    } else {
+                        sideDeque.addLast(IntakeSide.RIGHT);
+                        sideDeque.addLast(IntakeSide.LEFT);
+                    }
+                }
             } else if (hasLeft) {
                 // Only left artifact present
-                sideDeque.push(IntakeSide.LEFT);
+                sideDeque.addLast(IntakeSide.LEFT);
             } else if (hasRight) {
                 // Only right artifact present
-                sideDeque.push(IntakeSide.RIGHT);
+                sideDeque.addLast(IntakeSide.RIGHT);
             }
             // If neither artifact is present, don't push anything
 
@@ -368,9 +393,7 @@ public class DeviceIntake extends Device {
     }
 
     public static boolean isArtifactRight(double cm1, double cm2) {
-        FtcDashboard.getInstance().getTelemetry().addData("r_cm1", cm1);
-        FtcDashboard.getInstance().getTelemetry().addData("r_cm2", cm2);
-        return (cm1 <= 6.5) || (cm2 <= 3.1); // it was actually the right servo mb
+        return (cm1 <= 5.8) || (cm2 <= 3.1); // it was actually the right servo mb
     }
 
     public static Artifact getArtifactColor(NormalizedRGBA color) {

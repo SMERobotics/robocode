@@ -129,9 +129,35 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.start;
     }
 
+    public boolean queuePurple() {
+        return ready() && (gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y);
+    }
+
+    public boolean queueGreen() {
+        return ready() && (gamepad2.dpad_up || gamepad2.dpad_down || gamepad2.dpad_left || gamepad2.dpad_right);
+    }
+
     public void vibrateExtakeReady() {
         if (ready()) {
             gamepad1.rumble(0.0, 1.0, Configuration.GAMEPAD_RUMBLE_DURATION_MS);
+        }
+    }
+
+    public void vibrateEndgame() {
+        if (ready()) {
+            gamepad1.rumble(1.0, 0.0, Configuration.GAMEPAD_RUMBLE_STRONG_MS);
+        }
+    }
+    
+    public void vibrateEndgameTick() {
+        if (ready()) {
+            gamepad1.rumble(0.3, 0.0, Configuration.GAMEPAD_RUMBLE_WEAK_MS);
+        }
+    }
+    
+    public void vibrateEndgameFinale() {
+        if (ready()) {
+            gamepad1.rumble(1.0, 1.0, Configuration.GAMEPAD_RUMBLE_FINALE_MS);
         }
     }
 }
