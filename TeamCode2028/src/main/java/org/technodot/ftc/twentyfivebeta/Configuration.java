@@ -15,7 +15,7 @@ public class Configuration {
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
     public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
-    public static volatile double DRIVE_AIM_OFFSET = 2.67; // degrees, blue goal to the left, red goal to the right.
+    public static volatile double DRIVE_AIM_OFFSET = 2.41; // degrees, blue goal to the left, red goal to the right.
     public static volatile double DRIVE_AIM_KP = 0.03; // prev 0.0267
     public static volatile double DRIVE_AIM_KI = 0.15;
     public static volatile double DRIVE_AIM_KD = 0.002;
