@@ -90,8 +90,8 @@ public class DeviceDrive extends Device {
         switch (driveState) {
             case TELEOP:
                 // uncommented for testing purposes only
-                aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
-                rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
+                if (Configuration.DEBUG) aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+                if (Configuration.DEBUG) rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
                 SilentRunner101 ctrl = (SilentRunner101) inputController;
                 double rotate = ctrl.driveRotate();
@@ -186,14 +186,14 @@ public class DeviceDrive extends Device {
                     motorBackLeft.setTargetPosition(blTarget);
                     motorBackRight.setTargetPosition(brTarget);
 
+                    // tell ts sdk that we wanna run to position
+                    setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
                     // Set motor velocities
                     motorFrontLeft.setVelocity(flVelocity);
                     motorFrontRight.setVelocity(frVelocity);
                     motorBackLeft.setVelocity(blVelocity);
                     motorBackRight.setVelocity(brVelocity);
-
-                    // tell ts sdk that we wanna run to position
-                    setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
                     movements.clear();
                 }
@@ -254,7 +254,7 @@ public class DeviceDrive extends Device {
 
         if (tag != null && tag.ftcPose != null) {
             double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET);
-            FtcDashboard.getInstance().getTelemetry().addData("b", bearing);
+            if (Configuration.DEBUG) FtcDashboard.getInstance().getTelemetry().addData("b", bearing);
 //            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
 //            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
@@ -321,10 +321,10 @@ public class DeviceDrive extends Device {
 //        motorBackRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Reset target positions to 0
-//        motorFrontLeft.setTargetPosition(0);
-//        motorFrontRight.setTargetPosition(0);
-//        motorBackLeft.setTargetPosition(0);
-//        motorBackRight.setTargetPosition(0);
+        motorFrontLeft.setTargetPosition(0);
+        motorFrontRight.setTargetPosition(0);
+        motorBackLeft.setTargetPosition(0);
+        motorBackRight.setTargetPosition(0);
 
         movements.clear();
     }

@@ -59,7 +59,7 @@ public class BaboAuto extends OpMode {
         switch (autoType) {
             case CLOSE:
                 runtime.plan(new ContiguousSequence()
-                        .then((Callback) () -> deviceDrive.addMovement(-3.8, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG)))
+                        .then((Callback) () -> deviceDrive.addMovement(-4.4, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG)))
                         .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
 
                         .then((Callback) () -> {
@@ -88,13 +88,57 @@ public class BaboAuto extends OpMode {
                             deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
                             deviceExtake.setExtakeOverride(0);
 
-                            deviceDrive.addMovement(-3.0, -2.0, 0.0);
+                            deviceDrive.addMovement(-1.0, -2.0, 0.0);
                         })
                         .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
                 );
 
                 break;
             case FAR:
+
+                // move the robot forward and start up the extake
+                runtime.plan(0, (Callback) () -> deviceDrive.addMovement(0.25, 0.0, 0.0));
+                runtime.plan(0, (Callback) () -> {
+                    deviceExtake.setExtakeOverride(1540);
+                    deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
+                });
+
+                runtime.plan(new ContiguousSequence(1000)
+                        // aim at the goal, nice and long
+                        .then(X, (InterruptibleCallback) () -> {
+                            deviceDrive.stageAim();
+                            return deviceDrive.isReady() && deviceExtake.isReady();
+                        })
+//                        .then(2500, (Callback) () -> deviceDrive.stageAim())
+
+                        // trigger 2 shots
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(X, (InterruptibleCallback) () -> {
+                            deviceDrive.stageAim();
+                            return deviceIntake.isEmpty();
+                        })
+
+                        // grab the 3rd artifact
+                        .then((Callback) () -> deviceIntake.triggerNudge())
+                        .then(1000, (Callback) () -> deviceDrive.stageAim())
+
+                        // trigger the 3rd shot
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(X, (InterruptibleCallback) () -> {
+                            deviceDrive.stageAim();
+                            return deviceIntake.isEmpty();
+                        })
+                        .then(500, (Callback) () -> deviceDrive.stageAim())
+
+                        // shutdown extake and turn to face balls
+                        .then((Callback) () -> {
+                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
+                            deviceExtake.setExtakeOverride(0);
+
+                            deviceDrive.addMovement(0, 0, -90);
+                        })
+                );
+
                 break;
         }
     }
@@ -125,9 +169,9 @@ public class BaboAuto extends OpMode {
         deviceExtake.init(hardwareMap, inputController);
         deviceIntake.init(hardwareMap, inputController);
 
-         deviceDrive.setDriveState(DeviceDrive.DriveState.AUTO);
+        deviceDrive.setDriveState(DeviceDrive.DriveState.AUTO);
 
-         configure();
+        configure();
     }
 
     @Override
@@ -138,6 +182,8 @@ public class BaboAuto extends OpMode {
 
     @Override
     public void start() {
+        config(); // tf??? IDFK Y BUT IT WORKS SO FUCK IT
+
         deviceCamera.start();
         deviceIMU.start();
         deviceDrive.start();
@@ -147,9 +193,8 @@ public class BaboAuto extends OpMode {
         // recalibrate IMU heading
         double headingOffset = 0;
         switch (autoType) {
-            //  only one is correct, test to find what sign is correct for blue!
             case CLOSE:
-                headingOffset = alliance.apply(90 - DeviceIMU.GOAL_DEG);
+                headingOffset = alliance.apply(-36.0);
                 break;
             case FAR:
                 headingOffset = alliance.apply(-90.0);

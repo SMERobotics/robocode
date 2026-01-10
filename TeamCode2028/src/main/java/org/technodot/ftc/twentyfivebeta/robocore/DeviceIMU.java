@@ -52,11 +52,11 @@ public class DeviceIMU extends Device {
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
-        if (ctrl.resetYaw()) zeroYaw();
 //        yaw = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
         yaw = rev.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + headingOffset; // previously was -, does ts cause problems?
         timeNs = System.nanoTime();
 //        updateHeadingOffset();
+        if (ctrl.resetYaw()) zeroYaw();
     }
 
     @Override
@@ -65,7 +65,12 @@ public class DeviceIMU extends Device {
     }
 
     public void updateHeadingOffset() {
-        if (DeviceCamera.fieldOffset != null) DeviceCamera.fieldOffset.ifPresent(offset -> headingOffset = offset - yaw);
+        if (DeviceCamera.fieldOffset != null) DeviceCamera.fieldOffset.ifPresent(offset -> {
+            double newOffset = offset - yaw + headingOffset; // offset - rawYaw
+            double delta = newOffset - headingOffset;
+            headingOffset = newOffset;
+            targetYaw += delta; // adjust targetYaw to compensate for the heading offset change
+        });
     }
 
     public double getHeadingOffset() {
@@ -73,7 +78,9 @@ public class DeviceIMU extends Device {
     }
 
     public void setHeadingOffset(double offset) {
+        double delta = offset - headingOffset;
         headingOffset = offset;
+        targetYaw += delta; // adjust targetYaw to compensate for the heading offset change
     }
 
     public static Vector2D rotateVector(Vector2D movement) {
@@ -83,9 +90,11 @@ public class DeviceIMU extends Device {
 
     public void zeroYaw() {
 //        imu.resetYaw();
-        targetYaw -= rev.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        headingOffset = 0;
+        // After reset, raw yaw becomes 0, so effective yaw becomes headingOffset
+        // We want effective yaw to become 0, so adjust targetYaw by the current yaw
+        targetYaw -= yaw;
         rev.resetYaw();
+        headingOffset = 0;
     }
 
     public static void setSnapshotYaw() {

@@ -90,8 +90,8 @@ public class DeviceExtake extends Device {
 
         // PIDF coefficients should be applied only at init
         // temp moved to update cycle so Configuration changes will take effect
-//        motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
-//        motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        if (Configuration.DEBUG) motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        if (Configuration.DEBUG) motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 
 //        extakeLeftPIDF.setPIDF(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
 //        extakeRightPIDF.setPIDF(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);

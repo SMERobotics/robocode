@@ -277,6 +277,20 @@ public class DeviceIntake extends Device {
         return leftArtifact != Artifact.NONE && rightArtifact != Artifact.NONE;
     }
 
+    public void triggerNudge() {
+        if (intakeState == IntakeState.IDLE && !nudging) {
+            int targetPosition = motorIntake.getCurrentPosition() + Configuration.INTAKE_MOTOR_NUDGE_TICKS;
+            motorIntake.setTargetPosition(targetPosition);
+            motorIntake.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            motorIntake.setPower(Configuration.INTAKE_MOTOR_NUDGE_POWER);
+            nudging = true;
+        }
+    }
+
+    public boolean isNudging() {
+        return nudging;
+    }
+
     public void updateColorSensors() {
         // color sensors
 

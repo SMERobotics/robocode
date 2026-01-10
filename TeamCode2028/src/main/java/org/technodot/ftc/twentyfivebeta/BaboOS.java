@@ -120,18 +120,18 @@ public class BaboOS extends OpMode {
         
         // Time-based vibration reminders for endgame (only when not in DEBUG mode)
         if (!Configuration.DEBUG && inputController instanceof SilentRunner101) {
-            SilentRunner101 controller = (SilentRunner101) inputController;
+            SilentRunner101 ctrl = (SilentRunner101) inputController;
             int elapsedSeconds = (int) ((now - begin) / 1_000_000_000L);
 
             if (elapsedSeconds >= 100 && elapsedSeconds <= 120 && elapsedSeconds != lastVibrationSecond) {
                 lastVibrationSecond = elapsedSeconds;
 
                 if (elapsedSeconds == 100 || elapsedSeconds == 110 || elapsedSeconds == 115) {
-                    controller.vibrateEndgame();
+                    ctrl.vibrateEndgame();
                 } else if (elapsedSeconds == 120) {
-                    controller.vibrateEndgameFinale();
+                    ctrl.vibrateEndgameFinale();
                 } else {
-                    controller.vibrateEndgameTick();
+                    ctrl.vibrateEndgameTick();
                 }
             }
         }

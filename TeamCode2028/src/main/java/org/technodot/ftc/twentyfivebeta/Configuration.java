@@ -10,12 +10,12 @@ public class Configuration {
     public static volatile int DRIVE_MOTOR_FORWARD_TILE_TICKS = 1337; // as of 01/09/2026
     public static volatile int DRIVE_MOTOR_STRAFE_TILE_TICKS = 1521; // as of 01/09/2026
     public static volatile int DRIVE_MOTOR_ROTATE_CIRCLE_TICKS = 3939; // as of 01/09/2026
-    public static volatile double DRIVE_AUTO_MAX_VELOCITY = 670;
+    public static volatile double DRIVE_AUTO_MAX_VELOCITY = 1000;
     public static volatile double DRIVE_MOTOR_ACTIVATION = 0.2;
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
     public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
-    public static volatile double DRIVE_AIM_OFFSET = 3.0; // degrees, blue goal to the left, red goal to the right.
+    public static volatile double DRIVE_AIM_OFFSET = 2.0; // degrees, blue goal to the left, red goal to the right.
     public static volatile double DRIVE_AIM_KP = 0.03; // prev 0.0267
     public static volatile double DRIVE_AIM_KI = 0.15;
     public static volatile double DRIVE_AIM_KD = 0.002;
@@ -42,18 +42,18 @@ public class Configuration {
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 500;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
-    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 800;
+    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 1000;
 
-    public static volatile double EXTAKE_MOTOR_KP = 300.0;
+    public static volatile double EXTAKE_MOTOR_KP = 100.0;
     public static volatile double EXTAKE_MOTOR_KI = 0.0;
-    public static volatile double EXTAKE_MOTOR_KD = 1.0; // TODO: *maybe* increase?
-    public static volatile double EXTAKE_MOTOR_KF = 17.767;
+    public static volatile double EXTAKE_MOTOR_KD = 0.1;
+    public static volatile double EXTAKE_MOTOR_KF = 17.8;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200; // TODO: adjust
-    public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1540; // TODO: adjust
+    public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1520; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_TOLERANCE = 20;
     public static volatile double EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD = 60;
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
-    public static volatile int EXTAKE_STABILIZATION_CYCLES = 1; // TODO: test zero because human and intake latency should be enough time
+    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4; // TODO: test zero because human and intake latency should be enough time
     // y (ticks/sec) = 340.130269893 x (m/sec) - 783.609122293 @ r = 0.9969, R^2 = 0.9937
     public static volatile double EXTAKE_MODEL_VELOCITY_M = 340.130269893;
     public static volatile double EXTAKE_MODEL_VELOCITY_B = -783.609122293;
