@@ -97,7 +97,7 @@ public class BaboAuto extends OpMode {
             case FAR:
 
                 // move the robot forward and start up the extake
-                runtime.plan(0, (Callback) () -> deviceDrive.addMovement(0.25, 0.0, 0.0));
+                runtime.plan(0, (Callback) () -> deviceDrive.addMovement(0.4, 0.0, 0.0));
                 runtime.plan(0, (Callback) () -> {
                     deviceExtake.setExtakeOverride(1540);
                     deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
@@ -105,7 +105,7 @@ public class BaboAuto extends OpMode {
 
                 runtime.plan(new ContiguousSequence(1000)
                         // aim at the goal, nice and long
-                        .then(X, (InterruptibleCallback) () -> {
+                        .then(3000, (InterruptibleCallback) () -> {
                             deviceDrive.stageAim();
                             return deviceDrive.isReady() && deviceExtake.isReady();
                         })
@@ -119,8 +119,10 @@ public class BaboAuto extends OpMode {
                         })
 
                         // grab the 3rd artifact
-                        .then((Callback) () -> deviceIntake.triggerNudge())
-                        .then(1000, (Callback) () -> deviceDrive.stageAim())
+//                        .then((Callback) () -> deviceIntake.triggerNudge())
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+                        .then(500, (Callback) () -> deviceDrive.stageAim())
+                        .then((Callback) () -> deviceIntake.setIntakeIdle())
 
                         // trigger the 3rd shot
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
@@ -130,13 +132,54 @@ public class BaboAuto extends OpMode {
                         })
                         .then(500, (Callback) () -> deviceDrive.stageAim())
 
-                        // shutdown extake and turn to face balls
+                        // shutdown extake and go to ts balls
                         .then((Callback) () -> {
                             deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
                             deviceExtake.setExtakeOverride(0);
 
-                            deviceDrive.addMovement(0, 0, -90);
+                            deviceDrive.addMovement(0.0, 0.0, alliance.apply(-90));
                         })
+                        .then(1000, (InterruptibleCallback) () -> deviceDrive.isReady())
+
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+
+                        .then((Callback) () -> deviceDrive.addMovement(4.0, alliance.apply(-0.3), 0.0))
+//                        .then(1000, (InterruptibleCallback) () -> deviceDrive.isReady())
+                        .delay(3000)
+
+                        .then((Callback) () -> deviceIntake.setIntakeIdle())
+                        .then((Callback) () -> deviceDrive.addMovement(-4.0, alliance.apply(0.3), alliance.apply(-3.0)))
+                        .then((Callback) () -> {
+                            deviceExtake.setExtakeOverride(1520);
+                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
+                        })
+//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+                        .delay(3000) // realistically too long, just for testing purposes
+
+                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(90)))
+//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+                        .delay(1500) // realistically too long, just for testing purposes
+
+                        .then(3000, (InterruptibleCallback) () -> {
+                            deviceDrive.stageAim();
+                            return deviceDrive.isReady() && deviceExtake.isReady();
+                        })
+
+                        // trigger 2 shots
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(X, (InterruptibleCallback) () -> {
+                            deviceDrive.stageAim();
+                            return deviceIntake.isEmpty();
+                        })
+                        .then(500, (Callback) () -> deviceDrive.stageAim())
+
+                        .then((Callback) () -> {
+                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
+                            deviceExtake.setExtakeOverride(0);
+
+                            deviceDrive.addMovement(3.6, 0.0, alliance.apply(-25.0));
+                        })
+
                 );
 
                 break;

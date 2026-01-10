@@ -48,6 +48,7 @@ public class DeviceIntake extends Device {
 
     private boolean nudging;
     private boolean nudgeTriggered;
+    private long nudgeStartTime;
 
     public volatile Artifact leftArtifact = Artifact.NONE;
     public volatile Artifact rightArtifact = Artifact.NONE;
@@ -105,6 +106,7 @@ public class DeviceIntake extends Device {
 
 //        this.updateColorSensors();
 
+        // handle 2nd gamepad queue artifact selection (yours truly)
         if (ctrl.queuePurple()) {
             queueArtifact = Artifact.PURPLE;
         } else if (ctrl.queueGreen()) {
@@ -122,6 +124,7 @@ public class DeviceIntake extends Device {
                 motorIntake.setPower(Configuration.INTAKE_MOTOR_NUDGE_POWER);
                 nudging = true;
                 nudgeTriggered = true;
+                nudgeStartTime = System.currentTimeMillis();
             } else if (!ctrl.intakeNudge()) {
                 nudgeTriggered = false;
             }
@@ -141,8 +144,9 @@ public class DeviceIntake extends Device {
             nudging = false;
         }
 
-        // Check if nudge is complete
-        if (nudging && !motorIntake.isBusy()) {
+        // Check if nudge is complete (with grace period to let motor start)
+        long nudgeGracePeriod = 100; // ms
+        if (nudging && (System.currentTimeMillis() - nudgeStartTime > nudgeGracePeriod) && !motorIntake.isBusy()) {
             motorIntake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             motorIntake.setPower(0);
             nudging = false;
@@ -284,11 +288,39 @@ public class DeviceIntake extends Device {
             motorIntake.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             motorIntake.setPower(Configuration.INTAKE_MOTOR_NUDGE_POWER);
             nudging = true;
+            nudgeStartTime = System.currentTimeMillis();
         }
     }
 
     public boolean isNudging() {
         return nudging;
+    }
+
+    public void setIntakeState(IntakeState state) {
+        intakeState = state;
+    }
+
+    public void setIntakeIdle() {
+        intakeState = IntakeState.IDLE;
+        intakeOverride = 0;
+    }
+
+    public void setIntakeIn() {
+        intakeState = IntakeState.OVERRIDE;
+        intakeOverride = 1.0;
+    }
+
+    public void setIntakeOut() {
+        intakeState = IntakeState.OVERRIDE;
+        intakeOverride = -1.0;
+    }
+
+    public void setIntakeOverride() {
+        intakeState = IntakeState.OVERRIDE;
+    }
+
+    public IntakeState getIntakeState() {
+        return intakeState;
     }
 
     public void updateColorSensors() {

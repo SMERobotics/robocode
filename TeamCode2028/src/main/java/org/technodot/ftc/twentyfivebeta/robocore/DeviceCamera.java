@@ -55,8 +55,8 @@ public class DeviceCamera extends Device {
 //                .setCameraResolution(new Size(1280, 720))
 //                .setCameraResolution(new Size(640, 360))
                 .setCameraResolution(new Size(800, 448))
-                .setStreamFormat(VisionPortal.StreamFormat.YUY2)
-//                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+//                .setStreamFormat(VisionPortal.StreamFormat.YUY2)
+                .setStreamFormat(VisionPortal.StreamFormat.MJPEG) // MJPEG more compressed, currently on USB2 instead of USB3 cuz camera is genuinely stupid
                 .addProcessor(aprilTagProcessorFront)
 //                .enableLiveView(Configuration.DEBUG)
 //                .setAutoStartStreamOnBuild(true)
