@@ -131,7 +131,7 @@ public class BaboOS extends OpMode {
                 } else if (elapsedSeconds == 120) {
                     ctrl.vibrateEndgameFinale();
                 } else {
-                    ctrl.vibrateEndgameTick();
+//                    ctrl.vibrateEndgameTick(); // ARRI DOESNT LIKE TS
                 }
             }
         }
