@@ -19,7 +19,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.hardware.ColorRangeSensor;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -121,23 +120,24 @@ public class BlueAuto extends LinearOpMode {
                         .stopAndAdd(new Kick(kicker, 0))
                         .stopAndAdd(new LaunchZero(launchMotor))
                         .stopAndAdd(new IntakePower(intakeMotor, 1))
-                        .strafeToLinearHeading(new Vector2d(-10, -27), Math.toRadians(270))
+                        .strafeToLinearHeading(new Vector2d(-3, -32), Math.toRadians(270))
                         .stopAndAdd(new Index(113))
                         .waitSeconds(1)
-                        .strafeToLinearHeading(new Vector2d(-10, -45), Math.toRadians(270), new VelConstraint() {
+                        .strafeToLinearHeading(new Vector2d(-3, -50), Math.toRadians(270), new VelConstraint() {
                             @Override
                             public double maxRobotVel(@NonNull Pose2dDual<Arclength> pose2dDual, @NonNull PosePath posePath, double v) {
                                 return 5;
                             }
                         })
+                        .stopAndAdd(new IntakePower(intakeMotor, 0))
+                        .stopAndAdd(new Index(-4))
                         .strafeToLinearHeading(new Vector2d(-15, -15), Math.toRadians(405))
                         .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
-                        .stopAndAdd(new Index(0))
                         .waitSeconds(.5)
                         .stopAndAdd(new Wall(wall, 0))
                         .waitSeconds(.05)
                         .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(1.3)
+                        .waitSeconds(.5)
                         .stopAndAdd(new Kick(kicker, 0))
                         .waitSeconds(.5)
                         .stopAndAdd(new Index(226))
@@ -153,8 +153,8 @@ public class BlueAuto extends LinearOpMode {
                         .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
                         .stopAndAdd(new LaunchZero(launchMotor))
-                        .stopAndAdd(new IntakePower(intakeMotor, 1))
-                        .waitSeconds(100 )
+                        .strafeToLinearHeading(new Vector2d(-30,-15),Math.toRadians(270))
+                        .waitSeconds(100)
                         .build());
 
     }
@@ -217,10 +217,6 @@ public class BlueAuto extends LinearOpMode {
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
             boolean tagVisible = camera.TagID() != -1;
             double distanceM = camera.getTagDistance();
-
-            if (ID == 22) {
-                return false;
-            }
             launcher.setEnabled(fire && tagVisible);
             launcher.update(distanceM);
             launcherMotor.setVelocity(launcher.getTargetVelocity());

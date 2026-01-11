@@ -52,7 +52,7 @@ public class Launcher {
         double targetVelocity = targetFrac * maxTicksPerSec;
 
         if (distanceMeters > 2.3 && targetVelocity != 0 || distanceMeters == 0 && targetVelocity != 0) {
-            launcherMotor.setVelocity(targetVelocity+150);
+            launcherMotor.setVelocity(targetVelocity+100);
         }
         else {
             launcherMotor.setVelocity(targetVelocity);

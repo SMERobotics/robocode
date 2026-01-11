@@ -26,7 +26,7 @@ public class DriveCode extends OpMode {
 
     private PIDController controller;
 
-    public static double p = 0.01, i = 0.022, d = 0.000277;
+    public static double p = 0.01, i = 0.08, d = 0.000377;
     public static double f = 0.01;
 
     public static int targetPosition = 0;
