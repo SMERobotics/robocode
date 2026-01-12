@@ -6,7 +6,7 @@ import org.technodot.ftc.twentyfivebeta.BaboAuto;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 
-@Autonomous(name="BaboAuto/CLOSE/BLUE", group="_")
+@Autonomous(name="BaboAuto/CLOSE/BLUE", group="_", preselectTeleOp="BaboOS/BLUE")
 public class BaboAutoCloseBlue extends BaboAuto {
     @Override
     public void config() {
