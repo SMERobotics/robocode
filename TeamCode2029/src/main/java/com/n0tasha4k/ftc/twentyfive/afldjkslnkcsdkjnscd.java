@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "Straight67Auto")
-public class NUBALLAUTO extends LinearOpMode {
+@Autonomous(name = "Straight0r293240398Auto")
+public class afldjkslnkcsdkjnscd extends LinearOpMode {
 
     private DcMotor left;
     private DcMotor index;
@@ -48,7 +48,7 @@ public class NUBALLAUTO extends LinearOpMode {
 
                 for (int i = 0; i < 3 && opModeIsActive(); ) {
 
-                    if (shooter.getVelocity() > 1650) {
+                    if (shooter.getVelocity() > 1675) {
                         i++;
                         index.setPower(1);
                         sleep(1900);
@@ -60,6 +60,15 @@ public class NUBALLAUTO extends LinearOpMode {
                         sleep(500);
                     }
                 }
+
+                left.setPower(-1);
+                right.setPower(-1);
+                sleep(300);
+                left.setPower(-1);
+                right.setPower(1);
+                sleep(400);
+                left.setPower(0);
+                right.setPower(0);
 
 
 
