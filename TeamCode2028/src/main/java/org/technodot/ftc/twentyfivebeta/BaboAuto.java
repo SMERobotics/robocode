@@ -132,7 +132,7 @@ public class BaboAuto extends OpMode {
                         })
                         .then(500, (Callback) () -> deviceDrive.stageAim())
 
-                        // shutdown extake and go to ts balls
+                        // shutdown extake and turn towards ts balls fr
                         .then((Callback) () -> {
                             deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
                             deviceExtake.setExtakeOverride(0);
@@ -141,12 +141,15 @@ public class BaboAuto extends OpMode {
                         })
                         .then(1000, (InterruptibleCallback) () -> deviceDrive.isReady())
 
+                        // init intake to start accepting ts balls fr
                         .then((Callback) () -> deviceIntake.setIntakeIn())
 
+                        // move to ts balls fr
                         .then((Callback) () -> deviceDrive.addMovement(4.0, alliance.apply(-0.3), 0.0))
 //                        .then(1000, (InterruptibleCallback) () -> deviceDrive.isReady())
                         .delay(3000)
 
+                        // move back to shooting position
                         .then((Callback) () -> deviceDrive.addMovement(-3.9, 0.0, alliance.apply(-2.0)))
                         .then((Callback) () -> {
                             deviceExtake.setExtakeOverride(1500);
@@ -155,14 +158,15 @@ public class BaboAuto extends OpMode {
 //                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
                         .delay(3000) // realistically too long, just for testing purposes
 
+                        // turn off intake, turn towards goalish and move back a bit
                         .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(90)))
 //                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
                         .delay(1500) // realistically too long, just for testing purposes
                         .then((Callback) () -> deviceIntake.setIntakeIdle())
-
                         .then((Callback) () -> deviceDrive.addMovement(-0.3, 0.0, 0.0))
                         .delay(300)
 
+                        // aim at the goal, nice and long
                         .then(3000, (InterruptibleCallback) () -> {
                             deviceDrive.stageAim();
                             return deviceDrive.isReady() && deviceExtake.isReady();
@@ -176,6 +180,7 @@ public class BaboAuto extends OpMode {
                         })
                         .then(500, (Callback) () -> deviceDrive.stageAim())
 
+                        // shutdown extake and park
                         .then((Callback) () -> {
                             deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
                             deviceExtake.setExtakeOverride(0);
