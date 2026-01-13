@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "Straight3BasicAuto")
-public class BALLAUTO extends LinearOpMode {
+@Autonomous(name = "Straight67Auto")
+public class NUBALLAUTO extends LinearOpMode {
 
     private DcMotor left;
     private DcMotor index;
@@ -38,7 +38,7 @@ public class BALLAUTO extends LinearOpMode {
             while (opModeIsActive()) {
                 left.setPower(-1);
                 right.setPower(1);
-                sleep(1600);
+                sleep(990);
                 left.setPower(0);
                 right.setPower(0);
                 shooter.setVelocity(1760);
@@ -48,13 +48,13 @@ public class BALLAUTO extends LinearOpMode {
 
                 for (int i = 0; i < 3 && opModeIsActive(); ) {
 
-                    if (shooter.getVelocity() > 1675) {
+                    if (shooter.getVelocity() > 1650) {
                         i++;
                         index.setPower(1);
                         sleep(1900);
                         index.setPower(-1);
                         intakey.setPower(-1);
-                        sleep(2000);
+                        sleep(2150);
                         intakey.setPower(0);
                     } else {
                         sleep(500);
@@ -63,11 +63,11 @@ public class BALLAUTO extends LinearOpMode {
 
 
 
-                    telemetry.addData("Left Pow", left.getPower());
-                    telemetry.addData("Right Pow", right.getPower());
-                    telemetry.addData("Shooter Power", shooter.getVelocity());
-                    telemetry.update();
-                    return;
+                telemetry.addData("Left Pow", left.getPower());
+                telemetry.addData("Right Pow", right.getPower());
+                telemetry.addData("Shooter Power", shooter.getVelocity());
+                telemetry.update();
+                return;
             }
         }
     }

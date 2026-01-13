@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "Straight3BasicAuto")
-public class BALLAUTO extends LinearOpMode {
+@Autonomous(name = "Straight0r293240398Auto")
+public class afldjkslnkcsdkjnscd extends LinearOpMode {
 
     private DcMotor left;
     private DcMotor index;
@@ -38,7 +38,7 @@ public class BALLAUTO extends LinearOpMode {
             while (opModeIsActive()) {
                 left.setPower(-1);
                 right.setPower(1);
-                sleep(1600);
+                sleep(990);
                 left.setPower(0);
                 right.setPower(0);
                 shooter.setVelocity(1760);
@@ -54,20 +54,29 @@ public class BALLAUTO extends LinearOpMode {
                         sleep(1900);
                         index.setPower(-1);
                         intakey.setPower(-1);
-                        sleep(2000);
+                        sleep(2150);
                         intakey.setPower(0);
                     } else {
                         sleep(500);
                     }
                 }
 
+                left.setPower(-1);
+                right.setPower(-1);
+                sleep(300);
+                left.setPower(-1);
+                right.setPower(1);
+                sleep(400);
+                left.setPower(0);
+                right.setPower(0);
 
 
-                    telemetry.addData("Left Pow", left.getPower());
-                    telemetry.addData("Right Pow", right.getPower());
-                    telemetry.addData("Shooter Power", shooter.getVelocity());
-                    telemetry.update();
-                    return;
+
+                telemetry.addData("Left Pow", left.getPower());
+                telemetry.addData("Right Pow", right.getPower());
+                telemetry.addData("Shooter Power", shooter.getVelocity());
+                telemetry.update();
+                return;
             }
         }
     }
