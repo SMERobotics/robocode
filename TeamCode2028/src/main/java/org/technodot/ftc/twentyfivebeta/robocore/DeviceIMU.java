@@ -107,4 +107,11 @@ public class DeviceIMU extends Device {
         while (error < -180) error += 360;
         return error;
     }
+
+    public static double calculateYawError(double target) {
+        double error = target - yaw;
+        while (error > 180) error -= 360;
+        while (error < -180) error += 360;
+        return error;
+    }
 }

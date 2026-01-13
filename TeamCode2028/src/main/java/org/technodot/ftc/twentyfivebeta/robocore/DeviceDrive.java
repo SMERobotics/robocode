@@ -23,11 +23,12 @@ public class DeviceDrive extends Device {
     public DcMotorEx motorBackLeft;
     public DcMotorEx motorBackRight;
 
-    public static DriveState driveState;
+    public DriveState driveState;
+    private AutoControl autoControl; // only takes effect in DriveState.AUTO mode
     private DcMotorEx.RunMode runMode;
 
-    private boolean aiming;
-    private boolean rotating;
+    private boolean aiming; // teleop only
+    private boolean rotating; // teleop only
     private long lastRotateNs;
     private boolean snapped;
 
@@ -35,11 +36,21 @@ public class DeviceDrive extends Device {
     private PIDFController rotatePID;
 
     private ArrayList<Movement> movements = new ArrayList<>();
+    public double targetFieldHeading;
 
     // actually i need to think about how i'm gonna build ts
     public enum DriveState {
         TELEOP,
         AUTO
+    }
+
+    public enum AutoControl {
+        IDLE,
+        ROBOT_TRANSLATE,
+        FIELD_TRANSLATE,
+        CAMERA_AIM,
+        CAMERA_ABSOLUTE,
+        IMU_ABSOLUTE
     }
 
     public DeviceDrive(Alliance alliance) {
@@ -50,6 +61,7 @@ public class DeviceDrive extends Device {
     public void init(HardwareMap hardwareMap, InputController inputController) {
         this.inputController = inputController;
         this.driveState = DriveState.TELEOP;
+        this.autoControl = AutoControl.ROBOT_TRANSLATE;
 
         motorFrontLeft = hardwareMap.get(DcMotorEx.class, "motorFrontLeft");
         motorFrontRight = hardwareMap.get(DcMotorEx.class, "motorFrontRight");
@@ -89,7 +101,6 @@ public class DeviceDrive extends Device {
     public void update() {
         switch (driveState) {
             case TELEOP:
-                // uncommented for testing purposes only
                 if (Configuration.DEBUG) aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
                 if (Configuration.DEBUG) rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
@@ -109,6 +120,7 @@ public class DeviceDrive extends Device {
                     snapped = true;
                 }
 
+                // apply the aiming and rotation pid loops
                 if (aiming) {
                     rotate = calculateAim();
                 } else {
@@ -117,85 +129,35 @@ public class DeviceDrive extends Device {
                         rotate = Range.clip(rotatePID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
                     }
                 }
-                this.update(ctrl.driveForward(), ctrl.driveStrafe(), rotate);
+
+                // field-centric kinematics for teleop
+                Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
+                this.update(fieldCentric.x, fieldCentric.y, rotate);
+
                 break;
             case AUTO:
-                if (aiming) {
-                    setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-                    this.update(0, 0, calculateAim());
-                    aiming = false;
-                } else {
-                    // sum all the queued requests
-                    double totalForward = 0;
-                    double totalStrafe = 0;
-                    double totalRotate = 0;
+                switch (autoControl) {
+                    case CAMERA_AIM:
+                        setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+                        this.update(0, 0, calculateAim());
+                        break;
 
-                    for (Movement mvmt : movements) {
-                        totalForward += mvmt.forward;
-                        totalStrafe += mvmt.strafe;
-                        totalRotate += mvmt.rotate;
-                    }
+                    case CAMERA_ABSOLUTE:
+                        // TODO: implement camera-based absolute positioning
+                        break;
 
-                    // translate feet & degrees into encoder ticks
-                    int encoderForward = (int) (totalForward * Configuration.DRIVE_MOTOR_FORWARD_TILE_TICKS / 2);
-                    int encoderStrafe = (int) (totalStrafe * Configuration.DRIVE_MOTOR_STRAFE_TILE_TICKS / 2);
-                    int encoderRotate = (int) (totalRotate * Configuration.DRIVE_MOTOR_ROTATE_CIRCLE_TICKS / 360);
+                    case IMU_ABSOLUTE:
+                        this.update(0, 0, Range.clip(rotatePID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
+                        break;
 
-                    // calculate target positions for each motor
-                    int flIncrement = encoderForward + encoderStrafe + encoderRotate;
-                    int frIncrement = encoderForward - encoderStrafe - encoderRotate;
-                    int blIncrement = encoderForward - encoderStrafe + encoderRotate;
-                    int brIncrement = encoderForward + encoderStrafe - encoderRotate;
+                    case FIELD_TRANSLATE:
+                        executeTranslateMovement(true);
+                        break;
 
-                    int flTarget = motorFrontLeft.getTargetPosition() + flIncrement;
-                    int frTarget = motorFrontRight.getTargetPosition() + frIncrement;
-                    int blTarget = motorBackLeft.getTargetPosition() + blIncrement;
-                    int brTarget = motorBackRight.getTargetPosition() + brIncrement;
-
-                    // get current positions
-                    int flCurrent = motorFrontLeft.getCurrentPosition();
-                    int frCurrent = motorFrontRight.getCurrentPosition();
-                    int blCurrent = motorBackLeft.getCurrentPosition();
-                    int brCurrent = motorBackRight.getCurrentPosition();
-
-                    // calculate distance each motor needs to travel
-                    double flDistance = Math.abs(flTarget - flCurrent);
-                    double frDistance = Math.abs(frTarget - frCurrent);
-                    double blDistance = Math.abs(blTarget - blCurrent);
-                    double brDistance = Math.abs(brTarget - brCurrent);
-
-                    // find the max dist to normalize velocities
-                    double maxDistance = Math.max(flDistance, Math.max(frDistance, Math.max(blDistance, brDistance)));
-
-                    // calculate normalized velocities (proportional to distance, capped at max velocity)
-                    double flVelocity = 0;
-                    double frVelocity = 0;
-                    double blVelocity = 0;
-                    double brVelocity = 0;
-
-                    if (maxDistance > 0) {
-                        flVelocity = (flDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-                        frVelocity = (frDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-                        blVelocity = (blDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-                        brVelocity = (brDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-                    }
-
-                    // Set target positions
-                    motorFrontLeft.setTargetPosition(flTarget);
-                    motorFrontRight.setTargetPosition(frTarget);
-                    motorBackLeft.setTargetPosition(blTarget);
-                    motorBackRight.setTargetPosition(brTarget);
-
-                    // tell ts sdk that we wanna run to position
-                    setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-
-                    // Set motor velocities
-                    motorFrontLeft.setVelocity(flVelocity);
-                    motorFrontRight.setVelocity(frVelocity);
-                    motorBackLeft.setVelocity(blVelocity);
-                    motorBackRight.setVelocity(brVelocity);
-
-                    movements.clear();
+                    case ROBOT_TRANSLATE:
+                    default:
+                        executeTranslateMovement(false);
+                        break;
                 }
 
                 break;
@@ -209,12 +171,8 @@ public class DeviceDrive extends Device {
     }
 
     public void update(double forward, double strafe, double rotate) {
-        // ts field-centric kinematic model
-        Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(forward, strafe));
-        forward = fieldCentric.x;
-        strafe = fieldCentric.y;
-
         // counteract strafe friction
+        // **???**
         strafe *= Configuration.DRIVE_STRAFE_MULTIPLIER;
 
         // ts mecanum drive kinematic model
@@ -272,20 +230,52 @@ public class DeviceDrive extends Device {
     }
 
     /**
-     * Stage an aim command to be processed in next ts update cycle.
+     * Set the autonomous control mode. Changes will take effect next update cycle.
+     * @param control The AutoControl mode to set.
+     */
+    public void setAutoControl(AutoControl control) {
+        this.autoControl = control;
+    }
+
+    /**
+     * Get the current autonomous control mode.
+     * @return The current AutoControl mode.
+     */
+    public AutoControl getAutoControl() {
+        return autoControl;
+    }
+
+    /**
+     * Stage a camera aiming command to be processed in next ts update cycle.
+     * Does not require an input. Only applies in AUTO mode.
      */
     public void stageAim() {
-        aiming = true;
+        this.autoControl = AutoControl.CAMERA_AIM;
     }
 
     /**
      * Stage a movement command to be processed in next ts update cycle.
+     * Resets current AutoControl to ROBOT_TRANSLATE mode!!!
+     * If FIELD_TRANSLATE is desired, setAutoControl should follow this call.
      * @param forward robot-centric forward, in feet
      * @param strafe robot-centric strafe, in feet
      * @param rotate robot-centric rotate, in degrees
      */
     public void addMovement(double forward, double strafe, double rotate) {
         movements.add(new Movement(forward, strafe, rotate));
+        this.autoControl = AutoControl.ROBOT_TRANSLATE;
+    }
+
+    /**
+     * Stage a movement command to be processed in next ts update cycle.
+     * @param forward field-centric forward, in feet
+     * @param strafe field-centric strafe, in feet
+     * @param rotate robot-centric rotate, in degrees
+     * @param fieldCentric If true, applies field-centric rotation to the movement vector.
+     */
+    public void addMovement(double forward, double strafe, double rotate, boolean fieldCentric) {
+        movements.add(new Movement(forward, strafe, rotate));
+        this.autoControl = fieldCentric ? AutoControl.FIELD_TRANSLATE : AutoControl.ROBOT_TRANSLATE;
     }
 
     /**
@@ -294,6 +284,16 @@ public class DeviceDrive extends Device {
      */
     public void addMovement(Movement movement) {
         movements.add(movement);
+        this.autoControl = AutoControl.ROBOT_TRANSLATE;
+    }
+
+    /**
+     * Set the target field heading for IMU_ABSOLUTE control.
+     * @param heading The target field heading in degrees.
+     */
+    public void setTargetFieldHeading(double heading) {
+        this.targetFieldHeading = heading;
+        this.autoControl = AutoControl.IMU_ABSOLUTE;
     }
 
     /**
@@ -328,13 +328,21 @@ public class DeviceDrive extends Device {
 
         movements.clear();
     }
-
+    
     /**
-     * Set the drive state (TELEOP or AUTO). Changes will take effect next update cycle.
-     * @param state The DriveState to set.
+     * Resynchronize encoder target positions with current positions.
+     * Useful if encoders get out of sync due to manual movement.
      */
-    public void setDriveState(DriveState state) {
-        this.driveState = state;
+    public void resyncEncoders() {
+        int flCurrent = motorFrontLeft.getCurrentPosition();
+        int frCurrent = motorFrontRight.getCurrentPosition();
+        int blCurrent = motorBackLeft.getCurrentPosition();
+        int brCurrent = motorBackRight.getCurrentPosition();
+
+        motorFrontLeft.setTargetPosition(flCurrent);
+        motorFrontRight.setTargetPosition(frCurrent);
+        motorBackLeft.setTargetPosition(blCurrent);
+        motorBackRight.setTargetPosition(brCurrent);
     }
 
     /**
@@ -342,7 +350,10 @@ public class DeviceDrive extends Device {
      * @return If any drive motors are busy.
      */
     public boolean isBusy() {
-        if (aiming && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) return DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) >= Configuration.DRIVE_AIM_TOLERANCE;
+        // TODO: completely rework with checking position and feeding into DebounceControler
+        if (autoControl == AutoControl.CAMERA_AIM && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
+            return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET)) >= Configuration.DRIVE_AIM_TOLERANCE;
+        }
         return motorFrontLeft.isBusy() || motorFrontRight.isBusy() || motorBackLeft.isBusy() || motorBackRight.isBusy();
     }
 
@@ -352,6 +363,14 @@ public class DeviceDrive extends Device {
      */
     public boolean isReady() {
         return !isBusy();
+    }
+
+    /**
+     * Set the drive state (TELEOP or AUTO). Changes will take effect next update cycle.
+     * @param state The DriveState to set.
+     */
+    public void setDriveState(DriveState state) {
+        this.driveState = state;
     }
 
     /**
@@ -365,6 +384,91 @@ public class DeviceDrive extends Device {
         motorFrontRight.setMode(mode);
         motorBackLeft.setMode(mode);
         motorBackRight.setMode(mode);
+    }
+
+    /**
+     * Execute translate movement for AUTO mode.
+     * @param fieldCentric If true, applies field-centric rotation to the movement vector.
+     */
+    private void executeTranslateMovement(boolean fieldCentric) {
+        // sum all the queued requests
+        double totalForward = 0;
+        double totalStrafe = 0;
+        double totalRotate = 0;
+
+        for (Movement mvmt : movements) {
+            totalForward += mvmt.forward;
+            totalStrafe += mvmt.strafe;
+            totalRotate += mvmt.rotate;
+        }
+
+        // apply field-centric rotation if needed
+        if (fieldCentric) {
+            Vector2D fieldVector = DeviceIMU.rotateVector(new Vector2D(totalForward, totalStrafe));
+            totalForward = fieldVector.x;
+            totalStrafe = fieldVector.y;
+        }
+
+        // translate feet & degrees into encoder ticks
+        int encoderForward = (int) (totalForward * Configuration.DRIVE_MOTOR_FORWARD_TILE_TICKS / 2);
+        int encoderStrafe = (int) (totalStrafe * Configuration.DRIVE_MOTOR_STRAFE_TILE_TICKS / 2);
+        int encoderRotate = (int) (totalRotate * Configuration.DRIVE_MOTOR_ROTATE_CIRCLE_TICKS / 360);
+
+        // calculate target positions for each motor
+        int flIncrement = encoderForward + encoderStrafe + encoderRotate;
+        int frIncrement = encoderForward - encoderStrafe - encoderRotate;
+        int blIncrement = encoderForward - encoderStrafe + encoderRotate;
+        int brIncrement = encoderForward + encoderStrafe - encoderRotate;
+
+        int flTarget = motorFrontLeft.getTargetPosition() + flIncrement;
+        int frTarget = motorFrontRight.getTargetPosition() + frIncrement;
+        int blTarget = motorBackLeft.getTargetPosition() + blIncrement;
+        int brTarget = motorBackRight.getTargetPosition() + brIncrement;
+
+        // get current positions
+        int flCurrent = motorFrontLeft.getCurrentPosition();
+        int frCurrent = motorFrontRight.getCurrentPosition();
+        int blCurrent = motorBackLeft.getCurrentPosition();
+        int brCurrent = motorBackRight.getCurrentPosition();
+
+        // calculate distance each motor needs to travel
+        double flDistance = Math.abs(flTarget - flCurrent);
+        double frDistance = Math.abs(frTarget - frCurrent);
+        double blDistance = Math.abs(blTarget - blCurrent);
+        double brDistance = Math.abs(brTarget - brCurrent);
+
+        // find the max dist to normalize velocities
+        double maxDistance = Math.max(flDistance, Math.max(frDistance, Math.max(blDistance, brDistance)));
+
+        // calculate normalized velocities (proportional to distance, capped at max velocity)
+        double flVelocity = 0;
+        double frVelocity = 0;
+        double blVelocity = 0;
+        double brVelocity = 0;
+
+        if (maxDistance > 0) {
+            flVelocity = (flDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+            frVelocity = (frDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+            blVelocity = (blDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+            brVelocity = (brDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+        }
+
+        // Set target positions
+        motorFrontLeft.setTargetPosition(flTarget);
+        motorFrontRight.setTargetPosition(frTarget);
+        motorBackLeft.setTargetPosition(blTarget);
+        motorBackRight.setTargetPosition(brTarget);
+
+        // tell ts sdk that we wanna run to position
+        setRunMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
+        // Set motor velocities
+        motorFrontLeft.setVelocity(flVelocity);
+        motorFrontRight.setVelocity(frVelocity);
+        motorBackLeft.setVelocity(blVelocity);
+        motorBackRight.setVelocity(brVelocity);
+
+        movements.clear();
     }
 
     private double scaleInput(double value) {
