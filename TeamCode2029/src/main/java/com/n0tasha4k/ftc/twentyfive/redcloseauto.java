@@ -63,9 +63,9 @@ public class redcloseauto extends LinearOpMode {
 
                 left.setPower(1);
                 right.setPower(1);
-                sleep(100);
-                left.setPower(-1);
-                right.setPower(1);
+                sleep(200);
+                left.setPower(1);
+                right.setPower(-1);
                 sleep(400);
                 left.setPower(0);
                 right.setPower(0);

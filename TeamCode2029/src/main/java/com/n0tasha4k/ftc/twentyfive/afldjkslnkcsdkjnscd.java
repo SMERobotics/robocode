@@ -54,7 +54,7 @@ public class afldjkslnkcsdkjnscd extends LinearOpMode {
                         sleep(1900);
                         index.setPower(-1);
                         intakey.setPower(-1);
-                        sleep(2150);
+                        sleep(2175);
                         intakey.setPower(0);
                     } else {
                         sleep(500);
@@ -63,9 +63,9 @@ public class afldjkslnkcsdkjnscd extends LinearOpMode {
 
                 left.setPower(-1);
                 right.setPower(-1);
-                sleep(100);
-                left.setPower(-1);
-                right.setPower(1);
+                sleep(200);
+                left.setPower(1);
+                right.setPower(-1);
                 sleep(400);
                 left.setPower(0);
                 right.setPower(0);
