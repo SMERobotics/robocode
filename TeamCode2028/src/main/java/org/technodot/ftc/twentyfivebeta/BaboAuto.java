@@ -40,7 +40,7 @@ public class BaboAuto extends OpMode {
 
     public AutoType autoType = AutoType.CLOSE;
 
-    public Batch runtime = new Batch();
+    public Batch runtime;
 
     public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
@@ -58,40 +58,46 @@ public class BaboAuto extends OpMode {
     public void configure() {
         switch (autoType) {
             case CLOSE:
-                runtime.plan(new ContiguousSequence()
-                        .then((Callback) () -> deviceDrive.addMovement(-4.4, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG)))
-                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+//                runtime.plan(new ContiguousSequence()
+//                        .then((Callback) () -> deviceDrive.addMovement(-4.4, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG)))
+//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+//
+//                        .then((Callback) () -> {
+//                            deviceDrive.addMovement(0, 0, alliance.apply(-DeviceIMU.GOAL_DEG));
+//
+//                            // prepare to shoot
+//                            // may be kinda late
+//                            deviceExtake.setExtakeOverride(1200);
+//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
+//                        })
+//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+//
+//                        .then(S, (InterruptibleCallback) () -> {
+//                            deviceDrive.stageAim();
+//                            return deviceDrive.isReady();
+//                        })
+//                        .then(X, (InterruptibleCallback) () -> deviceExtake.isReady())
+//
+//                        // DOES NOT UTILIZE OBELISK & COLOR SENSOR YET, ONLY SHOOTS 2
+//                        // TODO: dynamically reconfigure shots based on obelisk
+//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+//                        .then(X, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+//                        .delay(670)
+//
+//                        .then((Callback) () -> {
+//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
+//                            deviceExtake.setExtakeOverride(0);
+//
+//                            deviceDrive.addMovement(-1.0, -2.0, 0.0);
+//                        })
+//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+//                );
 
-                        .then((Callback) () -> {
-                            deviceDrive.addMovement(0, 0, alliance.apply(-DeviceIMU.GOAL_DEG));
+                // close auto is just gonna be my auto control testing playground for now
 
-                            // prepare to shoot
-                            // may be kinda late
-                            deviceExtake.setExtakeOverride(1200);
-                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
-                        })
-                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
-
-                        .then(S, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceDrive.isReady();
-                        })
-                        .then(X, (InterruptibleCallback) () -> deviceExtake.isReady())
-
-                        // DOES NOT UTILIZE OBELISK & COLOR SENSOR YET, ONLY SHOOTS 2
-                        // TODO: dynamically reconfigure shots based on obelisk
-                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(X, (InterruptibleCallback) () -> deviceIntake.isEmpty())
-                        .delay(670)
-
-                        .then((Callback) () -> {
-                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
-                            deviceExtake.setExtakeOverride(0);
-
-                            deviceDrive.addMovement(-1.0, -2.0, 0.0);
-                        })
-                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
-                );
+                runtime.plan(0, (Callback) () -> {
+                    deviceDrive.addMovement(6, 6, 0);
+                });
 
                 break;
             case FAR:
@@ -99,7 +105,7 @@ public class BaboAuto extends OpMode {
                 // move the robot forward and start up the extake
                 runtime.plan(0, (Callback) () -> deviceDrive.addMovement(0.67, 0.0, 0.0));
                 runtime.plan(0, (Callback) () -> {
-                    deviceExtake.setExtakeOverride(1536);
+                    deviceExtake.setExtakeOverride(1530);
                     deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
                 });
 
@@ -200,6 +206,7 @@ public class BaboAuto extends OpMode {
 
     @Override
     public void init() {
+        runtime = new Batch(); // reset runtime on init?
         config();
 
         inputController = new SilentRunner101(null, null);

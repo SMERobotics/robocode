@@ -45,4 +45,12 @@ public class DebounceController {
             return (currentNs - lastErrorTimeNs) >= debounceTimeNs;
         }
     }
+
+    public void setSetpoint(double setpoint) {
+        this.setpoint = setpoint;
+    }
+
+    public double getSetpoint() {
+        return this.setpoint;
+    }
 }

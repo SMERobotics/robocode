@@ -32,7 +32,9 @@ public class DeviceDrive extends Device {
     private boolean rotating; // teleop only
     private long lastRotateNs;
     private boolean snapped;
-    private DebounceController rotateDebounce;
+    private DebounceController rotateGamepadDebounce; // specifically for teleop gamepad control
+    private DebounceController translateDebounce;
+    private DebounceController rotateDebounce; // specifically for AutoControl.IMU_ABSOLUTE
 
     private static boolean extakeFreeRotateAvailable;
     private static boolean extakeFreeRotateConsumed;
@@ -40,6 +42,8 @@ public class DeviceDrive extends Device {
 
     private PIDFController aimPID;
     private PIDFController rotatePID;
+    private PIDFController forwardPID;
+    private PIDFController strafePID;
 
     private ArrayList<Movement> movements = new ArrayList<>();
     public double targetFieldHeading;
@@ -93,7 +97,21 @@ public class DeviceDrive extends Device {
         rotatePID.setSetPoint(0.0);
         rotatePID.setIntegrationBounds(-1.0, 1.0);
 
-        rotateDebounce = new DebounceController(0.001);
+        forwardPID = new PIDFController(Configuration.DRIVE_FORWARD_KP, Configuration.DRIVE_FORWARD_KI, Configuration.DRIVE_FORWARD_KD, Configuration.DRIVE_FORWARD_KF);
+        forwardPID.setSetPoint(0.0);
+        forwardPID.setIntegrationBounds(-1.0, 1.0);
+
+        strafePID = new PIDFController(Configuration.DRIVE_STRAFE_KP, Configuration.DRIVE_STRAFE_KI, Configuration.DRIVE_STRAFE_KD, Configuration.DRIVE_STRAFE_KF);
+        strafePID.setSetPoint(0.0);
+        strafePID.setIntegrationBounds(-1.0, 1.0);
+
+        rotateGamepadDebounce = new DebounceController(0.001);
+        rotateGamepadDebounce.setpoint = 0.0;
+
+        translateDebounce = new DebounceController(Configuration.DRIVE_MOTOR_CONTROL_TOLERANCE_TICKS, Configuration.DRIVE_MOTOR_CONTROL_DEBOUNCE_MS * 1_000_000L);
+        translateDebounce.setpoint = 0.0;
+
+        rotateDebounce = new DebounceController(Configuration.DRIVE_ROTATE_TOLERANCE, Configuration.DRIVE_MOTOR_CONTROL_DEBOUNCE_MS * 1_000_000L);
         rotateDebounce.setpoint = 0.0;
     }
 
@@ -136,7 +154,7 @@ public class DeviceDrive extends Device {
                     extakeFreeRotateAvailable = false;
                 }
 
-                rotating = !rotateDebounce.update(rotateInput, nowish);
+                rotating = !rotateGamepadDebounce.update(rotateInput, nowish);
                 if (rotating) { // we need to take another snapshot
                     lastRotateNs = nowish;
                     snapped = false;
@@ -170,6 +188,19 @@ public class DeviceDrive extends Device {
 
                     case CAMERA_ABSOLUTE:
                         // TODO: implement camera-based absolute positioning
+
+                        AprilTagDetection tag = DeviceCamera.goalTagDetection;
+
+                        if (tag != null && tag.ftcPose != null) {
+                            this.update(
+                                    Range.clip(forwardPID.calculate(tag.ftcPose.range * Math.cos(Math.toRadians(tag.ftcPose.elevation))), -1.0, 1.0) / 3, // i think i did 2D correctly? irdfk
+                                    Range.clip(strafePID.calculate(tag.ftcPose.bearing), -1.0, 1.0) / 3, // CHECK THE NEGATIVE SIGNS
+                                    // which PID is better? rotate or aim? which coefficients are mroe optimized?
+                                    Range.clip(rotatePID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
+//                                    Range.clip(aimPID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
+                            );
+                        }
+
                         break;
 
                     case IMU_ABSOLUTE:
@@ -377,15 +408,11 @@ public class DeviceDrive extends Device {
     }
 
     /**
-     * Check if any drive motors are busy (AUTO mode only).
-     * @return If any drive motors are busy.
+     * Check if the drive is busy running the current command (AUTO mode only).
+     * @return If the drive is busy.
      */
     public boolean isBusy() {
-        // TODO: completely rework with checking position and feeding into DebounceControler
-        if (autoControl == AutoControl.CAMERA_AIM && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
-            return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET)) >= Configuration.DRIVE_AIM_TOLERANCE;
-        }
-        return motorFrontLeft.isBusy() || motorFrontRight.isBusy() || motorBackLeft.isBusy() || motorBackRight.isBusy();
+        return !isReady();
     }
 
     /**
@@ -393,7 +420,28 @@ public class DeviceDrive extends Device {
      * @return If the drive is ready.
      */
     public boolean isReady() {
-        return !isBusy();
+        switch (autoControl) {
+            case ROBOT_TRANSLATE:
+            case FIELD_TRANSLATE:
+                // Calculate max error across all motors
+                int flError = Math.abs(motorFrontLeft.getTargetPosition() - motorFrontLeft.getCurrentPosition());
+                int frError = Math.abs(motorFrontRight.getTargetPosition() - motorFrontRight.getCurrentPosition());
+                int blError = Math.abs(motorBackLeft.getTargetPosition() - motorBackLeft.getCurrentPosition());
+                int brError = Math.abs(motorBackRight.getTargetPosition() - motorBackRight.getCurrentPosition());
+                int maxError = Math.max(flError, Math.max(frError, Math.max(blError, brError)));
+
+                // Use debounce controller to check if within tolerance for debounce period
+                return translateDebounce.update(maxError);
+            case CAMERA_AIM:
+                return false; // TODO
+            case CAMERA_ABSOLUTE:
+                return false; // TODO
+            case IMU_ABSOLUTE:
+                double yawError = Math.abs(DeviceIMU.getSnapshotYawError());
+                return rotateDebounce.update(yawError);
+            default:
+                return false;
+        }
     }
 
     /**

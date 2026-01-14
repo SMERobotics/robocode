@@ -10,6 +10,8 @@ public class Configuration {
     public static volatile int DRIVE_MOTOR_FORWARD_TILE_TICKS = 1337; // as of 01/09/2026
     public static volatile int DRIVE_MOTOR_STRAFE_TILE_TICKS = 1521; // as of 01/09/2026
     public static volatile int DRIVE_MOTOR_ROTATE_CIRCLE_TICKS = 3939; // as of 01/09/2026
+    public static volatile int DRIVE_MOTOR_CONTROL_TOLERANCE_TICKS = 20;
+    public static volatile long DRIVE_MOTOR_CONTROL_DEBOUNCE_MS = 100;
     public static volatile double DRIVE_AUTO_MAX_VELOCITY = 1400;
     public static volatile double DRIVE_MOTOR_ACTIVATION = 0.2;
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
@@ -28,7 +30,15 @@ public class Configuration {
     public static volatile double DRIVE_ROTATE_KI = 0.0;
     public static volatile double DRIVE_ROTATE_KD = 0.0001;
     public static volatile double DRIVE_ROTATE_KF = 0.0;
-//    public static volatile double DRIVE_ROTATE_TOLERANCE = 1.0;
+    public static volatile double DRIVE_ROTATE_TOLERANCE = 1.0;
+    public static volatile double DRIVE_FORWARD_KP = 0.0;
+    public static volatile double DRIVE_FORWARD_KI = 0.0;
+    public static volatile double DRIVE_FORWARD_KD = 0.0;
+    public static volatile double DRIVE_FORWARD_KF = 0.0;
+    public static volatile double DRIVE_STRAFE_KP = 0.0;
+    public static volatile double DRIVE_STRAFE_KI = 0.0;
+    public static volatile double DRIVE_STRAFE_KD = 0.0;
+    public static volatile double DRIVE_STRAFE_KF = 0.0;
     public static volatile long DRIVE_ROTATE_SNAPSHOT_DELAY_NS = 100_000000L;
 
     public static volatile double INTAKE_MOTOR_NUDGE_POWER = 0.67;
