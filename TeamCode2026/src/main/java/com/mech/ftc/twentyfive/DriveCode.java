@@ -12,14 +12,21 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
 @Config
 @TeleOp(name="DriveCode")
 @SuppressWarnings("FieldCanBeLocal")
 public class DriveCode extends OpMode {
+    private int x = 1;
+    private int y = 0;
+    private int rotate = 0;
+
+    private boolean active;
 
     private PIDController controller;
 
-    public static double p = 0.01, i = 0.022, d = 0.000277;
+    public static double p = 0.01, i = 0.08, d = 0.000377;
     public static double f = 0.01;
 
     public static int targetPosition = 0;
@@ -29,6 +36,15 @@ public class DriveCode extends OpMode {
     private boolean prevRightBumper = false;
     private boolean prevLeftBumper = false;
 
+    public static double rotateDistance = 4;
+
+    private PIDController headingController;
+    public static double headingP = 0.03;
+    public static double headingI = 0.0;
+    public static double headingD = 0.001;
+    public static double headingToleranceDeg = 0;
+    public static double headingMaxPower = 0.6;
+
     DriveTrain driveTrain = new DriveTrain();
     Velocity v;
     Launcher launcher;
@@ -36,19 +52,10 @@ public class DriveCode extends OpMode {
     FtcDashboard dashboard = FtcDashboard.getInstance();
     com.acmerobotics.dashboard.telemetry.TelemetryPacket packet = new com.acmerobotics.dashboard.telemetry.TelemetryPacket();
 
-    private PIDController headingController;
-    public static double headingP = 0.03;
-    public static double headingI = 0.0;
-    public static double headingD = 0.001;
-    public static double headingToleranceDeg = 0.2;
-    public static double headingMaxPower = 0.6;
-    private boolean prevY = false;
-
     @Override
     public void init() {
         driveTrain.init(hardwareMap);
         camera.init(hardwareMap);
-        camera.start();
         dashboard.startCameraStream(camera.visionPortal, 30);
 
         v = new Velocity(driveTrain.frontLeft, driveTrain.frontRight);
@@ -66,19 +73,32 @@ public class DriveCode extends OpMode {
 
     @Override
     public void loop() {
-        //driveTrain.drive(gamepad1);
-
         boolean fire = gamepad1.right_trigger > 0.5;
         boolean tagVisible = camera.TagID() != -1;
         double distanceM = camera.getTagDistance();
 
         launcher.setEnabled(fire && tagVisible);
 
-        if (gamepad1.b) {
-            driveTrain.intake.setPower(1);
-        } else {
-            driveTrain.intake.setPower(0);
+        if (gamepad1.b && y == 0) {
+            switch (x) {
+                case 1:
+                    driveTrain.intake.setPower(1);
+                    x = 2;
+                    y = 1;
+                    break;
+                case 2:
+                    driveTrain.intake.setPower(0);
+                    x = 1;
+                    y = 1;
+                    break;
+                default:
+                    break;
+            }
         }
+        else if (!gamepad1.b) {
+            y = 0;
+        }
+
         if (gamepad1.a) {
             driveTrain.kicker.setPosition(0.25);
             driveTrain.wall.setPosition(0);
@@ -90,26 +110,23 @@ public class DriveCode extends OpMode {
             }
         }
 
-        boolean yPressedOnce = gamepad1.y && !prevY;
-        if (yPressedOnce) {
-            headingController = new PIDController(headingP, headingI, headingD);
-        }
+        headingController = new PIDController(headingP, headingI, headingD);
 
-        if (gamepad1.y && tagVisible) {
+        if (gamepad1.right_trigger > 0.5) {
             double bearing = camera.getTagBearing();
             if (Math.abs(bearing) > headingToleranceDeg) {
                 double turn = headingController.calculate(bearing, 0);
                 turn = Math.max(Math.min(turn, headingMaxPower), -headingMaxPower);
-                driveTrain.drive(0, 0, (float) turn);
+                driveTrain.drive(gamepad1.left_stick_y, gamepad1.left_stick_x, (float) turn);
             } else {
-                driveTrain.drive(0, 0, 0);
+                driveTrain.drive(gamepad1);
             }
         } else {
             driveTrain.drive(gamepad1);
         }
 
         if (gamepad1.left_trigger > 0.5) {
-            driveTrain.launchMotor.setPower(0.5);
+            driveTrain.launchMotor.setPower(1);
         }
         else {
             launcher.update(distanceM);
@@ -137,15 +154,30 @@ public class DriveCode extends OpMode {
         driveTrain.indexMotor.setPower(power);
 
         if (rbPressedOnce) {
-            targetPosition += 115;
+            targetPosition += 113;
         } else if (lbPressedOnce) {
-            targetPosition -= 115;
+            targetPosition -= 113;
         }
-        if (targetPosition > 576) targetPosition = 0;
-        if (targetPosition < -576) targetPosition = 0;
+        if (targetPosition > 566 || targetPosition < -566) {
+            if (driveTrain.intake.getPower() == 0) {
+                targetPosition = 0;
+                rotate = 0;
+            }
+        }
+        if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && driveTrain.intake.getPower() > 0 && active && rotate < 3) {
+            if (targetPosition >= 0) {
+                targetPosition += 226;
+            } else {
+                targetPosition -= 226;
+            }
+            rotate++;
+            active = false;
+        }
+        if (driveTrain.colorSensor.getDistance(DistanceUnit.CM) >= 6) {
+            active = true;
+        }
         prevRightBumper = rb;
         prevLeftBumper = lb;
-        prevY = gamepad1.y;
         getTelemetry();
     }
 
@@ -157,6 +189,8 @@ public class DriveCode extends OpMode {
         telemetry.addData("Target", targetPosition);
         telemetry.addData("launch velocity", driveTrain.launchMotor.getVelocity());
         telemetry.addData("target Velocity", launcher.getTargetVelocity());
+        telemetry.addData("Color", driveTrain.colorSensor.getNormalizedColors().toColor());
+        telemetry.addData("Ball Distance from Sensor(cm)", driveTrain.colorSensor.getDistance(DistanceUnit.CM));
         dashboard.sendTelemetryPacket(packet);
         telemetry.update();
     }
