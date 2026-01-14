@@ -47,6 +47,8 @@ public class DeviceDrive extends Device {
 
     private ArrayList<Movement> movements = new ArrayList<>();
     public double targetFieldHeading;
+    private boolean rotationQueued;
+    private double queuedTargetHeading;
 
     // actually i need to think about how i'm gonna build ts
     public enum DriveState {
@@ -431,13 +433,19 @@ public class DeviceDrive extends Device {
                 int maxError = Math.max(flError, Math.max(frError, Math.max(blError, brError)));
 
                 // Use debounce controller to check if within tolerance for debounce period
-                return translateDebounce.update(maxError);
+                boolean translationDone = translateDebounce.update(maxError);
+                if (translationDone && rotationQueued) {
+                    setTargetFieldHeading(queuedTargetHeading);
+                    rotationQueued = false;
+                    return false;
+                }
+                return translationDone;
             case CAMERA_AIM:
                 return false; // TODO
             case CAMERA_ABSOLUTE:
                 return false; // TODO
             case IMU_ABSOLUTE:
-                double yawError = Math.abs(DeviceIMU.getSnapshotYawError());
+                double yawError = Math.abs(DeviceIMU.calculateYawError(targetFieldHeading));
                 return rotateDebounce.update(yawError);
             default:
                 return false;
@@ -470,6 +478,8 @@ public class DeviceDrive extends Device {
      * @param fieldCentric If true, applies field-centric rotation to the movement vector.
      */
     private void executeTranslateMovement(boolean fieldCentric) {
+        boolean hasMovement = !movements.isEmpty();
+
         // sum all the queued requests
         double totalForward = 0;
         double totalStrafe = 0;
@@ -488,10 +498,43 @@ public class DeviceDrive extends Device {
             totalStrafe = fieldVector.y;
         }
 
+        // compensate translation for any simultaneous rotation so movement stays field-centric to the start pose
+        double compensatedForward = totalForward;
+        double compensatedStrafe = totalStrafe;
+        double rotationForEncoders = totalRotate;
+        if (hasMovement) {
+            double thetaRad = Math.toRadians(totalRotate);
+            boolean canBlendRotation = Math.abs(thetaRad) <= 1e-6; // tiny rotation, safe to blend
+            if (!canBlendRotation) {
+                double sinTheta = Math.sin(thetaRad);
+                double oneMinusCos = 1 - Math.cos(thetaRad);
+                double a = sinTheta / thetaRad;
+                double b = oneMinusCos / thetaRad;
+                double det = a * a + b * b;
+                if (det > 1e-6) {
+                    double invDet = 1.0 / det;
+                    compensatedForward = (a * totalForward + b * totalStrafe) * invDet;
+                    compensatedStrafe = (-b * totalForward + a * totalStrafe) * invDet;
+                    canBlendRotation = true;
+                }
+            }
+
+            if (!canBlendRotation && Math.abs(totalRotate) > 1e-6) {
+                // rotation is too large to cleanly combine with translation; queue an IMU-based rotation after the translate step
+                rotationQueued = true;
+                queuedTargetHeading = DeviceIMU.yaw + totalRotate;
+                rotationForEncoders = 0;
+                compensatedForward = totalForward;
+                compensatedStrafe = totalStrafe;
+            } else {
+                rotationQueued = false;
+            }
+        }
+
         // translate feet & degrees into encoder ticks
-        int encoderForward = (int) (totalForward * Configuration.DRIVE_MOTOR_FORWARD_TILE_TICKS / 2);
-        int encoderStrafe = (int) (totalStrafe * Configuration.DRIVE_MOTOR_STRAFE_TILE_TICKS / 2);
-        int encoderRotate = (int) (totalRotate * Configuration.DRIVE_MOTOR_ROTATE_CIRCLE_TICKS / 360);
+        int encoderForward = (int) (compensatedForward * Configuration.DRIVE_MOTOR_FORWARD_TILE_TICKS / 2);
+        int encoderStrafe = (int) (compensatedStrafe * Configuration.DRIVE_MOTOR_STRAFE_TILE_TICKS / 2);
+        int encoderRotate = (int) (rotationForEncoders * Configuration.DRIVE_MOTOR_ROTATE_CIRCLE_TICKS / 360);
 
         // calculate target positions for each motor
         int flIncrement = encoderForward + encoderStrafe + encoderRotate;
