@@ -1,6 +1,5 @@
 package org.technodot.ftc.twentyfivebeta.robocore;
 
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -43,8 +42,10 @@ public class DeviceIntake extends Device {
 
     private boolean sequenceTriggered;
     private boolean sequenceOverride;
+    private boolean dualShortSequenceTriggered;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
+    public static IntakeSide targetSide = IntakeSide.LEFT;
 
     private boolean nudging;
     private boolean nudgeTriggered;
@@ -171,47 +172,74 @@ public class DeviceIntake extends Device {
 
         // intake servo ctrl (L & R)
 
-        if ((ctrl.sequenceShoot() || sequenceOverride) && !sequenceTriggered) {
-            boolean hasLeft = leftArtifact != Artifact.NONE;
-            boolean hasRight = rightArtifact != Artifact.NONE;
-            
-            if (hasLeft && hasRight) {
-                // Both artifacts present: prioritize side matching queueArtifact
-                boolean leftMatchesQueue = leftArtifact == queueArtifact;
-                boolean rightMatchesQueue = rightArtifact == queueArtifact;
+        if (DeviceExtake.extakeState == DeviceExtake.ExtakeState.DUAL_SHORT) {
+            if ((ctrl.sequenceShoot() || sequenceOverride) && !dualShortSequenceTriggered) {
+                boolean hasLeft = leftArtifact != Artifact.NONE;
+                boolean hasRight = rightArtifact != Artifact.NONE;
 
-                if (leftMatchesQueue && !rightMatchesQueue) {
-                    // Left matches queue: launch left first
-                    sideDeque.addLast(IntakeSide.LEFT);
-                    sideDeque.addLast(IntakeSide.RIGHT);
-                } else if (rightMatchesQueue && !leftMatchesQueue) {
-                    // Right matches queue: launch right first
-                    sideDeque.addLast(IntakeSide.RIGHT);
-                    sideDeque.addLast(IntakeSide.LEFT);
-                } else {
-                    // Both or neither match: use alliance-based order
-                    if (alliance == Alliance.BLUE) {
-                        sideDeque.addLast(IntakeSide.LEFT);
-                        sideDeque.addLast(IntakeSide.RIGHT);
-                    } else {
-                        sideDeque.addLast(IntakeSide.RIGHT);
-                        sideDeque.addLast(IntakeSide.LEFT);
+                if (hasLeft || hasRight) {
+                    long now = System.currentTimeMillis();
+                    if (hasLeft) {
+                        leftActive = true;
+                        leftActivationTime = now;
                     }
+                    if (hasRight) {
+                        rightActive = true;
+                        rightActivationTime = now;
+                    }
+                    sideDeque.clear();
+                    DeviceDrive.consumeExtakeFreeRotate();
                 }
-            } else if (hasLeft) {
-                // Only left artifact present
-                sideDeque.addLast(IntakeSide.LEFT);
-            } else if (hasRight) {
-                // Only right artifact present
-                sideDeque.addLast(IntakeSide.RIGHT);
-            }
-            // If neither artifact is present, don't push anything
 
-            sequenceOverride = false;
-            nextOptimizedTransfer = System.currentTimeMillis();
-            sequenceTriggered = true;
-        } else if (!ctrl.sequenceShoot()) {
-            sequenceTriggered = false;
+                sequenceOverride = false;
+                dualShortSequenceTriggered = true;
+            } else if (!ctrl.sequenceShoot()) {
+                dualShortSequenceTriggered = false;
+                sequenceTriggered = false;
+            }
+        } else {
+            if ((ctrl.sequenceShoot() || sequenceOverride) && !sequenceTriggered) {
+                boolean hasLeft = leftArtifact != Artifact.NONE;
+                boolean hasRight = rightArtifact != Artifact.NONE;
+                
+                if (hasLeft && hasRight) {
+                    // Both artifacts present: prioritize side matching queueArtifact
+                    boolean leftMatchesQueue = leftArtifact == queueArtifact;
+                    boolean rightMatchesQueue = rightArtifact == queueArtifact;
+
+                    if (leftMatchesQueue && !rightMatchesQueue) {
+                        // Left matches queue: launch left first
+                        sideDeque.addLast(IntakeSide.LEFT);
+                        sideDeque.addLast(IntakeSide.RIGHT);
+                    } else if (rightMatchesQueue && !leftMatchesQueue) {
+                        // Right matches queue: launch right first
+                        sideDeque.addLast(IntakeSide.RIGHT);
+                        sideDeque.addLast(IntakeSide.LEFT);
+                    } else {
+                        // Both or neither match: use alliance-based order
+                        if (alliance == Alliance.BLUE) {
+                            sideDeque.addLast(IntakeSide.LEFT);
+                            sideDeque.addLast(IntakeSide.RIGHT);
+                        } else {
+                            sideDeque.addLast(IntakeSide.RIGHT);
+                            sideDeque.addLast(IntakeSide.LEFT);
+                        }
+                    }
+                } else if (hasLeft) {
+                    // Only left artifact present
+                    sideDeque.addLast(IntakeSide.LEFT);
+                } else if (hasRight) {
+                    // Only right artifact present
+                    sideDeque.addLast(IntakeSide.RIGHT);
+                }
+                // If neither artifact is present, don't push anything
+
+                sequenceOverride = false;
+                nextOptimizedTransfer = System.currentTimeMillis();
+                sequenceTriggered = true;
+            } else if (!ctrl.sequenceShoot()) {
+                sequenceTriggered = false;
+            }
         }
 
         boolean shouldActivateLeft = shouldActivateLeft();
@@ -221,6 +249,7 @@ public class DeviceIntake extends Device {
             leftActive = true;
             leftActivationTime = System.currentTimeMillis();
             leftTriggered = true;
+            DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateLeft) {
             leftTriggered = false;
         }
@@ -229,6 +258,7 @@ public class DeviceIntake extends Device {
             rightActive = true;
             rightActivationTime = System.currentTimeMillis();
             rightTriggered = true;
+            DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateRight) {
             rightTriggered = false;
         }
@@ -255,6 +285,47 @@ public class DeviceIntake extends Device {
         }
 
         statusTelem = (leftActive || rightActive) ? 670 : 0; // HEHEHEHA
+
+        // Update targetSide prediction
+        predictTargetSide();
+    }
+
+    /**
+     * Updates targetSide to predict the next side the intake will shoot from.
+     * This runs every update cycle, even when sideDeque is empty.
+     */
+    private void predictTargetSide() {
+        // If there's a queued side, use that as the prediction
+        if (!sideDeque.isEmpty()) {
+            targetSide = sideDeque.peek();
+            return;
+        }
+
+        // Otherwise, predict based on current state (same logic as queue population)
+        boolean hasLeft = leftArtifact != Artifact.NONE;
+        boolean hasRight = rightArtifact != Artifact.NONE;
+
+        if (hasLeft && hasRight) {
+            // Both artifacts present: prioritize side matching queueArtifact
+            boolean leftMatchesQueue = leftArtifact == queueArtifact;
+            boolean rightMatchesQueue = rightArtifact == queueArtifact;
+
+            if (leftMatchesQueue && !rightMatchesQueue) {
+                targetSide = IntakeSide.LEFT;
+            } else if (rightMatchesQueue && !leftMatchesQueue) {
+                targetSide = IntakeSide.RIGHT;
+            } else {
+                // Both or neither match: use alliance-based order
+                targetSide = (alliance == Alliance.BLUE) ? IntakeSide.LEFT : IntakeSide.RIGHT;
+            }
+        } else if (hasLeft) {
+            targetSide = IntakeSide.LEFT;
+        } else if (hasRight) {
+            targetSide = IntakeSide.RIGHT;
+        } else {
+            // No artifacts: predict based on alliance default
+            targetSide = (alliance == Alliance.BLUE) ? IntakeSide.LEFT : IntakeSide.RIGHT;
+        }
     }
 
     @Override
@@ -395,6 +466,7 @@ public class DeviceIntake extends Device {
         if (ctrl.intakeServoLeft()) return true;
 
         // Automatic sequence control
+        if (DeviceExtake.extakeState == DeviceExtake.ExtakeState.DUAL_SHORT) return false;
         if (!sideDeque.isEmpty()) {
             IntakeSide nextSide = sideDeque.peek();
             if (nextSide == IntakeSide.LEFT && System.currentTimeMillis() >= nextOptimizedTransfer) {
@@ -414,6 +486,7 @@ public class DeviceIntake extends Device {
         if (ctrl.intakeServoRight()) return true;
 
         // Automatic sequence control
+        if (DeviceExtake.extakeState == DeviceExtake.ExtakeState.DUAL_SHORT) return false;
         if (!sideDeque.isEmpty()) {
             IntakeSide nextSide = sideDeque.peek();
             if (nextSide == IntakeSide.RIGHT && System.currentTimeMillis() >= nextOptimizedTransfer) {

@@ -10,6 +10,7 @@ import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Movement;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
+import org.technodot.ftc.twentyfivebeta.roboctrl.DebounceController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.PIDFController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
@@ -31,6 +32,11 @@ public class DeviceDrive extends Device {
     private boolean rotating; // teleop only
     private long lastRotateNs;
     private boolean snapped;
+    private DebounceController rotateDebounce;
+
+    private static boolean extakeFreeRotateAvailable;
+    private static boolean extakeFreeRotateConsumed;
+    private DeviceExtake.ExtakeState lastExtakeState = DeviceExtake.ExtakeState.IDLE;
 
     private PIDFController aimPID;
     private PIDFController rotatePID;
@@ -86,6 +92,9 @@ public class DeviceDrive extends Device {
         rotatePID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
         rotatePID.setSetPoint(0.0);
         rotatePID.setIntegrationBounds(-1.0, 1.0);
+
+        rotateDebounce = new DebounceController(0.001);
+        rotateDebounce.setpoint = 0.0;
     }
 
     @Override
@@ -105,13 +114,29 @@ public class DeviceDrive extends Device {
                 if (Configuration.DEBUG) rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
                 SilentRunner101 ctrl = (SilentRunner101) inputController;
-                double rotate = ctrl.driveRotate();
+                double rotateInput = ctrl.driveRotate();
+                long nowish = System.nanoTime();
+
+                DeviceExtake.ExtakeState extakeState = DeviceExtake.extakeState;
+                boolean extakeActive = extakeState == DeviceExtake.ExtakeState.SHORT || extakeState == DeviceExtake.ExtakeState.LONG;
+                boolean extakeWasActive = lastExtakeState == DeviceExtake.ExtakeState.SHORT || lastExtakeState == DeviceExtake.ExtakeState.LONG;
+                if (extakeActive && !extakeWasActive) {
+                    extakeFreeRotateAvailable = true;
+                    extakeFreeRotateConsumed = false;
+                } else if (!extakeActive) {
+                    extakeFreeRotateAvailable = false;
+                    extakeFreeRotateConsumed = false;
+                }
+                lastExtakeState = extakeState;
 
                 if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
-                if (rotate != 0) aiming = false; // rotation can ONLY override
+                boolean freeRotateAllowed = aiming && rotateInput != 0 && extakeFreeRotateAvailable && !extakeFreeRotateConsumed;
+                if (rotateInput != 0 && !freeRotateAllowed) aiming = false; // rotation can ONLY override
+                if (freeRotateAllowed) {
+                    extakeFreeRotateAvailable = false;
+                }
 
-                rotating = rotate != 0;
-                long nowish = System.nanoTime();
+                rotating = !rotateDebounce.update(rotateInput, nowish);
                 if (rotating) { // we need to take another snapshot
                     lastRotateNs = nowish;
                     snapped = false;
@@ -121,8 +146,9 @@ public class DeviceDrive extends Device {
                 }
 
                 // apply the aiming and rotation pid loops
+                double rotate = rotateInput;
                 if (aiming) {
-                    rotate = calculateAim();
+                    rotate = freeRotateAllowed ? rotateInput : calculateAim();
                 } else {
                     if (aimPID != null) aimPID.reset();
                     if (!rotating) { // if we're tryna stay still, we stay the fuck still
@@ -211,7 +237,7 @@ public class DeviceDrive extends Device {
         AprilTagDetection tag = DeviceCamera.goalTagDetection;
 
         if (tag != null && tag.ftcPose != null) {
-            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET);
+            double bearing = tag.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET);
             if (Configuration.DEBUG) FtcDashboard.getInstance().getTelemetry().addData("b", bearing);
 //            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
@@ -227,6 +253,11 @@ public class DeviceDrive extends Device {
 //            if (aimPID != null) aimPID.reset();
             return 0.0;
         }
+    }
+
+    public static void consumeExtakeFreeRotate() {
+        extakeFreeRotateAvailable = false;
+        extakeFreeRotateConsumed = true;
     }
 
     /**

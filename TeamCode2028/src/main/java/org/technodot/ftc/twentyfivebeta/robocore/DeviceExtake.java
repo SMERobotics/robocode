@@ -16,6 +16,7 @@ public class DeviceExtake extends Device {
 
     boolean prevExtakeClose;
     boolean prevExtakeFar;
+    boolean prevExtakeDualClose;
 
     public static ExtakeState extakeState = ExtakeState.IDLE;
     public double targetVelocity; // current vel setpoint
@@ -26,6 +27,7 @@ public class DeviceExtake extends Device {
     public enum ExtakeState {
         IDLE,
         SHORT,
+        DUAL_SHORT,
         LONG,
         REVERSE,
         ZERO,
@@ -72,6 +74,7 @@ public class DeviceExtake extends Device {
 
         boolean extakeFar = ctrl.extakeFar();
         boolean extakeClose = ctrl.extakeClose();
+        boolean extakeDualClose = ctrl.extakeDualClose();
 
         if (ctrl.extakeReverse()) {
             extakeState = ExtakeState.REVERSE;
@@ -81,12 +84,16 @@ public class DeviceExtake extends Device {
         } else if (extakeClose && !prevExtakeClose) {
             extakeState = extakeState == ExtakeState.SHORT ? ExtakeState.IDLE : ExtakeState.SHORT;
             stabilizationCycles = 0;
+        } else if (extakeDualClose && !prevExtakeDualClose) {
+            extakeState = extakeState == ExtakeState.DUAL_SHORT ? ExtakeState.IDLE : ExtakeState.DUAL_SHORT;
+            stabilizationCycles = 0;
         } else if (extakeState == ExtakeState.REVERSE) {
             extakeState = ExtakeState.ZERO;
         }
 
         prevExtakeFar = extakeFar;
         prevExtakeClose = extakeClose;
+        prevExtakeDualClose = extakeDualClose;
 
         // PIDF coefficients should be applied only at init
         // temp moved to update cycle so Configuration changes will take effect
@@ -104,6 +111,9 @@ public class DeviceExtake extends Device {
                 break;
             case SHORT:
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
+                break;
+            case DUAL_SHORT:
+                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_DUAL_SHORT);
                 break;
             case LONG:
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
@@ -181,6 +191,7 @@ public class DeviceExtake extends Device {
     public boolean isReady() {
         switch (extakeState) {
             case SHORT:
+            case DUAL_SHORT:
             case LONG:
                 stabilizationCycles = Math.abs(motorExtakeLeft.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE && Math.abs(motorExtakeRight.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE ? stabilizationCycles + 1 : stabilizationCycles;
                 break;

@@ -16,6 +16,7 @@ public class Configuration {
     public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
     public static volatile double DRIVE_AIM_OFFSET = 2.0; // degrees, blue goal to the left, red goal to the right.
+    public static volatile double DRIVE_AIM_INTAKE_OFFSET = 1.3639;
     public static volatile double DRIVE_AIM_KP = 0.03; // prev 0.0267
     public static volatile double DRIVE_AIM_KI = 0.15;
     public static volatile double DRIVE_AIM_KD = 0.002;
@@ -49,6 +50,7 @@ public class Configuration {
     public static volatile double EXTAKE_MOTOR_KD = 0.1;
     public static volatile double EXTAKE_MOTOR_KF = 17.8;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200; // TODO: adjust
+    public static volatile double EXTAKE_MOTOR_SPEED_DUAL_SHORT = 1400; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1520; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_TOLERANCE = 20;
     public static volatile double EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD = 60;
