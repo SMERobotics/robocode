@@ -1,8 +1,10 @@
 package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.bylazar.configurables.annotations.Configurable;
 
 @Config
+@Configurable
 public class Configuration {
     public static volatile boolean DEBUG = true; // all targets override debug to false (should)
 
@@ -49,7 +51,7 @@ public class Configuration {
     public static volatile double INTAKE_RIGHT_ACTIVATION = 0.50;
     public static volatile double INTAKE_RIGHT_HOLD = 0.66;
     public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.72;
-    public static volatile long INTAKE_SERVO_INTERVAL_MS = 200;
+    public static volatile long INTAKE_SERVO_INTERVAL_MS = 167;
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 500;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
@@ -66,6 +68,10 @@ public class Configuration {
     public static volatile double EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD = 60;
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
     public static volatile int EXTAKE_STABILIZATION_CYCLES = 4; // TODO: test zero because human and intake latency should be enough time
+    // y (ticks/sec) = -0.0306x^2 + 12.8479 x + 415.9836
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = -0.00135941391;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = 5.06119602;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 874.146043;
     // y (ticks/sec) = 340.130269893 x (m/sec) - 783.609122293 @ r = 0.9969, R^2 = 0.9937
     public static volatile double EXTAKE_MODEL_VELOCITY_M = 340.130269893;
     public static volatile double EXTAKE_MODEL_VELOCITY_B = -783.609122293;
