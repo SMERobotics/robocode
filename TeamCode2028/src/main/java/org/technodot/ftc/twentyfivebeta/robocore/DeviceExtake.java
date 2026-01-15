@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 public class DeviceExtake extends Device {
@@ -116,7 +117,13 @@ public class DeviceExtake extends Device {
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_DUAL_SHORT);
                 break;
             case LONG:
-                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
+                // i think we're just gonna override long to quadratic modeled variable speed for now'
+                // not renaming any enums variables functions etc tho, too much effort and chance to break shit
+//                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
+
+                // quadratic simple model
+                // no physics
+                if (DeviceCamera.goalTagDetection != null) setTargetVelocity(ShotSolver.calculateLaunchVelocity(DeviceCamera.goalTagDetection.ftcPose.range));
                 break;
             case REVERSE:
                 motorExtakeLeft.setPower(-1.0);
@@ -141,7 +148,7 @@ public class DeviceExtake extends Device {
 
     @Override
     public void stop() {
-
+        ShotSolver.clearVelocityQueue();
     }
 
     /**

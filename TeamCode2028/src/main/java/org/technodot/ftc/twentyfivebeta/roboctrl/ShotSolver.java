@@ -1,8 +1,15 @@
 package org.technodot.ftc.twentyfivebeta.roboctrl;
 
+import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Vector3D;
 
+import java.util.ArrayDeque;
+import java.util.Queue;
+
 public class ShotSolver {
+
+    private static final Queue<Double> ranger = new ArrayDeque<>();
+    private static double sum;
 
     // X+: right
     // Y+: forward
@@ -59,5 +66,21 @@ public class ShotSolver {
                 tagPosition.y + goalXYZ.y - EXTAKE_OFFSET.y,
                 tagPosition.z + goalXYZ.z - EXTAKE_OFFSET.z
         )).y);
+    }
+
+    public static double calculateLaunchVelocity(double rangeIn) {
+        sum += rangeIn;
+        ranger.add(rangeIn);
+        if (ranger.size() > 10) sum -= ranger.remove();
+        double range = sum / ranger.size();
+
+        return Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_A * range * range
+                + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_B * range
+                + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_C;
+    }
+
+    public static void clearVelocityQueue() {
+        ranger.clear();
+        sum = 0;
     }
 }
