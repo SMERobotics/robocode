@@ -58,7 +58,7 @@ public class RedFarAuto extends LinearOpMode {
 
                 left.setPower(1);
                 right.setPower(1);
-                sleep(180);
+                sleep(45);
                 left.setPower(1);
                 right.setPower(-1);
                 sleep(410);
