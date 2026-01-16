@@ -508,11 +508,11 @@ public class DeviceIntake extends Device {
     }
 
     public static boolean isArtifactLeft(double cm1, double cm2) {
-        return (cm1 <= 3.9) && (cm2 <= 7);
+        return (cm1 <= 3.8) && (cm2 <= 4);
     }
 
     public static boolean isArtifactRight(double cm1, double cm2) {
-        return (cm1 <= 5) || (cm2 <= 2.7); // it was actually the right servo mb
+        return (cm1 <= 3.35) || (cm2 <= 2.17); // it was actually the right servo mb
     }
 
     public static Artifact getArtifactColor(NormalizedRGBA color) {
