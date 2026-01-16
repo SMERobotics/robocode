@@ -2,6 +2,7 @@ package org.technodot.ftc.twentyfivebeta.tests;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -15,6 +16,7 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import java.util.HashMap;
 
+@Disabled
 @TeleOp(name="CalibrateColorSensors", group="TechnoCode")
 public class CalibrateColorSensors extends OpMode {
 

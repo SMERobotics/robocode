@@ -1,5 +1,6 @@
 package org.technodot.ftc.twentyfivebeta.tests;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -13,6 +14,7 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
+@Disabled
 @TeleOp(name="CalibrateExtakeMotor", group="TechnoCode")
 public class CalibrateExtakeMotor extends OpMode {
 

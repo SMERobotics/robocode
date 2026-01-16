@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.Range;
 
+@Disabled
 @TeleOp(name="CalibrateDrive", group="TechnoCode")
 public class CalibrateDrive extends OpMode {
 
