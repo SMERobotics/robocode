@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "Straight67Auto")
-public class NUBALLAUTO extends LinearOpMode {
+@Autonomous(name = "BlueFarAuto")
+public class BlueFarAuto extends LinearOpMode {
 
     private DcMotor left;
     private DcMotor index;
@@ -32,34 +32,41 @@ public class NUBALLAUTO extends LinearOpMode {
 
         Servo finger = hardwareMap.servo.get("indexfinger");
 
-
         waitForStart();
         if (opModeIsActive()) {
             while (opModeIsActive()) {
-                left.setPower(-1);
-                right.setPower(1);
-                sleep(990);
-                left.setPower(0);
-                right.setPower(0);
-                shooter.setVelocity(2100);
+                shooter.setVelocity(2150);
                 index.setPower(-1);
 
                 sleep(2000);
 
                 for (int i = 0; i < 3 && opModeIsActive(); ) {
 
-                    if (shooter.getVelocity() > 1650) {
-                        i++;
-                        index.setPower(1);
-                        sleep(1900);
-                        index.setPower(-1);
-                        intakey.setPower(-1);
-                        sleep(2150);
-                        intakey.setPower(0);
-                    } else {
-                        sleep(500);
+                    long lastInvalidMs = 0;
+                    while (true) {
+                        if (shooter.getVelocity() < 2100)
+                            lastInvalidMs = System.currentTimeMillis();
+                        else if (lastInvalidMs + 3000 >= System.currentTimeMillis()) break;
                     }
+
+                    index.setPower(1);
+                    sleep(1900);
+                    index.setPower(-1);
+                    intakey.setPower(-1);
+                    sleep(2150);
+                    intakey.setPower(0);
+
+                    i++;
                 }
+
+                left.setPower(-1);
+                right.setPower(-1);
+                sleep(100);
+                left.setPower(1);
+                right.setPower(-1);
+                sleep(400);
+                left.setPower(0);
+                right.setPower(0);
 
 
 
