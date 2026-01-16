@@ -508,18 +508,20 @@ public class DeviceIntake extends Device {
     }
 
     public static boolean isArtifactLeft(double cm1, double cm2) {
-        return (cm1 <= 3.9) && (cm2 <= 7.5);
+        return (cm1 <= 3.9) && (cm2 <= 7);
     }
 
     public static boolean isArtifactRight(double cm1, double cm2) {
-        return (cm1 <= 5.8) || (cm2 <= 3.1); // it was actually the right servo mb
+        return (cm1 <= 5) || (cm2 <= 2.7); // it was actually the right servo mb
     }
 
     public static Artifact getArtifactColor(NormalizedRGBA color) {
         // TODO: rewrite to use hue instead of generic RGB comparisons
+        // if its not broken don't touch it
+        // and it aint broke (rn)
         if (!(color.red >= 0.002 || color.green >= 0.002 || color.blue >= 0.002)) return Artifact.NONE;
         if (color.blue >= color.green) return Artifact.PURPLE;
-        if (color.red > color.green) return Artifact.NONE; // orange ramp should trigger this, TEST!!!
+        if (color.red > color.green) return Artifact.NONE; // orange ramp should trigger this, TEST!!! (it doesn't but its also not broken, so i'll keep it)
         if (color.blue < color.green) return Artifact.GREEN;
         return Artifact.NONE;
     }

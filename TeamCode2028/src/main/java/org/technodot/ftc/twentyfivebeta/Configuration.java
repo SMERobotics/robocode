@@ -51,7 +51,7 @@ public class Configuration {
     public static volatile double INTAKE_RIGHT_ACTIVATION = 0.34;
     public static volatile double INTAKE_RIGHT_HOLD = 0.44;
     public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.5;
-    public static volatile long INTAKE_SERVO_INTERVAL_MS = 167;
+    public static volatile long INTAKE_SERVO_INTERVAL_MS = 136;
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 500;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
