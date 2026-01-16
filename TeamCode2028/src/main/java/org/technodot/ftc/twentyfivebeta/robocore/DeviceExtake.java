@@ -25,6 +25,10 @@ public class DeviceExtake extends Device {
     public static int stabilizationCycles;
     public boolean rumbled;
 
+    private Double lastStableRange;
+    private long rangeStableSince;
+    private boolean longModeInitialVelocitySet;
+
     public enum ExtakeState {
         IDLE,
         SHORT,
@@ -79,17 +83,22 @@ public class DeviceExtake extends Device {
 
         if (ctrl.extakeReverse()) {
             extakeState = ExtakeState.REVERSE;
+            longModeInitialVelocitySet = false;
         } else if (extakeFar && !prevExtakeFar) {
             extakeState = extakeState == ExtakeState.LONG ? ExtakeState.IDLE : ExtakeState.LONG;
             stabilizationCycles = 0;
+            longModeInitialVelocitySet = false;
         } else if (extakeClose && !prevExtakeClose) {
             extakeState = extakeState == ExtakeState.SHORT ? ExtakeState.IDLE : ExtakeState.SHORT;
             stabilizationCycles = 0;
+            longModeInitialVelocitySet = false;
         } else if (extakeDualClose && !prevExtakeDualClose) {
             extakeState = extakeState == ExtakeState.DUAL_SHORT ? ExtakeState.IDLE : ExtakeState.DUAL_SHORT;
             stabilizationCycles = 0;
+            longModeInitialVelocitySet = false;
         } else if (extakeState == ExtakeState.REVERSE) {
             extakeState = ExtakeState.ZERO;
+            longModeInitialVelocitySet = false;
         }
 
         prevExtakeFar = extakeFar;
@@ -117,13 +126,16 @@ public class DeviceExtake extends Device {
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_DUAL_SHORT);
                 break;
             case LONG:
-                // i think we're just gonna override long to quadratic modeled variable speed for now'
-                // not renaming any enums variables functions etc tho, too much effort and chance to break shit
-//                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
-
-                // quadratic simple model
-                // no physics
-                if (DeviceCamera.goalTagDetection != null) setTargetVelocity(ShotSolver.calculateLaunchVelocity(DeviceCamera.goalTagDetection.ftcPose.range));
+                // Start at default speed, dynamically adjust when AprilTag is visible
+                if (DeviceCamera.goalTagDetection != null) {
+                    setTargetVelocity(ShotSolver.calculateLaunchVelocity(DeviceCamera.goalTagDetection.ftcPose.range));
+                    longModeInitialVelocitySet = true;
+                } else if (!longModeInitialVelocitySet) {
+                    // Only set default velocity the very first time when tag is null
+                    setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_LONG);
+                    longModeInitialVelocitySet = true;
+                }
+                // Otherwise, keep the current velocity
                 break;
             case REVERSE:
                 motorExtakeLeft.setPower(-1.0);
@@ -199,9 +211,32 @@ public class DeviceExtake extends Device {
         switch (extakeState) {
             case SHORT:
             case DUAL_SHORT:
-            case LONG:
                 stabilizationCycles = Math.abs(motorExtakeLeft.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE && Math.abs(motorExtakeRight.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE ? stabilizationCycles + 1 : stabilizationCycles;
                 break;
+            case LONG:
+                // For LONG mode, require AprilTag visibility and range stability
+                if (DeviceCamera.goalTagDetection == null) {
+                    lastStableRange = null;
+                    rangeStableSince = 0;
+                    stabilizationCycles = 0;
+                    return false;
+                }
+
+                double currentRange = DeviceCamera.goalTagDetection.ftcPose.range;
+                long now = System.currentTimeMillis();
+
+                // Check if range is stable (within threshold of last stable range)
+                if (lastStableRange == null || Math.abs(currentRange - lastStableRange) > Configuration.EXTAKE_RANGE_STABILITY_THRESHOLD) {
+                    lastStableRange = currentRange;
+                    rangeStableSince = now;
+                }
+
+                boolean rangeStable = (now - rangeStableSince) >= Configuration.EXTAKE_RANGE_STABILITY_DURATION_MS;
+                boolean velocityStable = Math.abs(motorExtakeLeft.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE
+                        && Math.abs(motorExtakeRight.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE;
+
+                stabilizationCycles = velocityStable ? stabilizationCycles + 1 : stabilizationCycles;
+                return stabilizationCycles >= Configuration.EXTAKE_STABILIZATION_CYCLES && rangeStable;
             default:
                 stabilizationCycles = 0;
                 return false;
