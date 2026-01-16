@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "BlueFarAuto")
-public class BlueFarAuto extends LinearOpMode {
+@Autonomous(name = "RedFarAuto")
+public class RedFarAuto extends LinearOpMode {
 
     private DcMotor left;
     private DcMotor index;
@@ -56,8 +56,8 @@ public class BlueFarAuto extends LinearOpMode {
                     }
                 }
 
-                left.setPower(-1);
-                right.setPower(-1);
+                left.setPower(1);
+                right.setPower(1);
                 sleep(180);
                 left.setPower(1);
                 right.setPower(-1);
