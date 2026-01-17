@@ -204,7 +204,7 @@ public class BaboAuto extends OpMode {
 //                );
 
                 runtime.plan(new ContiguousSequence()
-                        .then((Callback) () -> deviceDrive.addMovement(1.0, 0.0, 0.0))
+                        .then((Callback) () -> deviceDrive.addMovement(0.867, 0.0, 0.0))
 
                         // # SEQUENCE: SHOOT THREE
 
@@ -229,7 +229,7 @@ public class BaboAuto extends OpMode {
 
                         // intake third
                         .then((Callback) () -> deviceIntake.setIntakeIn())
-                        .then(200, (Callback) () -> deviceDrive.stageAim())
+                        .then(300, (Callback) () -> deviceDrive.stageAim())
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
                         .then(500, (Callback) () -> deviceDrive.stageAim())
                         .then((Callback) () -> deviceIntake.setIntakeIdle())
@@ -301,7 +301,7 @@ public class BaboAuto extends OpMode {
                         .then(2000, (Callback) () -> deviceDrive.setAutoControl(DeviceDrive.AutoControl.CAMERA_ABSOLUTE)) // maybe turn down time
                         .then((Callback) () -> deviceDrive.resyncEncoders())
 
-                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(-36.7 - 1.0), 2000)) // TODO: maybe closer to 45 ish?
+                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(-56), 2000)) // TODO: maybe closer to 45 ish?
 //                        .delay(1000)
                         .delay(670) // extra time there
 
@@ -309,16 +309,17 @@ public class BaboAuto extends OpMode {
 
                         .then((Callback) () -> deviceDrive.addMovement(4.0, alliance.apply(-0.2), 0.0, 2000))
                         .delay(2000)
+                        .then((Callback) () -> deviceIntake.setIntakeIdle())
 
-                        .then((Callback) () -> deviceDrive.addMovement(-4.3, 0.0, alliance.apply(90 + 1.0)))
-                        .delay(4242)
+                        .then((Callback) () -> deviceDrive.addMovement(-2.5, 0.0, alliance.apply(67), 2000))
+                        .delay(3000)
 
-                        .then((Callback) () -> deviceDrive.addMovement(-2.3, 0.0, 0.0, 2000))
-//                        .delay(2000)
+                        .then((Callback) () -> deviceDrive.addMovement(-2.5, 0.0, 0.0, 2000))
+                        .delay(1600)
 
                         .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.REVERSE))
                         .then((Callback) () -> deviceIntake.triggerNudge())
-                        .delay(100)
+                        .delay(500)
                         .then((Callback) () -> {
                             deviceIntake.activateLeft();
                             deviceIntake.activateRight();
@@ -326,7 +327,7 @@ public class BaboAuto extends OpMode {
 //                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
                         .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DYNAMIC))
 //                        .delay(200)
-                        .delay(1200)
+//                        .delay(1200)
 
                         // # SEQUENCE: SHOOT TWO
 

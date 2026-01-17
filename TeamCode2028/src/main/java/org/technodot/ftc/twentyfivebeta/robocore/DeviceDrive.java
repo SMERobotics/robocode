@@ -174,8 +174,10 @@ public class DeviceDrive extends Device {
                 // apply the aiming and rotation pid loops
                 double rotate = rotateInput;
                 if (aiming) {
-                    if (tagAvailable) {
-                        rotate = freeRotateAllowed ? rotateInput : calculateAim();
+                    if (rotateInput != 0) {
+                        rotate = rotateInput;
+                    } else if (tagAvailable) {
+                        rotate = calculateAim();
                     } else {
                         rotate = rotateInput; // allow manual rotate to find a tag
                     }
