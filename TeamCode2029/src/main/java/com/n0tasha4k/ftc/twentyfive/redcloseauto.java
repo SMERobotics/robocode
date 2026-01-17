@@ -38,10 +38,10 @@ public class redcloseauto extends LinearOpMode {
             while (opModeIsActive()) {
                 left.setPower(-1);
                 right.setPower(1);
-                sleep(990);
+                sleep(920);
                 left.setPower(0);
                 right.setPower(0);
-                shooter.setVelocity(1760);
+                shooter.setVelocity(1750);
                 index.setPower(-1);
 
                 sleep(2000);
