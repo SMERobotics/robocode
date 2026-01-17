@@ -41,9 +41,10 @@ public class DeviceDrive extends Device {
     private DeviceExtake.ExtakeState lastExtakeState = DeviceExtake.ExtakeState.IDLE;
 
     private PIDFController aimPID;
-    private PIDFController rotatePID;
+    private PIDFController rotationLockPID;
     private PIDFController forwardPID;
     private PIDFController strafePID;
+    private PIDFController rotatePID;
 
     private ArrayList<Movement> movements = new ArrayList<>();
     public double targetFieldHeading;
@@ -95,9 +96,9 @@ public class DeviceDrive extends Device {
         aimPID.setSetPoint(0.0);
         aimPID.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
 
-        rotatePID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
-        rotatePID.setSetPoint(0.0);
-        rotatePID.setIntegrationBounds(-1.0, 1.0);
+        rotationLockPID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
+        rotationLockPID.setSetPoint(0.0);
+        rotationLockPID.setIntegrationBounds(-1.0, 1.0);
 
         forwardPID = new PIDFController(Configuration.DRIVE_FORWARD_KP, Configuration.DRIVE_FORWARD_KI, Configuration.DRIVE_FORWARD_KD, Configuration.DRIVE_FORWARD_KF);
         forwardPID.setSetPoint(0.0);
@@ -106,6 +107,10 @@ public class DeviceDrive extends Device {
         strafePID = new PIDFController(Configuration.DRIVE_STRAFE_KP, Configuration.DRIVE_STRAFE_KI, Configuration.DRIVE_STRAFE_KD, Configuration.DRIVE_STRAFE_KF);
         strafePID.setSetPoint(0.0);
         strafePID.setIntegrationBounds(-1.0, 1.0);
+
+        rotatePID = new PIDFController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+        rotatePID.setSetPoint(0.0);
+        rotatePID.setIntegrationBounds(-1.0, 1.0);
 
         rotateGamepadDebounce = new DebounceController(0.001);
         rotateGamepadDebounce.setpoint = 0.0;
@@ -131,15 +136,15 @@ public class DeviceDrive extends Device {
         switch (driveState) {
             case TELEOP:
                 if (Configuration.DEBUG) aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
-                if (Configuration.DEBUG) rotatePID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
+                if (Configuration.DEBUG) rotationLockPID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
                 SilentRunner101 ctrl = (SilentRunner101) inputController;
                 double rotateInput = ctrl.driveRotate();
                 long nowish = System.nanoTime();
 
                 DeviceExtake.ExtakeState extakeState = DeviceExtake.extakeState;
-                boolean extakeActive = extakeState == DeviceExtake.ExtakeState.SHORT || extakeState == DeviceExtake.ExtakeState.LONG;
-                boolean extakeWasActive = lastExtakeState == DeviceExtake.ExtakeState.SHORT || lastExtakeState == DeviceExtake.ExtakeState.LONG;
+                boolean extakeActive = extakeState == DeviceExtake.ExtakeState.SHORT || extakeState == DeviceExtake.ExtakeState.DYNAMIC;
+                boolean extakeWasActive = lastExtakeState == DeviceExtake.ExtakeState.SHORT || lastExtakeState == DeviceExtake.ExtakeState.DYNAMIC;
                 if (extakeActive && !extakeWasActive) {
                     extakeFreeRotateAvailable = true;
                     extakeFreeRotateConsumed = false;
@@ -150,8 +155,9 @@ public class DeviceDrive extends Device {
                 lastExtakeState = extakeState;
 
                 if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
+                if (extakeState == DeviceExtake.ExtakeState.IDLE || extakeState == DeviceExtake.ExtakeState.ZERO) aiming = false;
+                boolean tagAvailable = DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null;
                 boolean freeRotateAllowed = aiming && rotateInput != 0 && extakeFreeRotateAvailable && !extakeFreeRotateConsumed;
-                if (rotateInput != 0 && !freeRotateAllowed) aiming = false; // rotation can ONLY override
                 if (freeRotateAllowed) {
                     extakeFreeRotateAvailable = false;
                 }
@@ -168,11 +174,15 @@ public class DeviceDrive extends Device {
                 // apply the aiming and rotation pid loops
                 double rotate = rotateInput;
                 if (aiming) {
-                    rotate = freeRotateAllowed ? rotateInput : calculateAim();
+                    if (tagAvailable) {
+                        rotate = freeRotateAllowed ? rotateInput : calculateAim();
+                    } else {
+                        rotate = rotateInput; // allow manual rotate to find a tag
+                    }
                 } else {
                     if (aimPID != null) aimPID.reset();
                     if (!rotating) { // if we're tryna stay still, we stay the fuck still
-                        rotate = Range.clip(rotatePID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
+                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
                     }
                 }
 
@@ -206,7 +216,7 @@ public class DeviceDrive extends Device {
                         break;
 
                     case IMU_ABSOLUTE:
-                        this.update(0, 0, Range.clip(rotatePID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
+                        this.update(0, 0, Range.clip(rotationLockPID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
                         break;
 
                     case FIELD_TRANSLATE:
@@ -226,7 +236,7 @@ public class DeviceDrive extends Device {
     @Override
     public void stop() {
         aimPID.reset();
-        rotatePID.reset();
+        rotationLockPID.reset();
     }
 
     public void update(double forward, double strafe, double rotate) {
@@ -386,6 +396,12 @@ public class DeviceDrive extends Device {
         this.autoControl = AutoControl.IMU_ABSOLUTE;
     }
 
+    public void setCameraAbsolutePositioning(double range, double bearing, double yaw) {
+        forwardPID.setSetPoint(range);
+        strafePID.setSetPoint(yaw);
+        rotatePID.setSetPoint(bearing);
+    }
+
     /**
      * Reset all movement commands and encoder targets.
      */
@@ -467,7 +483,8 @@ public class DeviceDrive extends Device {
                 }
                 return translationDone;
             case CAMERA_AIM:
-                return false; // TODO
+                if (DeviceCamera.goalTagDetection != null) return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET)) <= 2.0;
+                return false;
             case CAMERA_ABSOLUTE:
                 return false; // TODO
             case IMU_ABSOLUTE:

@@ -66,6 +66,8 @@ public class BaboOS extends OpMode {
         deviceDrive.init(hardwareMap, inputController);
         deviceExtake.init(hardwareMap, inputController);
         deviceIntake.init(hardwareMap, inputController);
+
+        Configuration.DRIVE_AIM_OFFSET = 2.0;
     }
 
     @Override
@@ -82,7 +84,11 @@ public class BaboOS extends OpMode {
         deviceExtake.start();
         deviceIntake.start();
 
+        lastVibrationSecond = -1;
         begin = System.nanoTime();
+
+        Configuration.DRIVE_AIM_OFFSET = 2.0; // ts may have been overridden in auto
+        Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT = 0.0;
 
         telemetry.addData("status", "starting");
         telemetry.update();
@@ -101,18 +107,16 @@ public class BaboOS extends OpMode {
         deviceExtake.update();
         deviceIntake.update();
 
-        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("b=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.yaw));
+        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
-//        telemetry.addData("heading_offset", deviceIMU.getHeadingOffset());
         telemetry.addData("h", DeviceIMU.yaw);
 
+        if (DeviceCamera.goalTagDetection != null) t.addData("r", DeviceCamera.goalTagDetection.ftcPose.range);
+        if (DeviceCamera.goalTagDetection != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET));
+
         t.addData("ext_vel", deviceExtake.targetVelocity);
-//        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pos", deviceExtake.motorExtakeLeft.getCurrentPosition());
-//        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pos", deviceExtake.motorExtakeRight.getCurrentPosition());
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());
         if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel", deviceExtake.motorExtakeRight.getVelocity());
-//        if (deviceExtake.motorExtakeLeft != null) t.addData("exl_pwr", deviceExtake.motorExtakeLeft.getPower());
-//        if (deviceExtake.motorExtakeRight != null) t.addData("exr_pwr", deviceExtake.motorExtakeRight.getPower());
         t.addData("int_srv" , deviceIntake.statusTelem); // intake servo status, displayed for timing purposes
 
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
@@ -128,7 +132,7 @@ public class BaboOS extends OpMode {
 
                 if (elapsedSeconds == 100 || elapsedSeconds == 110 || elapsedSeconds == 115) {
                     ctrl.vibrateEndgame();
-                } else if (elapsedSeconds == 120) {
+                 } else if (elapsedSeconds == 120) {
                     ctrl.vibrateEndgameFinale();
                 } else {
 //                    ctrl.vibrateEndgameTick(); // ARRI DOESNT LIKE TS

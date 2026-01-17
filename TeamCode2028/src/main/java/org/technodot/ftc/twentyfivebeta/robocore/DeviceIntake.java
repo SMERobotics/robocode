@@ -43,6 +43,7 @@ public class DeviceIntake extends Device {
     private boolean sequenceTriggered;
     private boolean sequenceOverride;
     private boolean dualShortSequenceTriggered;
+    private long dualShortSequenceTriggerTime;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
     public static IntakeSide targetSide = IntakeSide.LEFT;
@@ -172,6 +173,11 @@ public class DeviceIntake extends Device {
 
         // intake servo ctrl (L & R)
 
+        if (DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+            dualShortSequenceTriggered = false;
+            dualShortSequenceTriggerTime = 0;
+        }
+
         if (DeviceExtake.extakeState == DeviceExtake.ExtakeState.DUAL_SHORT) {
             if ((ctrl.sequenceShoot() || sequenceOverride) && !dualShortSequenceTriggered) {
                 boolean hasLeft = leftArtifact != Artifact.NONE;
@@ -193,6 +199,7 @@ public class DeviceIntake extends Device {
 
                 sequenceOverride = false;
                 dualShortSequenceTriggered = true;
+                dualShortSequenceTriggerTime = System.currentTimeMillis();
             } else if (!ctrl.sequenceShoot()) {
                 dualShortSequenceTriggered = false;
                 sequenceTriggered = false;
@@ -261,6 +268,16 @@ public class DeviceIntake extends Device {
             DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateRight) {
             rightTriggered = false;
+        }
+
+        if (dualShortSequenceTriggerTime > 0 && DeviceExtake.extakeState == DeviceExtake.ExtakeState.DUAL_SHORT) {
+            long elapsed = System.currentTimeMillis() - dualShortSequenceTriggerTime;
+            if (elapsed >= Configuration.EXTAKE_DUAL_TRANSITION_MS) {
+                DeviceExtake.extakeState = DeviceExtake.ExtakeState.DYNAMIC;
+                DeviceExtake.stabilizationCycles = 0;
+                dualShortSequenceTriggered = false;
+                dualShortSequenceTriggerTime = 0;
+            }
         }
 
         // self-note: should deactivate come after activate? or should activate have priority?
@@ -392,6 +409,36 @@ public class DeviceIntake extends Device {
 
     public IntakeState getIntakeState() {
         return intakeState;
+    }
+
+    /**
+     * Unconditionally activates the left servo for the standard activation delay.
+     */
+    public void activateLeft() {
+        leftActive = true;
+        leftActivationTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Unconditionally activates the right servo for the standard activation delay.
+     */
+    public void activateRight() {
+        rightActive = true;
+        rightActivationTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Unconditionally deactivates the left servo.
+     */
+    public void deactivateLeft() {
+        leftActive = false;
+    }
+
+    /**
+     * Unconditionally deactivates the right servo.
+     */
+    public void deactivateRight() {
+        rightActive = false;
     }
 
     public void updateColorSensors() {

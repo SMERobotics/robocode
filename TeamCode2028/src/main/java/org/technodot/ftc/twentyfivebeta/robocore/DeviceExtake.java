@@ -33,7 +33,7 @@ public class DeviceExtake extends Device {
         IDLE,
         SHORT,
         DUAL_SHORT,
-        LONG,
+        DYNAMIC,
         REVERSE,
         ZERO,
         OVERRIDE
@@ -85,7 +85,7 @@ public class DeviceExtake extends Device {
             extakeState = ExtakeState.REVERSE;
             longModeInitialVelocitySet = false;
         } else if (extakeFar && !prevExtakeFar) {
-            extakeState = extakeState == ExtakeState.LONG ? ExtakeState.IDLE : ExtakeState.LONG;
+            extakeState = extakeState == ExtakeState.DYNAMIC ? ExtakeState.IDLE : ExtakeState.DYNAMIC;
             stabilizationCycles = 0;
             longModeInitialVelocitySet = false;
         } else if (extakeClose && !prevExtakeClose) {
@@ -125,7 +125,7 @@ public class DeviceExtake extends Device {
             case DUAL_SHORT:
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_DUAL_SHORT);
                 break;
-            case LONG:
+            case DYNAMIC:
                 // Start at default speed, dynamically adjust when AprilTag is visible
                 if (DeviceCamera.goalTagDetection != null) {
                     setTargetVelocity(ShotSolver.calculateLaunchVelocity(DeviceCamera.goalTagDetection.ftcPose.range));
@@ -213,8 +213,8 @@ public class DeviceExtake extends Device {
             case DUAL_SHORT:
                 stabilizationCycles = Math.abs(motorExtakeLeft.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE && Math.abs(motorExtakeRight.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE ? stabilizationCycles + 1 : stabilizationCycles;
                 break;
-            case LONG:
-                // For LONG mode, require AprilTag visibility and range stability
+            case DYNAMIC:
+                // For DYNAMIC mode, require AprilTag visibility and range stability
                 if (DeviceCamera.goalTagDetection == null) {
                     lastStableRange = null;
                     rangeStableSince = 0;

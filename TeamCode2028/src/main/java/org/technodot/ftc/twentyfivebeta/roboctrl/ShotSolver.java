@@ -74,8 +74,8 @@ public class ShotSolver {
         if (ranger.size() > 10) sum -= ranger.remove();
         double range = sum / ranger.size();
 
-        return Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_A * range * range
-                + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_B * range
+        return Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_A * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT) * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT)
+                + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_B * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT)
                 + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_C;
     }
 
