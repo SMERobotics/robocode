@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@Autonomous(name = "BlueCloseAuto")
+@Autonomous(name = "6BlueCloseAuto7")
 public class afldjkslnkcsdkjnscd extends LinearOpMode {
 
     private DcMotor left;
@@ -38,10 +38,10 @@ public class afldjkslnkcsdkjnscd extends LinearOpMode {
             while (opModeIsActive()) {
                 left.setPower(-1);
                 right.setPower(1);
-                sleep(920);
+                sleep(675);
                 left.setPower(0);
                 right.setPower(0);
-                shooter.setVelocity(1750);
+                shooter.setVelocity(1700);
                 index.setPower(-1);
 
                 sleep(2000);
@@ -54,7 +54,7 @@ public class afldjkslnkcsdkjnscd extends LinearOpMode {
                         sleep(1900);
                         index.setPower(-1);
                         intakey.setPower(-1);
-                        sleep(2175);
+                        sleep(2250);
                         intakey.setPower(0);
                     } else {
                         sleep(500);
