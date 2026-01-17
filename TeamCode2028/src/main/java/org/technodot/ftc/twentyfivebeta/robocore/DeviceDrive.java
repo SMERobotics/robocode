@@ -331,6 +331,19 @@ public class DeviceDrive extends Device {
     }
 
     /**
+     * Stage a movement command with a custom max velocity override to be processed in next ts update cycle.
+     * Resets current AutoControl to ROBOT_TRANSLATE mode!!!
+     * @param forward robot-centric forward, in feet
+     * @param strafe robot-centric strafe, in feet
+     * @param rotate robot-centric rotate, in degrees
+     * @param velocity Max motor velocity override (encoder ticks/sec).
+     */
+    public void addMovement(double forward, double strafe, double rotate, double velocity) {
+        movements.add(new Movement(forward, strafe, rotate, velocity));
+        this.autoControl = AutoControl.ROBOT_TRANSLATE;
+    }
+
+    /**
      * Stage a movement command to be processed in next ts update cycle.
      * @param forward field-centric forward, in feet
      * @param strafe field-centric strafe, in feet
@@ -339,6 +352,19 @@ public class DeviceDrive extends Device {
      */
     public void addMovement(double forward, double strafe, double rotate, boolean fieldCentric) {
         movements.add(new Movement(forward, strafe, rotate));
+        this.autoControl = fieldCentric ? AutoControl.FIELD_TRANSLATE : AutoControl.ROBOT_TRANSLATE;
+    }
+
+    /**
+     * Stage a movement command with a custom max velocity override to be processed in next ts update cycle.
+     * @param forward field-centric forward, in feet
+     * @param strafe field-centric strafe, in feet
+     * @param rotate robot-centric rotate, in degrees
+     * @param fieldCentric If true, applies field-centric rotation to the movement vector.
+     * @param maxVelocityOverride Max motor velocity override (encoder ticks/sec).
+     */
+    public void addMovement(double forward, double strafe, double rotate, boolean fieldCentric, double maxVelocityOverride) {
+        movements.add(new Movement(forward, strafe, rotate, maxVelocityOverride));
         this.autoControl = fieldCentric ? AutoControl.FIELD_TRANSLATE : AutoControl.ROBOT_TRANSLATE;
     }
 
@@ -484,11 +510,26 @@ public class DeviceDrive extends Device {
         double totalForward = 0;
         double totalStrafe = 0;
         double totalRotate = 0;
+        double maxVelocity = Configuration.DRIVE_AUTO_MAX_VELOCITY;
+        boolean hasVelocityOverride = false;
+        double velocityOverride = 0.0;
 
         for (Movement mvmt : movements) {
             totalForward += mvmt.forward;
             totalStrafe += mvmt.strafe;
             totalRotate += mvmt.rotate;
+            if (!Double.isNaN(mvmt.velocity) && mvmt.velocity > 0) {
+                if (!hasVelocityOverride) {
+                    velocityOverride = mvmt.velocity;
+                    hasVelocityOverride = true;
+                } else {
+                    velocityOverride = Math.min(velocityOverride, mvmt.velocity);
+                }
+            }
+        }
+
+        if (hasVelocityOverride) {
+            maxVelocity = velocityOverride;
         }
 
         // apply field-centric rotation if needed
@@ -569,10 +610,10 @@ public class DeviceDrive extends Device {
         double brVelocity = 0;
 
         if (maxDistance > 0) {
-            flVelocity = (flDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-            frVelocity = (frDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-            blVelocity = (blDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
-            brVelocity = (brDistance / maxDistance) * Configuration.DRIVE_AUTO_MAX_VELOCITY;
+            flVelocity = (flDistance / maxDistance) * maxVelocity;
+            frVelocity = (frDistance / maxDistance) * maxVelocity;
+            blVelocity = (blDistance / maxDistance) * maxVelocity;
+            brVelocity = (brDistance / maxDistance) * maxVelocity;
         }
 
         // Set target positions
