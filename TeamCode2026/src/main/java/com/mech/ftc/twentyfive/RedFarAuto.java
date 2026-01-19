@@ -4,7 +4,12 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.Arclength;
+import com.acmerobotics.roadrunner.Pose2dDual;
+import com.acmerobotics.roadrunner.PosePath;
+import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.VelConstraint;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.mech.ftc.twentyfive.defaults.Camera;
 import com.mech.ftc.twentyfive.defaults.Launcher;
@@ -21,8 +26,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-@Autonomous(name = "BlueAuto")
-public class BlueAuto extends LinearOpMode {
+@Autonomous(name = "RedFarAuto")
+public class RedFarAuto extends LinearOpMode {
 
     public volatile int ID = -1;
     public volatile static int target;
@@ -38,7 +43,7 @@ public class BlueAuto extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        Pose2d beginPose = new Pose2d(-45, -45, Math.toRadians(225));
+        Pose2d beginPose = new Pose2d(0, 0, Math.toRadians(270));
         MecanumDrive drive = new MecanumDrive(hardwareMap, beginPose);
         DcMotorEx launchMotor = hardwareMap.get(DcMotorEx.class, "launchMotor");
         DcMotorEx frontLeft = hardwareMap.get(DcMotorEx.class, "frontLeft");
@@ -51,7 +56,7 @@ public class BlueAuto extends LinearOpMode {
         launchMotor.setVelocityPIDFCoefficients(launchP, launchI, launchD, launchF);
         ColorRangeSensor colorSensor = hardwareMap.get(ColorRangeSensor.class, "colorSensor");
 
-        double p = 0.01, i = 0.05, d = 0.0005;
+        double p = 0.01, i = 0.08, d = 0.000277;
         double f = 0;
         PIDController controller = new PIDController(p, i, d);
 
@@ -79,8 +84,8 @@ public class BlueAuto extends LinearOpMode {
                 indexMotor.setPower(power);
 
                 if (colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && intakeMotor.getPower() < 0 && active) {
-                        target += 226;
-                        active = false;
+                    target += 226;
+                    active = false;
                 }
                 if (colorSensor.getDistance(DistanceUnit.CM) >= 4.9) {
                     active = true;
@@ -91,8 +96,36 @@ public class BlueAuto extends LinearOpMode {
 
         Actions.runBlocking(
                 drive.actionBuilder(beginPose)
-                        .stopAndAdd(new LaunchZero(launchMotor, 1600))
-                        .strafeToLinearHeading(new Vector2d(-12, -12), Math.toRadians(405))
+                        .strafeToLinearHeading(new Vector2d(0,14), Math.toRadians(245))
+                        .stopAndAdd(new LaunchZero(launchMotor, 1970))
+                        .stopAndAdd(new Index(0))
+                        .stopAndAdd(new Wall(wall, 0))
+                        .waitSeconds(.05)
+                        .stopAndAdd(new Kick(kicker, .25))
+                        .waitSeconds(1.3)
+                        .stopAndAdd(new Kick(kicker, 0))
+                        .waitSeconds(.7)
+                        .stopAndAdd(new Index(226))
+                        .waitSeconds(.7)
+                        .stopAndAdd(new Kick(kicker, .25))
+                        .waitSeconds(.7)
+                        .stopAndAdd(new Kick(kicker, 0))
+                        .waitSeconds(.7)
+                        .stopAndAdd(new Index(452))
+                        .waitSeconds(.7)
+                        .stopAndAdd(new Kick(kicker, .25))
+                        .waitSeconds(.7)
+                        .stopAndAdd(new Wall(wall, .4))
+                        .stopAndAdd(new Kick(kicker, 0))
+                        .waitSeconds(1)
+                        .stopAndAdd(new LaunchZero(launchMotor, 1970))
+                        .stopAndAdd(new IntakePower(intakeMotor, -1))
+                        .strafeToLinearHeading(new Vector2d(0, 27), Math.toRadians(0))
+                        .stopAndAdd(new Index(113))
+                        .strafeToLinearHeading(new Vector2d(48, 27), Math.toRadians(0))
+                        .stopAndAdd(new IntakePower(intakeMotor, 0))
+                        .stopAndAdd(new Index(0))
+                        .strafeToLinearHeading(new Vector2d(0,14), Math.toRadians(245))
                         .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
                         .stopAndAdd(new Index(0))
                         .stopAndAdd(new Wall(wall, 0))
@@ -100,78 +133,22 @@ public class BlueAuto extends LinearOpMode {
                         .stopAndAdd(new Kick(kicker, .25))
                         .waitSeconds(1.3)
                         .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.5)
+                        .waitSeconds(.7)
                         .stopAndAdd(new Index(226))
-                        .waitSeconds(.3)
+                        .waitSeconds(.7)
                         .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
+                        .waitSeconds(.7)
                         .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.5)
+                        .waitSeconds(.7)
                         .stopAndAdd(new Index(452))
-                        .waitSeconds(.5)
+                        .waitSeconds(.7)
                         .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
+                        .waitSeconds(.7)
                         .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
-                        .stopAndAdd(new LaunchZero(launchMotor, 0))
-                        .stopAndAdd(new IntakePower(intakeMotor, -1))
-                        .strafeToLinearHeading(new Vector2d(-3, -28), Math.toRadians(270))
-                        .stopAndAdd(new Index(113))
-                        .strafeToLinearHeading(new Vector2d(-3, -55), Math.toRadians(270))
-                        .stopAndAdd(new IntakePower(intakeMotor, 0))
-                        .stopAndAdd(new Index(-4))
-                        .stopAndAdd(new LaunchZero(launchMotor, 1600))
-                        .strafeToLinearHeading(new Vector2d(-12, -12), Math.toRadians(405))
-                        .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
-                        .stopAndAdd(new Wall(wall, 0))
-                        .waitSeconds(.05)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Index(226))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Index(452))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
-                        .stopAndAdd(new Wall(wall, .4))
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .stopAndAdd(new LaunchZero(launchMotor, 0))
-                        .stopAndAdd(new IntakePower(intakeMotor, -1))
-                        .strafeToLinearHeading(new Vector2d(18,-28),Math.toRadians(270))
-                        .stopAndAdd(new Index(113))
-                        .strafeToLinearHeading(new Vector2d(18, -65), Math.toRadians(270))
-                        .stopAndAdd(new IntakePower(intakeMotor, 0))
-                        .stopAndAdd(new Index(-4))
-                        .stopAndAdd(new LaunchZero(launchMotor, 1600))
-                        .strafeToLinearHeading(new Vector2d(-15, -15), Math.toRadians(405))
-                        .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
-                        .stopAndAdd(new Wall(wall, 0))
-                        .waitSeconds(.05)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Index(226))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Index(452))
-                        .waitSeconds(.3)
-                        .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
-                        .stopAndAdd(new Wall(wall, .4))
-                        .stopAndAdd(new Kick(kicker, 0))
-                        .strafeToLinearHeading(new Vector2d(-35, -15), Math.toRadians(450))
-                        .stopAndAdd(new LaunchZero(launchMotor, 0))
-                        .waitSeconds(100)
+                        .waitSeconds(1)
+                        .stopAndAdd(new LaunchZero(launchMotor,0))
+                        .strafeToLinearHeading(new Vector2d(0, 25), Math.toRadians(270))
                         .build());
 
     }
@@ -258,18 +235,18 @@ public class BlueAuto extends LinearOpMode {
     }
     public class LaunchZero implements Action {
         DcMotorEx launcherMotor;
-        int vel;
+        double speed;
 
-        public LaunchZero(DcMotorEx launcherMotor, int vel) {
+        public LaunchZero(DcMotorEx launcherMotor, double speed) {
             this.launcherMotor = launcherMotor;
-            this.vel = vel;
+            this.speed = speed;
 
 
         }
 
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            launcherMotor.setVelocity(vel);
+            launcherMotor.setVelocity(speed);
             return false;
 
         }

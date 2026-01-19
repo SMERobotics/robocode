@@ -14,13 +14,11 @@ public class Launcher {
     private final double alpha = 0.3;
 
     private double targetFrac = 0.0;
-    private final double maxTicksPerSec;
+    private final double maxTicksPerSec = 2500;
 
     public Launcher(DcMotorEx motor, Velocity one) {
         v = one;
         launcherMotor = motor;
-        maxTicksPerSec = 2500;
-
         launcherMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
@@ -52,7 +50,7 @@ public class Launcher {
         double targetVelocity = targetFrac * maxTicksPerSec;
 
         if (distanceMeters > 2.3 && targetVelocity != 0 || distanceMeters == 0 && targetVelocity != 0) {
-            launcherMotor.setVelocity(targetVelocity+100);
+            launcherMotor.setVelocity(targetVelocity+120);
         }
         else {
             launcherMotor.setVelocity(targetVelocity);

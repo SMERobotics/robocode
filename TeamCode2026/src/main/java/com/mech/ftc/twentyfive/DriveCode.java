@@ -122,6 +122,7 @@ public class DriveCode extends OpMode {
                 driveTrain.drive(gamepad1);
             }
         } else {
+            headingController.reset();
             driveTrain.drive(gamepad1);
         }
 
