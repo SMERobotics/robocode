@@ -1,11 +1,13 @@
 package org.technodot.ftc.twentyfivebeta.tests;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 // fym yall didnt keep track of what fucking motor/encoder wire pair corresponds to WHICH FUCKING MOTOR
 // ts opmode test each individual motor
+@Disabled
 @TeleOp(name="TestDriveMotor", group="TechnoCode")
 public class TestDriveMotor extends OpMode {
 

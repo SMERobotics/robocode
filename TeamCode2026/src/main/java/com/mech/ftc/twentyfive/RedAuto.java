@@ -4,12 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.Arclength;
-import com.acmerobotics.roadrunner.Pose2dDual;
-import com.acmerobotics.roadrunner.PosePath;
-import com.acmerobotics.roadrunner.TranslationalVelConstraint;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.acmerobotics.roadrunner.VelConstraint;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.mech.ftc.twentyfive.defaults.Camera;
 import com.mech.ftc.twentyfive.defaults.Launcher;
@@ -56,7 +51,7 @@ public class RedAuto extends LinearOpMode {
         launchMotor.setVelocityPIDFCoefficients(launchP, launchI, launchD, launchF);
         ColorRangeSensor colorSensor = hardwareMap.get(ColorRangeSensor.class, "colorSensor");
 
-        double p = 0.01, i = 0.08, d = 0.000277;
+        double p = 0.01, i = 0.05, d = 0.0005;
         double f = 0;
         PIDController controller = new PIDController(p, i, d);
 
@@ -83,11 +78,11 @@ public class RedAuto extends LinearOpMode {
 
                 indexMotor.setPower(power);
 
-                if (colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && intakeMotor.getPower() > 0 && active) {
+                if (colorSensor.getDistance(DistanceUnit.CM) < rotateDistance && intakeMotor.getPower() < 0 && active) {
                     target += 226;
                     active = false;
                 }
-                if (colorSensor.getDistance(DistanceUnit.CM) >= 6) {
+                if (colorSensor.getDistance(DistanceUnit.CM) >= 4.9) {
                     active = true;
                 }
             }
@@ -96,10 +91,10 @@ public class RedAuto extends LinearOpMode {
 
         Actions.runBlocking(
                 drive.actionBuilder(beginPose)
-                        .strafeToLinearHeading(new Vector2d(-15, 15), Math.toRadians(315))
+                        .stopAndAdd(new LaunchZero(launchMotor, 1600))
+                        .strafeToLinearHeading(new Vector2d(-12, 12), Math.toRadians(315))
                         .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
                         .stopAndAdd(new Index(0))
-                        .waitSeconds(.5)
                         .stopAndAdd(new Wall(wall, 0))
                         .waitSeconds(.05)
                         .stopAndAdd(new Kick(kicker, .25))
@@ -118,42 +113,64 @@ public class RedAuto extends LinearOpMode {
                         .waitSeconds(.5)
                         .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
-                        .stopAndAdd(new LaunchZero(launchMotor))
-                        .stopAndAdd(new IntakePower(intakeMotor, 1))
-                        .strafeToLinearHeading(new Vector2d(-3, 32), Math.toRadians(90))
+                        .stopAndAdd(new LaunchZero(launchMotor, 0))
+                        .stopAndAdd(new IntakePower(intakeMotor, -1))
+                        .strafeToLinearHeading(new Vector2d(-3, 28), Math.toRadians(90))
                         .stopAndAdd(new Index(113))
-                        .waitSeconds(1)
-                        .strafeToLinearHeading(new Vector2d(-3, 50), Math.toRadians(90), new VelConstraint() {
-                            @Override
-                            public double maxRobotVel(@NonNull Pose2dDual<Arclength> pose2dDual, @NonNull PosePath posePath, double v) {
-                                return 3;
-                            }
-                        })
+                        .strafeToLinearHeading(new Vector2d(-3, 55), Math.toRadians(90))
                         .stopAndAdd(new IntakePower(intakeMotor, 0))
                         .stopAndAdd(new Index(-4))
-                        .strafeToLinearHeading(new Vector2d(-15, 15), Math.toRadians(315))
+                        .stopAndAdd(new LaunchZero(launchMotor, 1600))
+                        .strafeToLinearHeading(new Vector2d(-12, 12), Math.toRadians(315))
                         .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
-                        .waitSeconds(.5)
                         .stopAndAdd(new Wall(wall, 0))
                         .waitSeconds(.05)
                         .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
+                        .waitSeconds(.3)
                         .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.5)
+                        .waitSeconds(.3)
                         .stopAndAdd(new Index(226))
                         .waitSeconds(.3)
                         .stopAndAdd(new Kick(kicker, .25))
-                        .waitSeconds(.5)
+                        .waitSeconds(.3)
                         .stopAndAdd(new Kick(kicker, 0))
-                        .waitSeconds(.5)
+                        .waitSeconds(.3)
                         .stopAndAdd(new Index(452))
-                        .waitSeconds(.5)
+                        .waitSeconds(.3)
                         .stopAndAdd(new Kick(kicker, .25))
                         .waitSeconds(.5)
                         .stopAndAdd(new Wall(wall, .4))
                         .stopAndAdd(new Kick(kicker, 0))
-                        .stopAndAdd(new LaunchZero(launchMotor))
-                        .strafeToLinearHeading(new Vector2d(-30,15),Math.toRadians(90))
+                        .stopAndAdd(new LaunchZero(launchMotor, 0))
+                        .stopAndAdd(new IntakePower(intakeMotor, -1))
+                        .strafeToLinearHeading(new Vector2d(18,28),Math.toRadians(90))
+                        .stopAndAdd(new Index(113))
+                        .strafeToLinearHeading(new Vector2d(18, 65), Math.toRadians(90))
+                        .stopAndAdd(new IntakePower(intakeMotor, 0))
+                        .stopAndAdd(new Index(-4))
+                        .stopAndAdd(new LaunchZero(launchMotor, 1600))
+                        .strafeToLinearHeading(new Vector2d(-15, 15), Math.toRadians(312))
+                        .stopAndAdd(new Launch(launchMotor, frontLeft, frontRight, camera))
+                        .stopAndAdd(new Wall(wall, 0))
+                        .waitSeconds(.05)
+                        .stopAndAdd(new Kick(kicker, .25))
+                        .waitSeconds(.3)
+                        .stopAndAdd(new Kick(kicker, 0))
+                        .waitSeconds(.3)
+                        .stopAndAdd(new Index(226))
+                        .waitSeconds(.3)
+                        .stopAndAdd(new Kick(kicker, .25))
+                        .waitSeconds(.3)
+                        .stopAndAdd(new Kick(kicker, 0))
+                        .waitSeconds(.3)
+                        .stopAndAdd(new Index(452))
+                        .waitSeconds(.3)
+                        .stopAndAdd(new Kick(kicker, .25))
+                        .waitSeconds(.5)
+                        .stopAndAdd(new Wall(wall, .4))
+                        .stopAndAdd(new Kick(kicker, 0))
+                        .strafeToLinearHeading(new Vector2d(-35, 15), Math.toRadians(270))
+                        .stopAndAdd(new LaunchZero(launchMotor, 0))
                         .waitSeconds(100)
                         .build());
 
@@ -241,16 +258,18 @@ public class RedAuto extends LinearOpMode {
     }
     public class LaunchZero implements Action {
         DcMotorEx launcherMotor;
+        int vel;
 
-        public LaunchZero(DcMotorEx launcherMotor) {
+        public LaunchZero(DcMotorEx launcherMotor, int vel) {
             this.launcherMotor = launcherMotor;
+            this.vel = vel;
 
 
         }
 
         @Override
         public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-            launcherMotor.setVelocity(0);
+            launcherMotor.setVelocity(vel);
             return false;
 
         }

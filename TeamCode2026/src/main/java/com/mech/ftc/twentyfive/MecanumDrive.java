@@ -83,8 +83,8 @@ public final class MecanumDrive {
 
         // path controller gains
         public double axialGain = 3;
-        public double lateralGain = 6;
-        public double headingGain = 7; // shared with turn
+        public double lateralGain = 4;
+        public double headingGain = 4; // shared with turn
 
         public double axialVelGain = 0;
         public double lateralVelGain = 0.0;
@@ -307,7 +307,7 @@ public final class MecanumDrive {
 
             Pose2d error = txWorldTarget.value().minusExp(localizer.getPose());
 
-            if (t >= timeTrajectory.duration /*&& Math.toDegrees(error.heading.toDouble()) < 1*/ && error.position.norm() < 2 && robotVelRobot.linearVel.norm() < .5 && robotVelRobot.angVel < .5 || t >= timeTrajectory.duration + .5) {
+            if (t >= timeTrajectory.duration && /*Math.abs(error.heading.toDouble()) < 1 &&*/ error.position.norm() < 1 && robotVelRobot.linearVel.norm() < .5 && robotVelRobot.angVel < .5 || t >= timeTrajectory.duration + .5) {
                 leftFront.setPower(0);
                 leftBack.setPower(0);
                 rightBack.setPower(0);

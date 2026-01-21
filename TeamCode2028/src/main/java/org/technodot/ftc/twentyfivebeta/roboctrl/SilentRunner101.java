@@ -86,11 +86,15 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean driveAim() {
-        return ready() && (gamepad1.a || gamepad1.x || gamepad1.y || gamepad1.b);
+        return ready() && (gamepad1.a || gamepad1.x || gamepad1.b || gamepad1.left_bumper);
     }
 
+//    public boolean extakeClose() {
+//        return ready() && gamepad1.a;
+//    }
+
     public boolean extakeClose() {
-        return ready() && gamepad1.a;
+        return false; // unbound
     }
 
     public boolean extakeFar() {
@@ -98,7 +102,7 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean extakeDualClose() {
-        return ready() && gamepad1.y;
+        return ready() && gamepad1.left_bumper; // rebound!
     }
 
     public boolean extakeReverse() {
@@ -114,7 +118,7 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean intakeNudge() {
-        return ready() && gamepad1.left_bumper;
+        return ready() && gamepad1.y;
     }
 
     public boolean intakeServoLeft() {
