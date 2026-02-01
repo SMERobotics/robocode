@@ -2,6 +2,19 @@ package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.control.FilteredPIDFCoefficients;
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.follower.FollowerConstants;
+import com.pedropathing.ftc.FollowerBuilder;
+import com.pedropathing.ftc.drivetrains.MecanumConstants;
+import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.paths.PathConstraints;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 @Config
 @Configurable
@@ -88,4 +101,45 @@ public class Configuration {
     public static volatile int GAMEPAD_RUMBLE_STRONG_MS = 500;
     public static volatile int GAMEPAD_RUMBLE_WEAK_MS = 100;
     public static volatile int GAMEPAD_RUMBLE_FINALE_MS = 6767;
+
+    public static final PinpointConstants ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS = new PinpointConstants()
+            .forwardPodY(2.735)
+            .strafePodX(-0.500) // basically 0.500 inches, measured as of 1/29/26
+            .distanceUnit(DistanceUnit.INCH)
+            .hardwareMapName("pinpoint")
+            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD) // LEO YOU MF IM GONNA UNALIVE YOU
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+
+    public static final MecanumConstants ODOMETRY_DRIVE_MECANUM_CONSTANTS = new MecanumConstants()
+            .maxPower(1)
+            .leftFrontMotorName("motorFrontLeft")
+            .rightFrontMotorName("motorFrontRight")
+            .leftRearMotorName("motorBackLeft")
+            .rightRearMotorName("motorBackRight")
+            .leftFrontMotorDirection(DcMotorEx.Direction.FORWARD)
+            .rightFrontMotorDirection(DcMotorEx.Direction.FORWARD)
+            .leftRearMotorDirection(DcMotorEx.Direction.REVERSE)
+            .rightRearMotorDirection(DcMotorEx.Direction.FORWARD)
+            .xVelocity(63.90)
+            .yVelocity(50.50);
+
+    public static final FollowerConstants ODOMETRY_FOLLOWER_CONSTANTS = new FollowerConstants()
+            .mass(13.608) // TODO: NOT MEASURED, ONLY GUESSTIMATED
+            .forwardZeroPowerAcceleration(-51.653)
+            .lateralZeroPowerAcceleration(-89.833)
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.065, 0, 0.003, 0.025)) // TODO: NOT MEASURED
+            .headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0.01, 0.025)) // TODO: NOT MEASURED
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0, 0.0001, 0.6, 0.025)) // TODO: NOT MEASURED
+            .centripetalScaling(0.0003); // TODO: NOT MEASURED
+
+    public static final PathConstraints ODOMETRY_PATH_CONSTANTS = new PathConstraints(0.99, 100, 1, 1);
+
+    public static Follower createFollower(HardwareMap hardwareMap) {
+        return new FollowerBuilder(ODOMETRY_FOLLOWER_CONSTANTS, hardwareMap)
+                .pinpointLocalizer(ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS)
+                .mecanumDrivetrain(ODOMETRY_DRIVE_MECANUM_CONSTANTS)
+                .pathConstraints(ODOMETRY_PATH_CONSTANTS)
+                .build();
+    }
 }
