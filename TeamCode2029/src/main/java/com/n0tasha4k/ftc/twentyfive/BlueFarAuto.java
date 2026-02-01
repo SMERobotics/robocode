@@ -36,7 +36,7 @@ public class BlueFarAuto extends LinearOpMode {
         waitForStart();
         if (opModeIsActive()) {
             while (opModeIsActive()) {
-                shooter.setVelocity(2150);
+                shooter.setVelocity(2125);
                 index.setPower(-1);
 
                 sleep(2000);
