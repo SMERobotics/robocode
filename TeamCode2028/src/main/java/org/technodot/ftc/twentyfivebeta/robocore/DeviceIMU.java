@@ -13,6 +13,7 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+@Deprecated
 public class DeviceIMU extends Device {
 
 //    public IMU imu;
