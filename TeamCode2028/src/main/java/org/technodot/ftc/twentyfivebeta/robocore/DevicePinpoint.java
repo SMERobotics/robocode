@@ -7,6 +7,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
@@ -48,6 +49,10 @@ public class DevicePinpoint extends Device {
     @Override
     public void stop() {
 
+    }
+
+    public static Vector2D rotateVector(Vector2D movement) {
+        return movement.rotate(Math.toRadians(pinpoint.getHeading(AngleUnit.DEGREES) + (alliance == Alliance.BLUE ? -90 : 90)));
     }
 
     public void setPose(double x, double y, double h) {

@@ -65,7 +65,7 @@ public class ShotSolver {
                 tagPosition.x + goalXYZ.x - EXTAKE_OFFSET.x,
                 tagPosition.y + goalXYZ.y - EXTAKE_OFFSET.y,
                 tagPosition.z + goalXYZ.z - EXTAKE_OFFSET.z
-        )).y);
+        )).y);  
     }
 
     public static double calculateLaunchVelocity(double rangeIn) {

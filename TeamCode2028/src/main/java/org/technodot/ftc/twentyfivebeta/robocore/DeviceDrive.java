@@ -189,7 +189,7 @@ public class DeviceDrive extends Device {
                 }
 
                 // field-centric kinematics for teleop
-                Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
+                Vector2D fieldCentric = DevicePinpoint.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
                 this.update(fieldCentric.x, fieldCentric.y, rotate);
 
                 break;

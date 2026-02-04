@@ -134,10 +134,10 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean resetYaw() {
-        return ready() && gamepad1.start;
+        return ready() && gamepad1.options;
     }
 
-    public boolean resetPos() { return ready() && gamepad1.options; }
+    public boolean resetPos() { return ready() && gamepad1.start; }
 
     public boolean queuePurple() {
         return ready() && (gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y);
