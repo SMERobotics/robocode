@@ -31,8 +31,8 @@ public class CalibrateExtakeMotor extends OpMode {
 
     public Follower follower;
 
-    public final double TARGET_X = 144;
-    public final double TARGET_Y = 0;
+    public final double TARGET_X = 0;
+    public final double TARGET_Y = 144;
 
     private final Queue<Double> window = new ArrayDeque<>();
     private double sum;
