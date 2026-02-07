@@ -1,14 +1,18 @@
 package org.technodot.ftc.twentyfivebeta.tests;
 
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.pedro.Follower;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
+import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import java.util.ArrayDeque;
@@ -19,8 +23,11 @@ import java.util.Queue;
 public class CalibrateExtakeMotor extends OpMode {
 
     public DeviceCamera deviceCamera;
+    public DevicePinpoint devicePinpoint;
     public DeviceExtake deviceExtake;
     public DeviceIntake deviceIntake;
+
+    public Follower follower;
 
     private final Queue<Double> window = new ArrayDeque<>();
     private double sum;
@@ -28,8 +35,15 @@ public class CalibrateExtakeMotor extends OpMode {
 
     @Override
     public void init() {
+        follower = Configuration.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose(72, 72, Math.PI / 2));
+        follower.update();
+
         deviceCamera = new DeviceCamera(Alliance.BLUE);
         deviceCamera.init(hardwareMap, new SilentRunner101(null, null));
+
+        devicePinpoint = new DevicePinpoint(Alliance.BLUE);
+        devicePinpoint.init(hardwareMap, new SilentRunner101(gamepad1, gamepad2));
 
         deviceExtake = new DeviceExtake(Alliance.BLUE);
         deviceExtake.init(hardwareMap, new SilentRunner101(null, null));
@@ -47,6 +61,8 @@ public class CalibrateExtakeMotor extends OpMode {
 
     @Override
     public void start() {
+        deviceCamera.start();
+        devicePinpoint.start();
         deviceExtake.start();
         deviceIntake.start();
 
@@ -56,7 +72,15 @@ public class CalibrateExtakeMotor extends OpMode {
 
     @Override
     public void loop() {
+        follower.setTeleOpDrive(
+                -gamepad1.left_stick_y,
+                gamepad1.left_stick_x,
+                gamepad1.right_stick_x,
+                false
+        );
+
         deviceCamera.update();
+        devicePinpoint.update();
 
         if (gamepad1.dpad_up) {
             velocity += 1;
@@ -64,14 +88,14 @@ public class CalibrateExtakeMotor extends OpMode {
             velocity -= 1;
         }
 
-        deviceExtake.setExtakeOverride(velocity * 20);
+        deviceExtake.setExtakeOverride(velocity * 10);
 
         deviceExtake.update();
         deviceIntake.update();
 
         AprilTagDetection tag = deviceCamera.getGoalDetection();
 
-        telemetry.addData("ext", velocity * 20);
+        telemetry.addData("ext", velocity * 10);
         if (tag != null) {
             sum += tag.ftcPose.range;
             window.add(tag.ftcPose.range);
@@ -84,6 +108,8 @@ public class CalibrateExtakeMotor extends OpMode {
 
     @Override
     public void stop() {
+        deviceCamera.stop();
+        devicePinpoint.stop();
         deviceExtake.stop();
         deviceIntake.stop();
 

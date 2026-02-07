@@ -73,6 +73,8 @@ public class SilentRunner101 extends InputController {
         super(gamepad1, gamepad2);
     }
 
+    // GAMEPAD 1 CTRLS
+
     public float driveForward() {
         return ready() && Math.abs(gamepad1.left_stick_y) > Configuration.DRIVE_CONTROLLER_DEADZONE ? -gamepad1.left_stick_y : 0.0f;
     }
@@ -137,14 +139,8 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.options;
     }
 
-    public boolean resetPos() { return ready() && gamepad1.start; }
-
-    public boolean queuePurple() {
-        return ready() && (gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y);
-    }
-
-    public boolean queueGreen() {
-        return ready() && (gamepad2.dpad_up || gamepad2.dpad_down || gamepad2.dpad_left || gamepad2.dpad_right);
+    public boolean resetPos() {
+        return ready() && gamepad1.start;
     }
 
     public void vibrateExtakeReady() {
@@ -169,5 +165,34 @@ public class SilentRunner101 extends InputController {
         if (ready()) {
             gamepad1.rumble(1.0, 1.0, Configuration.GAMEPAD_RUMBLE_FINALE_MS);
         }
+    }
+
+    // GAMEPAD 2 CTRLS
+
+    public boolean queuePurple() {
+        return ready() && (gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y);
+    }
+
+    public boolean queueGreen() {
+        return ready() && (gamepad2.dpad_up || gamepad2.dpad_down || gamepad2.dpad_left || gamepad2.dpad_right);
+    }
+
+    // actually, continuous relocalization may not be the best idea
+    // maybe only relocalizing when the trigger(s) are down would be a better impl
+
+    public boolean relocalizeBlueGoalEnable() {
+        return ready() && gamepad2.left_trigger > 0.5;
+    }
+
+    public boolean relocalizeBlueGoalDisable() {
+        return ready() && gamepad2.left_bumper;
+    }
+
+    public boolean relocalizeRedGoalEnable() {
+        return ready() && gamepad2.right_trigger > 0.5;
+    }
+
+    public boolean relocalizeRedGoalDisable() {
+        return ready() && gamepad2.right_bumper;
     }
 }
