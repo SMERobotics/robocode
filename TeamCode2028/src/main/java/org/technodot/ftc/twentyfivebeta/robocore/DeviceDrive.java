@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
@@ -167,7 +168,8 @@ public class DeviceDrive extends Device {
                     lastRotateNs = nowish;
                     snapped = false;
                 } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
-                    DeviceIMU.setSnapshotYaw();
+//                    DeviceIMU.setSnapshotYaw();
+                    DevicePinpoint.setSnapshotYaw();
                     snapped = true;
                 }
 
@@ -184,7 +186,8 @@ public class DeviceDrive extends Device {
                 } else {
                     if (aimPID != null) aimPID.reset();
                     if (!rotating) { // if we're tryna stay still, we stay the fuck still
-                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
+//                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
+                        rotate = Range.clip(rotationLockPID.calculate(DevicePinpoint.getSnapshotYawError()), -1.0, 1.0);
                     }
                 }
 
@@ -218,7 +221,7 @@ public class DeviceDrive extends Device {
                         break;
 
                     case IMU_ABSOLUTE:
-                        this.update(0, 0, Range.clip(rotationLockPID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
+//                        this.update(0, 0, Range.clip(rotationLockPID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
                         break;
 
                     case FIELD_TRANSLATE:
@@ -490,8 +493,8 @@ public class DeviceDrive extends Device {
             case CAMERA_ABSOLUTE:
                 return false; // TODO
             case IMU_ABSOLUTE:
-                double yawError = Math.abs(DeviceIMU.calculateYawError(targetFieldHeading));
-                return rotateDebounce.update(yawError);
+//                double yawError = Math.abs(DeviceIMU.calculateYawError(targetFieldHeading));
+//                return rotateDebounce.update(yawError);
             default:
                 return false;
         }
@@ -553,7 +556,8 @@ public class DeviceDrive extends Device {
 
         // apply field-centric rotation if needed
         if (fieldCentric) {
-            Vector2D fieldVector = DeviceIMU.rotateVector(new Vector2D(totalForward, totalStrafe));
+//            Vector2D fieldVector = DeviceIMU.rotateVector(new Vector2D(totalForward, totalStrafe));
+            Vector2D fieldVector = DevicePinpoint.rotateVector(new Vector2D(totalForward, totalStrafe));
             totalForward = fieldVector.x;
             totalStrafe = fieldVector.y;
         }
@@ -582,7 +586,8 @@ public class DeviceDrive extends Device {
             if (!canBlendRotation && Math.abs(totalRotate) > 1e-6) {
                 // rotation is too large to cleanly combine with translation; queue an IMU-based rotation after the translate step
                 rotationQueued = true;
-                queuedTargetHeading = DeviceIMU.yaw + totalRotate;
+//                queuedTargetHeading = DeviceIMU.yaw + totalRotate;
+                queuedTargetHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES) + totalRotate;
                 rotationForEncoders = 0;
                 compensatedForward = totalForward;
                 compensatedStrafe = totalStrafe;

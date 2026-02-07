@@ -15,6 +15,8 @@ public class DevicePinpoint extends Device {
 
     public static GoBildaPinpointDriver pinpoint;
 
+    public static double snapshotYaw;
+
     public DevicePinpoint(Alliance alliance) {
         super(alliance);
     }
@@ -67,7 +69,19 @@ public class DevicePinpoint extends Device {
     }
 
     public void resetIMU() {
-        pinpoint.recalibrateIMU();
+//        pinpoint.recalibrateIMU();
+        pinpoint.setHeading(0, AngleUnit.DEGREES);
+    }
+
+    public static void setSnapshotYaw() {
+        snapshotYaw = pinpoint.getHeading(AngleUnit.DEGREES);
+    }
+
+    public static double getSnapshotYawError() {
+        double error = snapshotYaw - pinpoint.getHeading(AngleUnit.DEGREES);
+        while (error > 180) error -= 360;
+        while (error < -180) error += 360;
+        return error;
     }
 
     private void updatePinpoint() {
