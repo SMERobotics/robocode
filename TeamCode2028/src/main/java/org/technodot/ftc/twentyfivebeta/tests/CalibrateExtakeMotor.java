@@ -5,6 +5,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
@@ -28,6 +30,9 @@ public class CalibrateExtakeMotor extends OpMode {
     public DeviceIntake deviceIntake;
 
     public Follower follower;
+
+    public final double TARGET_X = 144;
+    public final double TARGET_Y = 0;
 
     private final Queue<Double> window = new ArrayDeque<>();
     private double sum;
@@ -73,9 +78,9 @@ public class CalibrateExtakeMotor extends OpMode {
     @Override
     public void loop() {
         follower.setTeleOpDrive(
-                -gamepad1.left_stick_y,
-                gamepad1.left_stick_x,
-                gamepad1.right_stick_x,
+                -gamepad1.left_stick_y / 5,
+                gamepad1.left_stick_x / 5,
+                gamepad1.right_stick_x / 5,
                 false
         );
 
@@ -94,6 +99,24 @@ public class CalibrateExtakeMotor extends OpMode {
         deviceIntake.update();
 
         AprilTagDetection tag = deviceCamera.getGoalDetection();
+
+        double x = devicePinpoint.pinpoint.getPosX(DistanceUnit.INCH);
+        double y = devicePinpoint.pinpoint.getPosY(DistanceUnit.INCH);
+        double h = devicePinpoint.pinpoint.getHeading(AngleUnit.RADIANS);
+
+        telemetry.addData("x", x);
+        telemetry.addData("y", y);
+        telemetry.addData("h", h);
+
+        telemetry.addData("d", Math.hypot(devicePinpoint.pinpoint.getPosX(DistanceUnit.INCH), devicePinpoint.pinpoint.getPosY(DistanceUnit.INCH)));
+
+        double targetAngle = Math.atan2(TARGET_Y - y, TARGET_X - x);
+        double headingError = targetAngle - h;
+
+        while (headingError > Math.PI) headingError -= 2 * Math.PI;
+        while (headingError < -Math.PI) headingError += 2 * Math.PI;
+
+        telemetry.addData("e", Math.toDegrees(headingError));
 
         telemetry.addData("ext", velocity * 10);
         if (tag != null) {

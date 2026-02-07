@@ -34,16 +34,15 @@ public class DevicePinpoint extends Device {
 
     @Override
     public void start() {
-        reset();
-        // setPose() SHOULD BE CALLED AFTER THIS IN AUTO INIT
+
     }
 
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
 
+        if (ctrl.recalibratePinpoint()) pinpoint.resetPosAndIMU(); // see below crashout
         if (ctrl.resetYaw()) resetIMU();
-        if (ctrl.resetPos()) reset();
 
         this.updatePinpoint(); // TODO: call in thread
     }
@@ -54,7 +53,7 @@ public class DevicePinpoint extends Device {
     }
 
     public static Vector2D rotateVector(Vector2D movement) {
-        return movement.rotate(Math.toRadians(pinpoint.getHeading(AngleUnit.DEGREES) + (alliance == Alliance.BLUE ? -90 : 90)));
+        return movement.rotate(Math.toRadians(pinpoint.getHeading(AngleUnit.DEGREES)));
     }
 
     public void setPose(double x, double y, double h) {
@@ -63,9 +62,33 @@ public class DevicePinpoint extends Device {
         pinpoint.setHeading(h, AngleUnit.DEGREES);
     }
 
-    public void reset() {
+    /*
+     * WHAT THE FUCK GOBILDA
+     * WHAT THE ACTUAL FUCK
+     *
+     * RESET
+     * and
+     * RECALIBRATE
+     * are
+     * TWO COMPLETELY DIFFERENT FUCKING THINGS
+     *
+     * THEY ARE **NOT** INTERCHANGEABLE
+     */
+
+//    public void reset() {
+//        // NAH WTF GOBILDA
+//        // IM NOT LETTING TS SLIDE
+//
+////        pinpoint.resetPosAndIMU();
+//
+//        // setPose() SHOULD BE CALLED AFTER THIS IN AUTO INIT
+//    }
+
+    /**
+     * THE ROBOT MUST BE COMPLETELY STILL ON AUTO INIT OR ELSE YOU'RE GETTING TOUCHED
+     */
+    public void recalibrate() {
         pinpoint.resetPosAndIMU();
-        // setPose() SHOULD BE CALLED AFTER THIS IN AUTO INIT
     }
 
     public void resetIMU() {
@@ -85,6 +108,7 @@ public class DevicePinpoint extends Device {
     }
 
     private void updatePinpoint() {
+        // TODO: move into distinct thread
         pinpoint.update();
     }
 }

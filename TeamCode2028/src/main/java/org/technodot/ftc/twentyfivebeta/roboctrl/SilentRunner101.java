@@ -139,9 +139,13 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.options;
     }
 
-    public boolean resetPos() {
-        return ready() && gamepad1.start;
+    public boolean recalibratePinpoint() {
+        return ready() && ((Configuration.DEBUG && gamepad1.startWasPressed()) || gamepad2.startWasPressed());
     }
+
+//    public boolean recalibratePinpoint() {
+//        return false; // WTAF GOBILDA
+//    }
 
     public void vibrateExtakeReady() {
         if (ready()) {

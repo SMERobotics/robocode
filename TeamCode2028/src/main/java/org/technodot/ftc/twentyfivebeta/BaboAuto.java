@@ -403,6 +403,9 @@ public class BaboAuto extends OpMode {
 
         deviceDrive.setDriveState(DeviceDrive.DriveState.AUTO);
 
+        // TODO: uncomment after pinpoint is implemented
+        // devicePinpoint.recalibrate();
+
         configure();
     }
 
