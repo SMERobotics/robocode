@@ -1,7 +1,6 @@
 package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
@@ -10,8 +9,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.technodot.ftc.twentyfivebeta.batch.Batch;
 import org.technodot.ftc.twentyfivebeta.batch.Callback;
 import org.technodot.ftc.twentyfivebeta.batch.ContiguousSequence;
@@ -20,11 +17,8 @@ import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Drawing;
 import org.technodot.ftc.twentyfivebeta.pedro.Follower;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
-import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
-import org.technodot.ftc.twentyfivebeta.robocore.DeviceIMU;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
-import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 

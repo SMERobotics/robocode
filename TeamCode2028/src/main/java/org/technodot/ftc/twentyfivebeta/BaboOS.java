@@ -11,7 +11,6 @@ import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
-import org.technodot.ftc.twentyfivebeta.robocore.DeviceIMU;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
@@ -29,7 +28,6 @@ public class BaboOS extends OpMode {
 
     // all updates should be theoretically done in this order, based on usage
     public DeviceCamera deviceCamera;
-    public DeviceIMU deviceIMU;
     public DevicePinpoint devicePinpoint;
     public DeviceDrive deviceDrive;
     public DeviceExtake deviceExtake;
@@ -61,14 +59,12 @@ public class BaboOS extends OpMode {
         for (LynxModule hub : hubs) hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         deviceCamera = new DeviceCamera(alliance);
-        deviceIMU = new DeviceIMU(alliance);
         devicePinpoint = new DevicePinpoint(alliance);
         deviceDrive = new DeviceDrive(alliance);
         deviceExtake = new DeviceExtake(alliance);
         deviceIntake = new DeviceIntake(alliance);
 
         deviceCamera.init(hardwareMap, inputController);
-        deviceIMU.init(hardwareMap, inputController);
         devicePinpoint.init(hardwareMap, inputController);
         deviceDrive.init(hardwareMap, inputController);
         deviceExtake.init(hardwareMap, inputController);
@@ -86,7 +82,6 @@ public class BaboOS extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
-        deviceIMU.start();
         devicePinpoint.start();
         deviceDrive.start();
         deviceExtake.start();
@@ -110,7 +105,6 @@ public class BaboOS extends OpMode {
         for (LynxModule hub : hubs) hub.clearBulkCache();
 
         deviceCamera.update();
-        deviceIMU.update();
         devicePinpoint.update();
         deviceDrive.update();
         deviceExtake.update();
@@ -166,7 +160,6 @@ public class BaboOS extends OpMode {
     @Override
     public void stop() {
         deviceCamera.stop();
-        deviceIMU.stop();
         devicePinpoint.stop();
         deviceDrive.stop();
         deviceExtake.stop();
