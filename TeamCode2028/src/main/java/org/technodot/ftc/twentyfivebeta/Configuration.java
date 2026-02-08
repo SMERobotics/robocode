@@ -1,6 +1,5 @@
 package org.technodot.ftc.twentyfivebeta;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
@@ -136,9 +135,16 @@ public class Configuration {
     public static volatile int GAMEPAD_RUMBLE_FINALE_MS = 6767;
 
     public static volatile double PINPOINT_OFFSET_FORWARD_Y = 2.784; // 1.92+(1.728/2), measured as of 2/3/2026
-    public static volatile double PINPOINT_OFFSET_STRAFE_X = -0.500; // basically 0.500 inches, measured as of 2/3/26
+    public static volatile double PINPOINT_OFFSET_STRAFE_X = -0.4715; // (1.971/2)-0.514, measured as of 2/8/2026
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_FORWARD = GoBildaPinpointDriver.EncoderDirection.REVERSED;
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_STRAFE = GoBildaPinpointDriver.EncoderDirection.REVERSED;
+
+    public static volatile double ROBOT_LENGTH = 17.1; // front to back distance, in inches // TODO: guesstimated
+    public static volatile double ROBOT_WIDTH = 16.767; // left to right distance, in inches // TODO: guesstimated
+    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = ROBOT_LENGTH - 6.9255; // (1.971/2)+5.94, measured as of 2/8/2026 // front-left to localizer distance along robot length axis, in inches // (1.971/2)+5.94
+    public static volatile double LOCALIZER_WIDTH_LEFT_OFFSET = 8.3835; // (1.728/2)+5.6715+1.848, measured as of 2/8/2026 // front-left to localizer distance along robot width axis, in inches
+    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = ROBOT_LENGTH - LOCALIZER_LENGTH_FRONT_OFFSET;
+    public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH - LOCALIZER_WIDTH_LEFT_OFFSET;
 
     public static volatile PinpointConstants ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS = new PinpointConstants()
             .forwardPodY(PINPOINT_OFFSET_FORWARD_Y)

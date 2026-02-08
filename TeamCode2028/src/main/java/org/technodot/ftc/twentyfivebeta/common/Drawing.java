@@ -9,6 +9,8 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.PoseHistory;
 
+import org.technodot.ftc.twentyfivebeta.Configuration;
+
 /**
  * This is the Drawing class. It handles the drawing of stuff on Panels Dashboard, like the robot.
  *
@@ -24,11 +26,6 @@ public class Drawing {
     private static final Style historyLook = new Style(
             "", "#5f00ff", 0.75
     );
-
-    public static final double ROBOT_LENGTH = 18; // front to back distance, in inches
-    public static final double ROBOT_WIDTH = 18; // left to right distance, in inches
-    public static final double LOCALIZER_LENGTH_OFFSET = ROBOT_LENGTH - 6.7; // front-left to localizer distance along robot length axis, in inches
-    public static final double LOCALIZER_WIDTH_OFFSET = 9; // front-left to localizer distance along robot width axis, in inches
 
     /**
      * This prepares Panels Field for using Pedro Offsets
@@ -76,15 +73,15 @@ public class Drawing {
         double rightX = forwardY;
         double rightY = -forwardX;
 
-        double frontLeftX = x + (forwardX * LOCALIZER_LENGTH_OFFSET) - (rightX * LOCALIZER_WIDTH_OFFSET);
-        double frontLeftY = y + (forwardY * LOCALIZER_LENGTH_OFFSET) - (rightY * LOCALIZER_WIDTH_OFFSET);
+        double frontLeftX = x + (forwardX * Configuration.LOCALIZER_LENGTH_FRONT_OFFSET) - (rightX * Configuration.LOCALIZER_WIDTH_LEFT_OFFSET);
+        double frontLeftY = y + (forwardY * Configuration.LOCALIZER_LENGTH_FRONT_OFFSET) - (rightY * Configuration.LOCALIZER_WIDTH_LEFT_OFFSET);
 
-        double frontRightX = frontLeftX + (rightX * ROBOT_WIDTH);
-        double frontRightY = frontLeftY + (rightY * ROBOT_WIDTH);
-        double backLeftX = frontLeftX - (forwardX * ROBOT_LENGTH);
-        double backLeftY = frontLeftY - (forwardY * ROBOT_LENGTH);
-        double backRightX = backLeftX + (rightX * ROBOT_WIDTH);
-        double backRightY = backLeftY + (rightY * ROBOT_WIDTH);
+        double frontRightX = frontLeftX + (rightX * Configuration.ROBOT_WIDTH);
+        double frontRightY = frontLeftY + (rightY * Configuration.ROBOT_WIDTH);
+        double backLeftX = frontLeftX - (forwardX * Configuration.ROBOT_LENGTH);
+        double backLeftY = frontLeftY - (forwardY * Configuration.ROBOT_LENGTH);
+        double backRightX = backLeftX + (rightX * Configuration.ROBOT_WIDTH);
+        double backRightY = backLeftY + (rightY * Configuration.ROBOT_WIDTH);
 
         double frontCenterX = (frontLeftX + frontRightX) / 2.0;
         double frontCenterY = (frontLeftY + frontRightY) / 2.0;
@@ -92,8 +89,11 @@ public class Drawing {
         panelsField.setStyle(style);
         panelsField.moveCursor(frontLeftX, frontLeftY);
         panelsField.line(frontRightX, frontRightY);
+        panelsField.moveCursor(frontRightX, frontRightY);
         panelsField.line(backRightX, backRightY);
+        panelsField.moveCursor(backRightX, backRightY);
         panelsField.line(backLeftX, backLeftY);
+        panelsField.moveCursor(backLeftX, backLeftY);
         panelsField.line(frontLeftX, frontLeftY);
 
         panelsField.moveCursor(x, y);
@@ -127,8 +127,15 @@ public class Drawing {
         }
 
         panelsField.setStyle(style);
-        panelsField.moveCursor(points[0][0], points[0][1]);
-        panelsField.line(points[1][0], points[1][1]);
+        int size = Math.min(points[0].length, points[1].length);
+        if (size < 2) {
+            return;
+        }
+
+        for (int i = 0; i < size - 1; i++) {
+            panelsField.moveCursor(points[0][i], points[1][i]);
+            panelsField.line(points[0][i + 1], points[1][i + 1]);
+        }
     }
 
     /**

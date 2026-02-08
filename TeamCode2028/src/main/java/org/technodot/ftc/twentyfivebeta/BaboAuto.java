@@ -63,7 +63,7 @@ public class BaboAuto extends OpMode {
             case CLOSE:
                 break;
             case FAR:
-                Pose start = P(48 + 9, 0 + 6.7, 0);
+                Pose start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
                 Pose shootPreload = P(48, 24, 0);
 
                 follower.setStartingPose(start);
