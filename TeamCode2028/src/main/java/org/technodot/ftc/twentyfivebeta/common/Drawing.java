@@ -5,7 +5,6 @@ import com.bylazar.field.PanelsField;
 import com.bylazar.field.Style;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.math.Vector;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.PoseHistory;
@@ -13,19 +12,23 @@ import com.pedropathing.util.PoseHistory;
 /**
  * This is the Drawing class. It handles the drawing of stuff on Panels Dashboard, like the robot.
  *
- * @author Lazar - 19234
- * @version 1.1, 5/19/2025
+ * @author Lazar - 19234, TechnoDot @ 26855
+ * @version 1.2, 2/7/2026
  */
 public class Drawing {
-    public static final double ROBOT_RADIUS = 9; // woah
     private static final FieldManager panelsField = PanelsField.INSTANCE.getField();
 
     private static final Style robotLook = new Style(
-            "", "#3F51B5", 0.75
+            "", "#00ff00", 0.75
     );
     private static final Style historyLook = new Style(
-            "", "#4CAF50", 0.75
+            "", "#5f00ff", 0.75
     );
+
+    public static final double ROBOT_LENGTH = 18; // front to back distance, in inches
+    public static final double ROBOT_WIDTH = 18; // left to right distance, in inches
+    public static final double LOCALIZER_LENGTH_OFFSET = ROBOT_LENGTH - 6.7; // front-left to localizer distance along robot length axis, in inches
+    public static final double LOCALIZER_WIDTH_OFFSET = 9; // front-left to localizer distance along robot width axis, in inches
 
     /**
      * This prepares Panels Field for using Pedro Offsets
@@ -40,7 +43,7 @@ public class Drawing {
      *
      * @param follower Pedro Follower instance.
      */
-    public static void drawDebug(Follower follower) {
+    public static void draw(Follower follower) {
         if (follower.getCurrentPath() != null) {
             drawPath(follower.getCurrentPath(), robotLook);
             Pose closestPoint = follower.getPointFromPath(follower.getCurrentPath().getClosestPointTValue());
@@ -56,7 +59,7 @@ public class Drawing {
      * This draws a robot at a specified Pose with a specified
      * look. The heading is represented as a line.
      *
-     * @param pose  the Pose to draw the robot at
+     * @param pose  the localizer Pose used to draw the robot body
      * @param style the parameters used to draw the robot with
      */
     public static void drawRobot(Pose pose, Style style) {
@@ -64,24 +67,43 @@ public class Drawing {
             return;
         }
 
-        panelsField.setStyle(style);
-        panelsField.moveCursor(pose.getX(), pose.getY());
-        panelsField.circle(ROBOT_RADIUS);
+        double x = pose.getX();
+        double y = pose.getY();
+        double heading = pose.getHeading();
 
-        Vector v = pose.getHeadingAsUnitVector();
-        v.setMagnitude(v.getMagnitude() * ROBOT_RADIUS);
-        double x1 = pose.getX() + v.getXComponent() / 2, y1 = pose.getY() + v.getYComponent() / 2;
-        double x2 = pose.getX() + v.getXComponent(), y2 = pose.getY() + v.getYComponent();
+        double forwardX = Math.cos(heading);
+        double forwardY = Math.sin(heading);
+        double rightX = forwardY;
+        double rightY = -forwardX;
+
+        double frontLeftX = x + (forwardX * LOCALIZER_LENGTH_OFFSET) - (rightX * LOCALIZER_WIDTH_OFFSET);
+        double frontLeftY = y + (forwardY * LOCALIZER_LENGTH_OFFSET) - (rightY * LOCALIZER_WIDTH_OFFSET);
+
+        double frontRightX = frontLeftX + (rightX * ROBOT_WIDTH);
+        double frontRightY = frontLeftY + (rightY * ROBOT_WIDTH);
+        double backLeftX = frontLeftX - (forwardX * ROBOT_LENGTH);
+        double backLeftY = frontLeftY - (forwardY * ROBOT_LENGTH);
+        double backRightX = backLeftX + (rightX * ROBOT_WIDTH);
+        double backRightY = backLeftY + (rightY * ROBOT_WIDTH);
+
+        double frontCenterX = (frontLeftX + frontRightX) / 2.0;
+        double frontCenterY = (frontLeftY + frontRightY) / 2.0;
 
         panelsField.setStyle(style);
-        panelsField.moveCursor(x1, y1);
-        panelsField.line(x2, y2);
+        panelsField.moveCursor(frontLeftX, frontLeftY);
+        panelsField.line(frontRightX, frontRightY);
+        panelsField.line(backRightX, backRightY);
+        panelsField.line(backLeftX, backLeftY);
+        panelsField.line(frontLeftX, frontLeftY);
+
+        panelsField.moveCursor(x, y);
+        panelsField.line(frontCenterX, frontCenterY);
     }
 
     /**
      * This draws a robot at a specified Pose. The heading is represented as a line.
      *
-     * @param pose the Pose to draw the robot at
+     * @param pose the localizer Pose used to draw the robot body
      */
     public static void drawRobot(Pose pose) {
         drawRobot(pose, robotLook);

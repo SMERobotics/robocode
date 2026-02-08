@@ -117,7 +117,7 @@ public class BaboAuto extends OpMode {
         telemetry.addData("status", "initialized");
         telemetry.update();
 
-        Drawing.drawDebug(follower);
+        Drawing.draw(follower);
     }
 
     @Override
@@ -146,7 +146,7 @@ public class BaboAuto extends OpMode {
         deviceExtake.update();
         deviceIntake.update();
 
-        Drawing.drawDebug(follower);
+        Drawing.draw(follower);
 
 //        telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
 //        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
