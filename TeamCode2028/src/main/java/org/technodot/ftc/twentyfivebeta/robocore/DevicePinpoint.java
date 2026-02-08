@@ -93,6 +93,8 @@ public class DevicePinpoint extends Device {
 
     public void resetIMU() {
 //        pinpoint.recalibrateIMU();
+
+        snapshotYaw -= pinpoint.getHeading(AngleUnit.DEGREES);
         pinpoint.setHeading(0, AngleUnit.DEGREES);
     }
 

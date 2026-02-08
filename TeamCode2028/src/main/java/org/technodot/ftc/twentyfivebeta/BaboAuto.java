@@ -1,7 +1,10 @@
 package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -65,6 +68,21 @@ public class BaboAuto extends OpMode {
             case CLOSE:
                 break;
             case FAR:
+                Pose start = P(48 + 9, 0 + 6.7, 0);
+                Pose shootPreload = P(48, 24, 0);
+
+                follower.setStartingPose(start);
+
+                PathChain start_shootPreload = follower.pathBuilder().addPath(
+                        new BezierLine(start, shootPreload)
+                ).setLinearHeadingInterpolation(start.getHeading(), shootPreload.getHeading())
+                .build();
+
+                runtime.plan(new ContiguousSequence(0)
+                        .then((Callback) () -> follower.followPath(start_shootPreload))
+                        .then(X, (InterruptibleCallback) () -> follower.isReady())
+                );
+
                 break;
         }
     }
@@ -111,13 +129,6 @@ public class BaboAuto extends OpMode {
         deviceExtake.start();
         deviceIntake.start();
 
-        switch (autoType) {
-            case CLOSE:
-                break;
-            case FAR:
-                break;
-        }
-
         telemetry.addData("status", "starting");
         telemetry.update();
     }
@@ -136,9 +147,11 @@ public class BaboAuto extends OpMode {
         deviceExtake.update();
         deviceIntake.update();
 
-        telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
-        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
-        telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
+//        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
+//        telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+
+        telemetry.addData("p", follower.getPose());
 
         if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
@@ -175,9 +188,11 @@ public class BaboAuto extends OpMode {
 
         telemetry.addData("status", "stopping");
         telemetry.update();
+
+        follower.setHeading(follower.getHeading() + Math.toRadians(-90) + alliance.apply(Math.toRadians(-90)));
     }
 
     private Pose P(double x, double y, double h) {
-        return new Pose(alliance == Alliance.BLUE ? x : 144 - x, y, 90 + alliance.apply(h));
+        return new Pose(alliance == Alliance.BLUE ? x : 144 - x, y, Math.toRadians(90 + alliance.apply(h)));
     }
 }
