@@ -17,6 +17,7 @@ import org.technodot.ftc.twentyfivebeta.batch.Callback;
 import org.technodot.ftc.twentyfivebeta.batch.ContiguousSequence;
 import org.technodot.ftc.twentyfivebeta.batch.InterruptibleCallback;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.common.Drawing;
 import org.technodot.ftc.twentyfivebeta.pedro.Follower;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
@@ -113,12 +114,16 @@ public class BaboAuto extends OpMode {
         deviceIntake.init(hardwareMap, inputController);
 
         configure();
+
+        Drawing.init();
     }
 
     @Override
     public void init_loop() {
         telemetry.addData("status", "initialized");
         telemetry.update();
+
+        Drawing.drawDebug(follower);
     }
 
     @Override
@@ -146,6 +151,8 @@ public class BaboAuto extends OpMode {
         this.runtime.run();
         deviceExtake.update();
         deviceIntake.update();
+
+        Drawing.drawDebug(follower);
 
 //        telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
 //        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
