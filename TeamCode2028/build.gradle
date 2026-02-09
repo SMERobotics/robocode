@@ -14,6 +14,7 @@
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
+//apply plugin: 'org.team11260.fast-load-plugin'
 
 android {
     namespace = 'org.technodot.ftc.twentyfivebeta'
@@ -28,7 +29,21 @@ android {
     }
 }
 
+//buildscript {
+//    repositories {
+//        mavenCentral()
+//        maven {
+//            url = 'https://www.matthewo.tech/maven/'
+//        }
+//    }
+//
+//    dependencies {
+//        classpath 'org.team11260:fast-load-plugin:0.1.2'
+//    }
+//}
+
 repositories {
+//    mavenLocal()
     maven {
         url = 'https://maven.brott.dev/'
     }
@@ -47,4 +62,6 @@ dependencies {
 
     implementation 'com.pedropathing:ftc:2.0.5'
     implementation 'com.pedropathing:telemetry:1.0.0'
+
+//    implementation 'org.technodot:fast-load:0.1.5'
 }
