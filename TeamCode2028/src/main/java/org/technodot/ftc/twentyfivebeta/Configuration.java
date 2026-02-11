@@ -103,6 +103,7 @@ public class Configuration {
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 400;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
     public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 800;
+    public static volatile long INTAKE_AUTO_RELOAD_DELAY_MS = 100;
 
     public static volatile double EXTAKE_MOTOR_KP = 100.0;
     public static volatile double EXTAKE_MOTOR_KI = 0.0;
@@ -135,10 +136,10 @@ public class Configuration {
     public static volatile int GAMEPAD_RUMBLE_WEAK_MS = 100;
     public static volatile int GAMEPAD_RUMBLE_FINALE_MS = 6767;
 
-    public static volatile double PINPOINT_HEADING_P = 0.03;
+    public static volatile double PINPOINT_HEADING_P = 0.015;
     public static volatile double PINPOINT_HEADING_I = 0;
-    public static volatile double PINPOINT_HEADING_D = 0.0001;
-    public static volatile double PINPOINT_HEADING_F = 0;
+    public static volatile double PINPOINT_HEADING_D = 0;
+    public static volatile double PINPOINT_HEADING_F = 0.062;
 
     public static volatile double PINPOINT_OFFSET_FORWARD_Y = -2.784; // 1.92+(1.728/2), measured as of 2/3/2026
     public static volatile double PINPOINT_OFFSET_STRAFE_X = -0.4715; // (1.971/2)-0.514, measured as of 2/8/2026
