@@ -194,7 +194,6 @@ public class DeviceIntake extends Device {
                         rightActivationTime = now;
                     }
                     sideDeque.clear();
-                    DeviceDrive.consumeExtakeFreeRotate();
                 }
 
                 sequenceOverride = false;
@@ -256,7 +255,6 @@ public class DeviceIntake extends Device {
             leftActive = true;
             leftActivationTime = System.currentTimeMillis();
             leftTriggered = true;
-            DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateLeft) {
             leftTriggered = false;
         }
@@ -265,7 +263,6 @@ public class DeviceIntake extends Device {
             rightActive = true;
             rightActivationTime = System.currentTimeMillis();
             rightTriggered = true;
-            DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateRight) {
             rightTriggered = false;
         }

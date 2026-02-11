@@ -1,5 +1,6 @@
 package org.technodot.ftc.twentyfivebeta;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
@@ -62,7 +63,7 @@ public class Configuration {
     public static volatile double DRIVE_AUTO_MAX_VELOCITY = 1600;
     public static volatile double DRIVE_MOTOR_ACTIVATION = 0.2;
     public static volatile double DRIVE_SPEED_MULTIPLIER = 1.0;
-    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.1; // 1.10 +/- 0.01 idfk? Y TF NOT
+    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.3; // 1.10 +/- 0.01 idfk? Y TF NOT
 //    public static volatile double DRIVE_STRAFE_MULTIPLIER = 1.0; // TODO: fuck it just test it
     public static volatile double DRIVE_AIM_OFFSET = 2.0; // degrees, blue goal to the left, red goal to the right. // THIS VALUE ALSO NEEDS TO BE CHANGED IN TELEOP AND AUTO
 //    public static volatile double DRIVE_AIM_INTAKE_OFFSET = 1.3639;
@@ -134,7 +135,12 @@ public class Configuration {
     public static volatile int GAMEPAD_RUMBLE_WEAK_MS = 100;
     public static volatile int GAMEPAD_RUMBLE_FINALE_MS = 6767;
 
-    public static volatile double PINPOINT_OFFSET_FORWARD_Y = 2.784; // 1.92+(1.728/2), measured as of 2/3/2026
+    public static volatile double PINPOINT_HEADING_P = 0.03;
+    public static volatile double PINPOINT_HEADING_I = 0;
+    public static volatile double PINPOINT_HEADING_D = 0.0001;
+    public static volatile double PINPOINT_HEADING_F = 0;
+
+    public static volatile double PINPOINT_OFFSET_FORWARD_Y = -2.784; // 1.92+(1.728/2), measured as of 2/3/2026
     public static volatile double PINPOINT_OFFSET_STRAFE_X = -0.4715; // (1.971/2)-0.514, measured as of 2/8/2026
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_FORWARD = GoBildaPinpointDriver.EncoderDirection.REVERSED;
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_STRAFE = GoBildaPinpointDriver.EncoderDirection.REVERSED;

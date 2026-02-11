@@ -109,6 +109,37 @@ public class DevicePinpoint extends Device {
         return error;
     }
 
+    public static double getGoalYawError() {
+        Vector2D goal = getGoalPos();
+
+        double currentX = pinpoint.getPosX(DistanceUnit.INCH);
+        double currentY = pinpoint.getPosY(DistanceUnit.INCH);
+
+        double targetAngle = Math.toDegrees(Math.atan2(goal.y - currentY, goal.x - currentX)) - 90;
+        double currentHeading = pinpoint.getHeading(AngleUnit.DEGREES);
+
+        double error = targetAngle - currentHeading;
+
+        while (error > 180) error -= 360;
+        while (error < -180) error += 360;
+
+        return error;
+    }
+
+    public static double getGoalDistance() {
+        Vector2D goal = getGoalPos();
+
+        double currentX = pinpoint.getPosX(DistanceUnit.INCH);
+        double currentY = pinpoint.getPosY(DistanceUnit.INCH);
+
+        return Math.hypot(goal.x - currentX, goal.y - currentY);
+    }
+
+    private static Vector2D getGoalPos() {
+        // TODO: adjust goal pos based on velocity and DeviceIntake.intakeSide
+        return new Vector2D(alliance == Alliance.BLUE ? 0 : 144, 144);
+    }
+
     private void updatePinpoint() {
         // TODO: move into distinct thread
         pinpoint.update();
