@@ -61,20 +61,35 @@ public class BaboAuto extends OpMode {
     public void configure() {
         switch (autoType) {
             case CLOSE:
+                Pose close_start = P(20.625, 144 - 21.75, Math.toDegrees(Math.atan(4.0 / 3.0)));
+                Pose close_shootPreload = P(72, 72, 0);
+
+                follower.setStartingPose(close_start);
+
+                PathChain close_start_shootPreload = follower.pathBuilder().addPath(
+                                new BezierLine(close_start, close_shootPreload)
+                        ).setLinearHeadingInterpolation(close_start.getHeading(), close_shootPreload.getHeading())
+                        .build();
+
+                runtime.plan(new ContiguousSequence(0)
+                        .then((Callback) () -> follower.followPath(close_start_shootPreload))
+                        .then(X, (InterruptibleCallback) () -> follower.isReady())
+                );
+
                 break;
             case FAR:
-                Pose start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
-                Pose shootPreload = P(48, 24, 0);
+                Pose far_start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
+                Pose far_shootPreload = P(72, 72, 0);
 
-                follower.setStartingPose(start);
+                follower.setStartingPose(far_start);
 
-                PathChain start_shootPreload = follower.pathBuilder().addPath(
-                        new BezierLine(start, shootPreload)
-                ).setLinearHeadingInterpolation(start.getHeading(), shootPreload.getHeading())
+                PathChain far_start_shootPreload = follower.pathBuilder().addPath(
+                        new BezierLine(far_start, far_shootPreload)
+                ).setLinearHeadingInterpolation(far_start.getHeading(), far_shootPreload.getHeading())
                 .build();
 
                 runtime.plan(new ContiguousSequence(0)
-                        .then((Callback) () -> follower.followPath(start_shootPreload))
+                        .then((Callback) () -> follower.followPath(far_start_shootPreload))
                         .then(X, (InterruptibleCallback) () -> follower.isReady())
                 );
 
@@ -195,5 +210,11 @@ public class BaboAuto extends OpMode {
 
     private Pose P(double x, double y, double h) {
         return new Pose(alliance == Alliance.BLUE ? x : 144 - x, y, Math.toRadians(90 + alliance.apply(h)));
+    }
+
+    private Pose R(double x, double y, double h) {
+        double d = Configuration.LOCALIZER_LENGTH_BACK_OFFSET - Configuration.ROBOT_LENGTH / 2.0;
+        double theta = Math.toRadians(h);
+        return P(x - d * Math.sin(theta), y + d * Math.cos(theta), h);
     }
 }
