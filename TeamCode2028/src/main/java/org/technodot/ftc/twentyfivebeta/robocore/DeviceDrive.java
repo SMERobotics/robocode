@@ -299,7 +299,7 @@ public class DeviceDrive extends Device {
 
         // field-centric kinematics for teleop
         Vector2D fieldCentric = DevicePinpoint.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
-        this.update(fieldCentric.x, fieldCentric.y, rotate);
+        this.update(scaleInput(fieldCentric.x), scaleInput(fieldCentric.y), rotate);
     }
 
     @Override
@@ -718,14 +718,19 @@ public class DeviceDrive extends Device {
     }
 
     private double scaleInput(double value) {
-        // robot does not begin to move until power overcomes ts weight and friction forces idk
-        // but yeah it doesnt start moving at 0.0 power so we gotta scale it
-        if (value > 0) {
-            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value + Configuration.DRIVE_MOTOR_ACTIVATION;
-        } else if (value < 0) {
-            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value - Configuration.DRIVE_MOTOR_ACTIVATION;
-        } else {
-            return 0;
-        }
+//        // robot does not begin to move until power overcomes ts weight and friction forces idk
+//        // but yeah it doesnt start moving at 0.0 power so we gotta scale it
+//        if (value > 0) {
+//            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value + Configuration.DRIVE_MOTOR_ACTIVATION;
+//        } else if (value < 0) {
+//            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value - Configuration.DRIVE_MOTOR_ACTIVATION;
+//        } else {
+//            return 0;
+//        }
+
+        double x = Range.clip(value, -1.0, 1.0);
+        return Range.clip(
+                (x / (2.0 - Math.abs(x))), // f\left(x\right)=\frac{x}{2-\left|x\right|}
+        -1.0, 1.0);
     }
 }
