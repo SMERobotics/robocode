@@ -728,9 +728,11 @@ public class DeviceDrive extends Device {
 //            return 0;
 //        }
 
-        double x = Range.clip(value, -1.0, 1.0);
-        return Range.clip(
-                (x / (2.0 - Math.abs(x))), // f\left(x\right)=\frac{x}{2-\left|x\right|}
-        -1.0, 1.0);
+//        double x = Range.clip(value, -1.0, 1.0);
+//        return Range.clip(
+//                (x / (2.0 - Math.abs(x))), // f\left(x\right)=\frac{x}{2-\left|x\right|}
+//        -1.0, 1.0);
+
+        return value;
     }
 }
