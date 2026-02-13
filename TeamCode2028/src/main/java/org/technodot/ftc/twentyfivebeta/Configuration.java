@@ -105,10 +105,10 @@ public class Configuration {
     public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 800;
     public static volatile long INTAKE_AUTO_RELOAD_DELAY_MS = 100;
 
-    public static volatile double EXTAKE_MOTOR_KP = 100.0;
-    public static volatile double EXTAKE_MOTOR_KI = 0.0;
-    public static volatile double EXTAKE_MOTOR_KD = 0.1;
-    public static volatile double EXTAKE_MOTOR_KF = 17.8;
+    public static volatile double EXTAKE_MOTOR_KP = 150.0;
+    public static volatile double EXTAKE_MOTOR_KI = 0.01;
+    public static volatile double EXTAKE_MOTOR_KD = 0.0;
+    public static volatile double EXTAKE_MOTOR_KF = 17.1;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_DUAL_SHORT = 1400; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1520; // TODO: adjust
@@ -141,17 +141,26 @@ public class Configuration {
     public static volatile double PINPOINT_HEADING_D = 0;
     public static volatile double PINPOINT_HEADING_F = 0.062;
 
-    public static volatile double PINPOINT_OFFSET_FORWARD_Y = -2.784; // 1.92+(1.728/2), measured as of 2/3/2026
-    public static volatile double PINPOINT_OFFSET_STRAFE_X = -0.4715; // (1.971/2)-0.514, measured as of 2/8/2026
+    // FUCK MANUAL MEASUREMENTS
+//    public static volatile double PINPOINT_OFFSET_FORWARD_Y = -2.1673433165342573; // gemini-3.0-flash-preview (thinking)
+//    public static volatile double PINPOINT_OFFSET_STRAFE_X = -1.5354035333572047; // gemini-3.0-flash-preview (thinking)
+    public static volatile double PINPOINT_OFFSET_FORWARD_Y = -1.9974842264556827; // gpt-5.2-thinking
+    public static volatile double PINPOINT_OFFSET_STRAFE_X = -1.6029825263449966; // gpt-5.2-thinking
+//    public static volatile double PINPOINT_OFFSET_FORWARD_Y = 2.784; // 1.92+(1.728/2), measured as of 2/3/2026
+//    public static volatile double PINPOINT_OFFSET_STRAFE_X = -0.4715; // (1.971/2)-0.514, measured as of 2/8/2026
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_FORWARD = GoBildaPinpointDriver.EncoderDirection.REVERSED;
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_STRAFE = GoBildaPinpointDriver.EncoderDirection.REVERSED;
 
-    public static volatile double ROBOT_LENGTH = 17.1; // front to back distance, in inches // TODO: guesstimated
-    public static volatile double ROBOT_WIDTH = 16.767; // left to right distance, in inches // TODO: guesstimated
-    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = ROBOT_LENGTH - 6.9255; // (1.971/2)+5.94, measured as of 2/8/2026 // front-left to localizer distance along robot length axis, in inches // (1.971/2)+5.94
-    public static volatile double LOCALIZER_WIDTH_LEFT_OFFSET = 8.3835; // (1.728/2)+5.6715+1.848, measured as of 2/8/2026 // front-left to localizer distance along robot width axis, in inches
-    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = ROBOT_LENGTH - LOCALIZER_LENGTH_FRONT_OFFSET;
-    public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH - LOCALIZER_WIDTH_LEFT_OFFSET;
+    public static volatile double ROBOT_LENGTH = 17; // front to back distance, in inches // TODO: guesstimated
+    public static volatile double ROBOT_WIDTH = 17; // left to right distance, in inches // TODO: guesstimated
+//    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = ROBOT_LENGTH - 6.9255; // (1.971/2)+5.94, measured as of 2/8/2026 // front-left to localizer distance along robot length axis, in inches // (1.971/2)+5.94
+//    public static volatile double LOCALIZER_WIDTH_LEFT_OFFSET = 8.3835; // (1.728/2)+5.6715+1.848, measured as of 2/8/2026 // front-left to localizer distance along robot width axis, in inches
+//    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = ROBOT_LENGTH - LOCALIZER_LENGTH_FRONT_OFFSET;
+//    public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH - LOCALIZER_WIDTH_LEFT_OFFSET;
+    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = ROBOT_LENGTH / 2;
+    public static volatile double LOCALIZER_WIDTH_LEFT_OFFSET = ROBOT_WIDTH / 2;
+    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = ROBOT_LENGTH / 2;
+    public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH / 2;
 
     public static volatile PinpointConstants ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS = new PinpointConstants()
             .forwardPodY(PINPOINT_OFFSET_FORWARD_Y)
