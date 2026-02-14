@@ -47,7 +47,9 @@ public class BaboAuto extends OpMode {
 
     public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
-    public final long S = 1000L;
+    public final long ONE = 1000L;
+    public final long TWO = 2000L;
+    public final long THREE = 3000L;
     public final long X = 6767L; // general "idfk" delay HEHEHEHA
 
     public static long now;
@@ -61,7 +63,7 @@ public class BaboAuto extends OpMode {
     public void configure() {
         switch (autoType) {
             case CLOSE:
-                Pose close_start = P(20.625, 144 - 21.75, Math.toDegrees(Math.atan(4.0 / 3.0)));
+                Pose close_start = P(0 + (20.625 + 0.35), 144 - (21.75 + 0.2625), Math.toDegrees(Math.atan(4.0 / 3.0)));
                 Pose close_shootPreload = P(72, 72, 0);
 
                 follower.setStartingPose(close_start);
@@ -73,13 +75,15 @@ public class BaboAuto extends OpMode {
 
                 runtime.plan(new ContiguousSequence(0)
                         .then((Callback) () -> follower.followPath(close_start_shootPreload))
-                        .then(X, (InterruptibleCallback) () -> follower.isReady())
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
                 );
 
                 break;
             case FAR:
                 Pose far_start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
-                Pose far_shootPreload = P(72, 72, 0);
+                Pose far_shootPreload = P(48, 48, 0);
+//                Pose far_start = P(0, 0, 0);
+//                Pose far_shootPreload = P(0, 0, 0);
 
                 follower.setStartingPose(far_start);
 
@@ -90,7 +94,7 @@ public class BaboAuto extends OpMode {
 
                 runtime.plan(new ContiguousSequence(0)
                         .then((Callback) () -> follower.followPath(far_start_shootPreload))
-                        .then(X, (InterruptibleCallback) () -> follower.isReady())
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
                 );
 
                 break;

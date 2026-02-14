@@ -8,12 +8,14 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -114,11 +116,28 @@ public class BaboOS extends OpMode {
         telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
         telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
 
-        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
-        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
+        t.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
+        t.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
 
-        if (DeviceCamera.goalTagDetection != null) t.addData("r", DeviceCamera.goalTagDetection.ftcPose.range);
-        if (DeviceCamera.goalTagDetection != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET));
+        if (DeviceCamera.goalTagDetection != null) {
+            Vector2D goal = ShotSolver.getGoalPos(DeviceCamera.goalTagDetection, alliance);
+            if (goal != null) {
+                telemetry.addData("gx", goal.x);
+                telemetry.addData("gy", goal.y);
+            }
+            Vector2D relocalization = ShotSolver.calculateAbsolutePosition(DeviceCamera.goalTagDetection, alliance);
+            if (relocalization != null) {
+                telemetry.addData("rx", relocalization.x);
+                telemetry.addData("ry", relocalization.y);
+            }
+
+        }
+
+        t.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
+
+        if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
+        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
 
         t.addData("ext_vel", deviceExtake.targetVelocity);
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());

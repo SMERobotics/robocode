@@ -14,6 +14,7 @@ import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.DebounceController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.PIDFController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SignedPIDFController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
@@ -39,10 +40,13 @@ public class DeviceDrive extends Device {
     private DebounceController rotateDebounce; // specifically for AutoControl.IMU_ABSOLUTE
 
     private SignedPIDFController pinpointPIDF;
+    private SignedPIDFController aimPIDF;
+
+    private boolean rotateLockToggleTriggered;
+    private boolean rotateLockToggleActive;
 
     // below thingys deprecated but its not broken so i'm not removing it
 
-    private PIDFController aimPID;
     private PIDFController rotationLockPID;
     private PIDFController forwardPID;
     private PIDFController strafePID;
@@ -98,11 +102,11 @@ public class DeviceDrive extends Device {
         pinpointPIDF.setSetPoint(0.0);
         pinpointPIDF.setIntegrationBounds(-1.0, 1.0);
 
-        // some of below thingys deprecated but its not broken so i'm not removing it
+        aimPIDF = new SignedPIDFController(Configuration.PINPOINT_AIM_P, Configuration.PINPOINT_AIM_I, Configuration.PINPOINT_AIM_D, Configuration.PINPOINT_AIM_F);
+        aimPIDF.setSetPoint(0.0);
+        aimPIDF.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
 
-        aimPID = new PIDFController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
-        aimPID.setSetPoint(0.0);
-        aimPID.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
+        // some of below thingys deprecated but its not broken so i'm not removing it
 
         rotationLockPID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
         rotationLockPID.setSetPoint(0.0);
@@ -137,13 +141,14 @@ public class DeviceDrive extends Device {
             setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         }
         lastRotateNs = System.nanoTime();
+        rotateLockToggleActive = true;
     }
 
     @Override
     public void update() {
 //        switch (driveState) {
 //            case TELEOP:
-//                if (Configuration.DEBUG) aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+//                if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
 //                if (Configuration.DEBUG) rotationLockPID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 //
 //                SilentRunner101 ctrl = (SilentRunner101) inputController;
@@ -174,7 +179,7 @@ public class DeviceDrive extends Device {
 //                        rotate = rotateInput; // allow manual rotate to find a tag
 //                    }
 //                } else {
-//                    if (aimPID != null) aimPID.reset();
+//                    if (aimPIDF != null) aimPIDF.reset();
 //                    if (!rotating) { // if we're tryna stay still, we stay the fuck still
 ////                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
 //                        rotate = Range.clip(rotationLockPID.calculate(DevicePinpoint.getSnapshotYawError()), -1.0, 1.0);
@@ -204,7 +209,7 @@ public class DeviceDrive extends Device {
 //                                    Range.clip(strafePID.calculate(tag.ftcPose.bearing), -1.0, 1.0) / 3, // CHECK THE NEGATIVE SIGNS
 //                                    // which PID is better? rotate or aim? which coefficients are mroe optimized?
 //                                    Range.clip(rotatePID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
-////                                    Range.clip(aimPID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
+////                                    Range.clip(aimPIDF.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
 //                            );
 //                        }
 //
@@ -227,11 +232,12 @@ public class DeviceDrive extends Device {
 //                break;
 //        }
 
-//        if (Configuration.DEBUG) aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+//        if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
 //        if (Configuration.DEBUG) rotationLockPID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
-        pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
-//        if (Configuration.DEBUG) pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
+//        pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
+        if (Configuration.DEBUG) pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
+        if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.PINPOINT_AIM_P, Configuration.PINPOINT_AIM_I, Configuration.PINPOINT_AIM_D, Configuration.PINPOINT_AIM_F);
 
 //        SilentRunner101 ctrl = (SilentRunner101) inputController;
 //        double rotateInput = ctrl.driveRotate();
@@ -239,6 +245,20 @@ public class DeviceDrive extends Device {
 
         SilentRunner101 ctrl = (SilentRunner101) inputController;
         double rotateInput = ctrl.driveRotate();
+
+        boolean togglePressed = ctrl.driveRotationLockToggle();
+        if (togglePressed && !rotateLockToggleTriggered) {
+            rotateLockToggleActive = !rotateLockToggleActive;
+            rotateLockToggleTriggered = true;
+
+            // when enabling lock, take a fresh snapshot so lock holds "now"
+            if (rotateLockToggleActive) {
+                DevicePinpoint.setSnapshotYaw();
+                if (pinpointPIDF != null) pinpointPIDF.reset();
+            }
+        } else if (!togglePressed) {
+            rotateLockToggleTriggered = false;
+        }
 
         if (ctrl.driveAim()) {
             aiming = true; // drive aim can ONLY enable
@@ -268,7 +288,7 @@ public class DeviceDrive extends Device {
 //                rotate = rotateInput; // allow manual rotate to find a tag
 //            }
 //        } else {
-//            if (aimPID != null) aimPID.reset();
+//            if (aimPIDF != null) aimPIDF.reset();
 //            if (!rotating) { // if we're tryna stay still, we stay the fuck still
 ////                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
 //                rotate = Range.clip(rotationLockPID.calculate(DevicePinpoint.getSnapshotYawError()), -1.0, 1.0);
@@ -280,17 +300,25 @@ public class DeviceDrive extends Device {
         if (aiming) {
             if (rotateInput != 0) {
                 rotate = rotateInput;
-            } else if (pinpointPIDF != null) {
-                double error = DevicePinpoint.getGoalYawError();
-                FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
-                rotate = Range.clip(pinpointPIDF.calculate(error), -1.0, 1.0);
+            } else if (aimPIDF != null && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
+                double error = ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance);
+                if (Double.isFinite(error)) {
+//                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
+                    // Camera-absolute yaw error sign is opposite of this SignedPIDF path's expected PV sign.
+                    // Keep telemetry as geometric error, but invert only for controller input.
+                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
+                } else {
+                    rotate = Range.clip(aimPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
+                }
+                DevicePinpoint.setSnapshotYaw();
             } else {
+                if (pinpointPIDF != null) pinpointPIDF.reset();
                 rotate = rotateInput;
             }
         } else if (pinpointPIDF != null) {
-            if (!rotating) {
+            if (rotateLockToggleActive && !rotating) {
                 double error = DevicePinpoint.getSnapshotYawError();
-                FtcDashboard.getInstance().getTelemetry().addData("rot_e", error);
+//                FtcDashboard.getInstance().getTelemetry().addData("rot_e", error);
                 rotate = Range.clip(pinpointPIDF.calculate(error), -1.0, 1.0);
             } else {
                 pinpointPIDF.reset();
@@ -304,8 +332,8 @@ public class DeviceDrive extends Device {
 
     @Override
     public void stop() {
-        aimPID.reset();
-        rotationLockPID.reset();
+        aimPIDF.reset();
+        pinpointPIDF.reset();
     }
 
     public void update(double forward, double strafe, double rotate) {
@@ -354,15 +382,15 @@ public class DeviceDrive extends Device {
 //            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
 //            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
-//                if (aimPID != null) aimPID.reset();
+//                if (aimPIDF != null) aimPIDF.reset();
 //                return 0.0;
 //            } else {
-//                return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
+//                return aimPIDF.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
 //            }
 
-            return Range.clip(aimPID.calculate(bearing), -1.0, 1.0);
+            return Range.clip(aimPIDF.calculate(bearing), -1.0, 1.0);
         } else {
-//            if (aimPID != null) aimPID.reset();
+//            if (aimPIDF != null) aimPIDF.reset();
             return 0.0;
         }
     }
@@ -547,7 +575,7 @@ public class DeviceDrive extends Device {
                 }
                 return translationDone;
             case CAMERA_AIM:
-                if (DeviceCamera.goalTagDetection != null) return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET)) <= 2.0;
+                if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET)) <= 2.0;
                 return false;
             case CAMERA_ABSOLUTE:
                 return false; // TODO

@@ -20,7 +20,7 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-@Disabled
+//@Disabled
 @TeleOp(name="CalibrateExtakeMotor", group="TechnoCode")
 public class CalibrateExtakeMotor extends OpMode {
 

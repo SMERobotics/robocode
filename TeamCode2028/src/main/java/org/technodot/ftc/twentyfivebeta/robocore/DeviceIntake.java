@@ -42,8 +42,13 @@ public class DeviceIntake extends Device {
 
     private boolean sequenceTriggered;
     private boolean sequenceOverride;
+    private boolean sequenceOverrideSkipAutoReload;
     private boolean dualShortSequenceTriggered;
     private long dualShortSequenceTriggerTime;
+    private boolean autoReloadSequenceTriggered;
+    private long autoReloadSequenceTriggerTime;
+    private boolean autoReloadIntakeRunning;
+    private long autoReloadIntakeStartTime;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
     public static IntakeSide targetSide = IntakeSide.LEFT;
@@ -156,8 +161,10 @@ public class DeviceIntake extends Device {
 
         switch (intakeState) {
             case IDLE:
-                if (!nudging) {
+                if (!nudging && !autoReloadIntakeRunning) {
                     motorIntake.setPower(0);
+                } else if (autoReloadIntakeRunning) {
+                    motorIntake.setPower(1.0);
                 }
                 break;
             case IN:
@@ -199,6 +206,11 @@ public class DeviceIntake extends Device {
                 sequenceOverride = false;
                 dualShortSequenceTriggered = true;
                 dualShortSequenceTriggerTime = System.currentTimeMillis();
+                if (!sequenceOverrideSkipAutoReload) {
+                    autoReloadSequenceTriggered = true;
+                    autoReloadSequenceTriggerTime = System.currentTimeMillis();
+                }
+                sequenceOverrideSkipAutoReload = false;
             } else if (!ctrl.sequenceShoot()) {
                 dualShortSequenceTriggered = false;
                 sequenceTriggered = false;
@@ -243,6 +255,11 @@ public class DeviceIntake extends Device {
                 sequenceOverride = false;
                 nextOptimizedTransfer = System.currentTimeMillis();
                 sequenceTriggered = true;
+                if (!sequenceOverrideSkipAutoReload) {
+                    autoReloadSequenceTriggered = true;
+                    autoReloadSequenceTriggerTime = System.currentTimeMillis();
+                }
+                sequenceOverrideSkipAutoReload = false;
             } else if (!ctrl.sequenceShoot()) {
                 sequenceTriggered = false;
             }
@@ -274,6 +291,28 @@ public class DeviceIntake extends Device {
                 DeviceExtake.stabilizationCycles = 0;
                 dualShortSequenceTriggered = false;
                 dualShortSequenceTriggerTime = 0;
+            }
+        }
+
+        if (autoReloadSequenceTriggerTime > 0 && autoReloadSequenceTriggered) {
+            long elapsed = System.currentTimeMillis() - autoReloadSequenceTriggerTime;
+            if (elapsed >= Configuration.INTAKE_AUTO_RELOAD_DELAY_MS && intakeState == IntakeState.IDLE && !nudging && !autoReloadIntakeRunning) {
+                // Start running intake at full power
+                autoReloadIntakeRunning = true;
+                autoReloadIntakeStartTime = System.currentTimeMillis();
+                autoReloadSequenceTriggered = false;
+                autoReloadSequenceTriggerTime = 0;
+            }
+        }
+
+        // Handle auto-reload intake running at full power for configured duration
+        if (autoReloadIntakeRunning) {
+            long elapsed = System.currentTimeMillis() - autoReloadIntakeStartTime;
+            if (elapsed >= Configuration.INTAKE_AUTO_RELOAD_DURATION_MS) {
+                autoReloadIntakeRunning = false;
+                // Automatically launch the balls that are in the intake (without triggering another auto-reload)
+                sequenceOverride = true;
+                sequenceOverrideSkipAutoReload = true;
             }
         }
 

@@ -115,7 +115,7 @@ public class DevicePinpoint extends Device {
         double currentX = pinpoint.getPosX(DistanceUnit.INCH);
         double currentY = pinpoint.getPosY(DistanceUnit.INCH);
 
-        double targetAngle = Math.toDegrees(Math.atan2(goal.y - currentY, goal.x - currentX)) - 90;
+        double targetAngle = Math.toDegrees(Math.atan2(goal.y - currentY, goal.x - currentX)) + 180;
         double currentHeading = pinpoint.getHeading(AngleUnit.DEGREES);
 
         double error = targetAngle - currentHeading;

@@ -102,8 +102,10 @@ public class Configuration {
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 400;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
-    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 800;
-    public static volatile long INTAKE_AUTO_RELOAD_DELAY_MS = 100;
+    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 700;
+    public static volatile long INTAKE_AUTO_RELOAD_DELAY_MS = 500;
+//    public static volatile long INTAKE_AUTO_RELOAD_DURATION_MS = 1000;
+    public static volatile long INTAKE_AUTO_RELOAD_DURATION_MS = 1400;
 
     public static volatile double EXTAKE_MOTOR_KP = 150.0;
     public static volatile double EXTAKE_MOTOR_KI = 0.01;
@@ -136,10 +138,20 @@ public class Configuration {
     public static volatile int GAMEPAD_RUMBLE_WEAK_MS = 100;
     public static volatile int GAMEPAD_RUMBLE_FINALE_MS = 6767;
 
-    public static volatile double PINPOINT_HEADING_P = 0.015;
+    public static volatile double PINPOINT_HEADING_P = 0.01;
     public static volatile double PINPOINT_HEADING_I = 0;
     public static volatile double PINPOINT_HEADING_D = 0;
-    public static volatile double PINPOINT_HEADING_F = 0.062;
+    public static volatile double PINPOINT_HEADING_F = 0.04;
+    public static volatile double PINPOINT_AIM_P = 0.015;
+    public static volatile double PINPOINT_AIM_I = 0;
+    public static volatile double PINPOINT_AIM_D = 0;
+    public static volatile double PINPOINT_AIM_F = 0.062;
+
+    public static volatile int SHOTSOLVER_POSE_WINDOW_SIZE = 9;
+    public static volatile double SHOTSOLVER_POSE_EMA_ALPHA = 0.67;
+    public static volatile double SHOTSOLVER_POSE_MAX_STEP_IN = 1;
+    public static volatile double SHOTSOLVER_POSE_OUTLIER_REJECT_IN = 6.7;
+    public static volatile double SHOTSOLVER_YAW_ERROR_EMA_ALPHA = 1;
 
     // FUCK MANUAL MEASUREMENTS
 //    public static volatile double PINPOINT_OFFSET_FORWARD_Y = -2.1673433165342573; // gemini-3.0-flash-preview (thinking)
@@ -151,15 +163,15 @@ public class Configuration {
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_FORWARD = GoBildaPinpointDriver.EncoderDirection.REVERSED;
     public static volatile GoBildaPinpointDriver.EncoderDirection PINPOINT_DIRECTION_STRAFE = GoBildaPinpointDriver.EncoderDirection.REVERSED;
 
-    public static volatile double ROBOT_LENGTH = 17; // front to back distance, in inches // TODO: guesstimated
-    public static volatile double ROBOT_WIDTH = 17; // left to right distance, in inches // TODO: guesstimated
+    public static volatile double ROBOT_LENGTH = 17.13; // front to back distance, in inches // TODO: guesstimated
+    public static volatile double ROBOT_WIDTH = 16.81; // left to right distance, in inches // TODO: guesstimated
 //    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = ROBOT_LENGTH - 6.9255; // (1.971/2)+5.94, measured as of 2/8/2026 // front-left to localizer distance along robot length axis, in inches // (1.971/2)+5.94
 //    public static volatile double LOCALIZER_WIDTH_LEFT_OFFSET = 8.3835; // (1.728/2)+5.6715+1.848, measured as of 2/8/2026 // front-left to localizer distance along robot width axis, in inches
 //    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = ROBOT_LENGTH - LOCALIZER_LENGTH_FRONT_OFFSET;
 //    public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH - LOCALIZER_WIDTH_LEFT_OFFSET;
-    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = ROBOT_LENGTH / 2;
+    public static volatile double LOCALIZER_LENGTH_FRONT_OFFSET = 11.60;
     public static volatile double LOCALIZER_WIDTH_LEFT_OFFSET = ROBOT_WIDTH / 2;
-    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = ROBOT_LENGTH / 2;
+    public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = 5.54;
     public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH / 2;
 
     public static volatile PinpointConstants ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS = new PinpointConstants()
@@ -185,7 +197,7 @@ public class Configuration {
             .yVelocity(55.709416); // measured 2/6/2026
 
     public static volatile FollowerConstants ODOMETRY_FOLLOWER_CONSTANTS = new FollowerConstants()
-            .mass(13.608) // TODO: NOT MEASURED, ONLY GUESSTIMATED
+            .mass(14.606) // TODO: NOT MEASURED, ONLY GUESSTIMATED
             .forwardZeroPowerAcceleration(-55.351116) // measured 2/6/2026
             .lateralZeroPowerAcceleration(-80.316819) // measured 2/6/2026
             .translationalPIDFCoefficients(new PIDFCoefficients(0.067, 0, 0.01, 0.03)) // calibrated 2/6/2026

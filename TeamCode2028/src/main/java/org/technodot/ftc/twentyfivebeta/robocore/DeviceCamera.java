@@ -75,6 +75,7 @@ public class DeviceCamera extends Device {
         configureCamera();
 
         goalTagDetection = null;
+        AprilTagDetection fallbackGoalTagDetection = null;
         if (aprilTagProcessorFront != null) {
             List<AprilTagDetection> frontDetections = aprilTagProcessorFront.getDetections();
             for (AprilTagDetection tag : frontDetections) {

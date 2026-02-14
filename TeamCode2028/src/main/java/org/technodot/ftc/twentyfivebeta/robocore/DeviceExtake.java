@@ -70,7 +70,7 @@ public class DeviceExtake extends Device {
 
     @Override
     public void start() {
-
+        ShotSolver.clearPoseFilter();
     }
 
     @Override
