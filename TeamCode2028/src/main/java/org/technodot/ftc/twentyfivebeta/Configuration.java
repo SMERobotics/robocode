@@ -102,7 +102,7 @@ public class Configuration {
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 400;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
-    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 700;
+    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 800;
     public static volatile long INTAKE_AUTO_RELOAD_DELAY_MS = 500;
 //    public static volatile long INTAKE_AUTO_RELOAD_DURATION_MS = 1000;
     public static volatile long INTAKE_AUTO_RELOAD_DURATION_MS = 1400;
@@ -122,10 +122,14 @@ public class Configuration {
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
     public static volatile int EXTAKE_STABILIZATION_CYCLES = 4; // TODO: test zero because human and intake latency should be enough time
     // y (ticks/sec) = -0.0306x^2 + 12.8479 x + 415.9836
-    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = -0.00135941391;
-    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = 5.06119602;
-    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 874.146043;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = 0.0400159;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = -1.43296;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 1069.67372;
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT = 0.0; // + forward, - backwards // THIS VALUE NEEDS TO ALSO BE CHANGED IN TELEOP AND AUTO
+    public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_A = 0.0460686;
+    public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_B = -4.1204;
+    public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_C = 1166.41746;
+    public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_RANGE_SHIFT = 0.0;
     // y (ticks/sec) = 340.130269893 x (m/sec) - 783.609122293 @ r = 0.9969, R^2 = 0.9937
     public static volatile double EXTAKE_MODEL_VELOCITY_M = 340.130269893;
     public static volatile double EXTAKE_MODEL_VELOCITY_B = -783.609122293;
@@ -142,10 +146,14 @@ public class Configuration {
     public static volatile double PINPOINT_HEADING_I = 0;
     public static volatile double PINPOINT_HEADING_D = 0;
     public static volatile double PINPOINT_HEADING_F = 0.04;
-    public static volatile double PINPOINT_AIM_P = 0.015;
+    public static volatile double PINPOINT_AIM_P = 0.03;
     public static volatile double PINPOINT_AIM_I = 0;
-    public static volatile double PINPOINT_AIM_D = 0;
-    public static volatile double PINPOINT_AIM_F = 0.062;
+    public static volatile double PINPOINT_AIM_D = 0.003;
+    public static volatile double PINPOINT_AIM_F = 0.08;
+    public static volatile double PINPOINT_BEARING_P = 0.01;
+    public static volatile double PINPOINT_BEARING_I = 0;
+    public static volatile double PINPOINT_BEARING_D = 0;
+    public static volatile double PINPOINT_BEARING_F = 0.1;
 
     public static volatile int SHOTSOLVER_POSE_WINDOW_SIZE = 9;
     public static volatile double SHOTSOLVER_POSE_EMA_ALPHA = 0.67;

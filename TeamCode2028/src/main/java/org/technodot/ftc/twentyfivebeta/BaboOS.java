@@ -125,16 +125,21 @@ public class BaboOS extends OpMode {
                 telemetry.addData("gx", goal.x);
                 telemetry.addData("gy", goal.y);
             }
-            Vector2D relocalization = ShotSolver.calculateAbsolutePosition(DeviceCamera.goalTagDetection, alliance);
+            Vector2D relocalization = ShotSolver.getCameraPos(DeviceCamera.goalTagDetection, alliance);
             if (relocalization != null) {
                 telemetry.addData("rx", relocalization.x);
                 telemetry.addData("ry", relocalization.y);
             }
-
         }
 
         t.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
-//        t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
+        t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
+        if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
+
+            telemetry.addData("pb_kp", Configuration.PINPOINT_BEARING_P);
+        telemetry.addData("pb_ki", Configuration.PINPOINT_BEARING_I);
+        telemetry.addData("pb_kd", Configuration.PINPOINT_BEARING_D);
+        telemetry.addData("pb_kf", Configuration.PINPOINT_BEARING_F);
 
         if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());

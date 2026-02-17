@@ -62,6 +62,15 @@ public class DevicePinpoint extends Device {
         pinpoint.setHeading(h, AngleUnit.DEGREES);
     }
 
+    public static Vector2D getPos() {
+        return new Vector2D(pinpoint.getPosY(DistanceUnit.INCH), pinpoint.getPosX(DistanceUnit.INCH));
+    }
+
+    public static void setPos(Vector2D pos) {
+        pinpoint.setPosX(pos.y, DistanceUnit.INCH);
+        pinpoint.setPosY(pos.x, DistanceUnit.INCH);
+    }
+
     /*
      * WHAT THE FUCK GOBILDA
      * WHAT THE ACTUAL FUCK

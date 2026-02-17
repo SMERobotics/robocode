@@ -41,6 +41,7 @@ public class DeviceDrive extends Device {
 
     private SignedPIDFController pinpointPIDF;
     private SignedPIDFController aimPIDF;
+    private SignedPIDFController bearingPIDF;
 
     private boolean rotateLockToggleTriggered;
     private boolean rotateLockToggleActive;
@@ -105,6 +106,10 @@ public class DeviceDrive extends Device {
         aimPIDF = new SignedPIDFController(Configuration.PINPOINT_AIM_P, Configuration.PINPOINT_AIM_I, Configuration.PINPOINT_AIM_D, Configuration.PINPOINT_AIM_F);
         aimPIDF.setSetPoint(0.0);
         aimPIDF.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
+
+        bearingPIDF = new SignedPIDFController(Configuration.PINPOINT_BEARING_P, Configuration.PINPOINT_BEARING_I, Configuration.PINPOINT_BEARING_D, Configuration.PINPOINT_BEARING_F);
+        bearingPIDF.setSetPoint(0.0);
+        bearingPIDF.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
 
         // some of below thingys deprecated but its not broken so i'm not removing it
 
@@ -238,6 +243,7 @@ public class DeviceDrive extends Device {
 //        pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
         if (Configuration.DEBUG) pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
         if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.PINPOINT_AIM_P, Configuration.PINPOINT_AIM_I, Configuration.PINPOINT_AIM_D, Configuration.PINPOINT_AIM_F);
+        if (Configuration.DEBUG) bearingPIDF.setPIDF(Configuration.PINPOINT_BEARING_P, Configuration.PINPOINT_BEARING_I, Configuration.PINPOINT_BEARING_D, Configuration.PINPOINT_BEARING_F);
 
 //        SilentRunner101 ctrl = (SilentRunner101) inputController;
 //        double rotateInput = ctrl.driveRotate();
@@ -297,31 +303,37 @@ public class DeviceDrive extends Device {
 
         // apply pinpoint PIDF
         double rotate = rotateInput;
+        double error = ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance);
         if (aiming) {
             if (rotateInput != 0) {
                 rotate = rotateInput;
             } else if (aimPIDF != null && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
-                double error = ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance);
-                if (Double.isFinite(error)) {
+                if (Double.isFinite(error) && DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
 //                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
                     // Camera-absolute yaw error sign is opposite of this SignedPIDF path's expected PV sign.
                     // Keep telemetry as geometric error, but invert only for controller input.
                     rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
+                    bearingPIDF.reset();
                 } else {
-                    rotate = Range.clip(aimPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
+                    rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
+                    aimPIDF.reset();
                 }
                 DevicePinpoint.setSnapshotYaw();
             } else {
                 if (pinpointPIDF != null) pinpointPIDF.reset();
+                if (aimPIDF != null) aimPIDF.reset();
+                if (bearingPIDF != null) bearingPIDF.reset();
                 rotate = rotateInput;
             }
         } else if (pinpointPIDF != null) {
             if (rotateLockToggleActive && !rotating) {
-                double error = DevicePinpoint.getSnapshotYawError();
+                double e = DevicePinpoint.getSnapshotYawError();
 //                FtcDashboard.getInstance().getTelemetry().addData("rot_e", error);
-                rotate = Range.clip(pinpointPIDF.calculate(error), -1.0, 1.0);
+                rotate = Range.clip(pinpointPIDF.calculate(e), -1.0, 1.0);
             } else {
                 pinpointPIDF.reset();
+                aimPIDF.reset();
+                bearingPIDF.reset();
             }
         }
 
@@ -334,6 +346,7 @@ public class DeviceDrive extends Device {
     public void stop() {
         aimPIDF.reset();
         pinpointPIDF.reset();
+        bearingPIDF.reset();
     }
 
     public void update(double forward, double strafe, double rotate) {

@@ -1,10 +1,14 @@
 package org.technodot.ftc.twentyfivebeta.roboctrl;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
+import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
+import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 
 import java.util.ArrayDeque;
@@ -15,10 +19,19 @@ public class ShotSolver {
     private static final Queue<Double> ranger = new ArrayDeque<>();
     private static double sum;
     private static final Queue<Vector2D> poseWindow = new ArrayDeque<>();
+    private static double poseWindowSumX;
+    private static double poseWindowSumY;
+    private static Vector2D lastPose;
+    private static boolean cameraPosStateInitialized;
+    private static boolean lastIdleState;
+    private static long stateEnteredNs;
     private static Vector2D filteredPose;
     private static Alliance filteredAlliance;
     private static int filteredTagId = -1;
     private static Double filteredYawErrorDeg;
+    private static final int CAMERA_POSE_WINDOW_SIZE = 10;
+    private static final double CAMERA_OUTLIER_DISTANCE_IN = 24.0;
+    private static final long CAMERA_STATE_SWITCH_NS = 250_000_000L;
 
     private static final double GOAL_X_OFFSET = 12.8; // in, relative to top left corner for blue goal
     private static final double GOAL_Y_OFFSET = 14.4; // in, relative to top left corner for blue goal
@@ -26,7 +39,6 @@ public class ShotSolver {
     // Base field-heading for BLUE goal in the team's heading convention.
     // Team heading convention is not math-angle; we convert before using cos/sin.
     private static final double GOAL_HEADINIG = Math.PI / 2 + Math.atan(4.0 / 3.0); // radians
-    private static final double CAMERA_HEIGHT = 17.5; // in
 
     /*
     This coordinate system is going to take some explaining. It is dependent upon which alliance you are on, and I promise you there's a compelling reason.
@@ -55,52 +67,77 @@ public class ShotSolver {
                  ^-YOU  (0, 0) YOU-^
      */
 
-    public static Vector2D calculateAbsolutePosition(AprilTagDetection tag, Alliance alliance) {
-        if (isInvalidDetection(tag) || alliance == null) return null;
-        if (tag.id != 20 && tag.id != 24) return null;
+    public static Vector2D getCameraPos(AprilTagDetection tag, Alliance alliance) {
+        boolean idleNow = isExtakeIdleSafe();
+        long nowNs = System.nanoTime();
 
-        Vector2D goalPos = getTagPos(tag, alliance);
-
-        // Build goal heading using team field-heading convention from the user-provided mapping.
-        double goalHeadingField = (tag.id == 20 ? GOAL_HEADINIG : Math.PI - GOAL_HEADINIG) - (alliance == Alliance.BLUE ? 0 : Math.PI);
-        // Convert to math-angle for trig (0 = +X, CCW positive).
-        double goalHeadingMath = Math.PI / 2.0 - goalHeadingField;
-        // Range is the primary signal (distance in the camera XY plane). This avoids noisy angle-only depth solves.
-        double planarRange = Math.abs(tag.ftcPose.range);
-        // Fallback depth solve: intersect observed ray with z = CAMERA_HEIGHT using known tag height.
-
-        // Kept guarded because elevation/pitch/roll are noisier under camera vibration.
-        double tiltMagnitude = Math.hypot(tag.ftcPose.pitch, tag.ftcPose.roll);
-        if ((!Double.isFinite(planarRange) || planarRange <= 0.0) && tiltMagnitude < 12.0) {
-            double dz = GOAL_HEIGHT - CAMERA_HEIGHT;
-            double elevationRad = Math.toRadians(tag.ftcPose.elevation);
-            double bearingRad = Math.toRadians(tag.ftcPose.bearing);
-            double tanElevation = Math.tan(elevationRad);
-            double cosBearing = Math.cos(bearingRad);
-
-            if (Math.abs(tanElevation) > 1e-3 && Math.abs(cosBearing) > 1e-3) {
-                // FTC definitions: y = dz / tan(elevation), range = |y| / cos(bearing)
-                planarRange = Math.abs(dz / tanElevation / cosBearing);
-            }
+        if (!cameraPosStateInitialized) {
+            cameraPosStateInitialized = true;
+            lastIdleState = idleNow;
+            stateEnteredNs = nowNs;
         }
-        if (!Double.isFinite(planarRange) || planarRange < 0.0) planarRange = 0.0;
 
-        // yaw-bearing is the most stable horizontal offset from the tag centerline
-        // (camera yaw jitter tends to affect both terms similarly and cancel here).
-        double centerlineOffsetRad = Math.toRadians(tag.ftcPose.yaw - tag.ftcPose.bearing);
-        if (!Double.isFinite(centerlineOffsetRad)) centerlineOffsetRad = 0.0;
+        boolean stateChanged = idleNow != lastIdleState;
+        long previousStateDurationNs = stateChanged ? nowNs - stateEnteredNs : 0L;
+        if (stateChanged) {
+            lastIdleState = idleNow;
+            stateEnteredNs = nowNs;
+        }
 
-        double tagToCameraHeading = goalHeadingMath + centerlineOffsetRad;
-        double solvedX = goalPos.x + planarRange * Math.cos(tagToCameraHeading);
-        double solvedY = goalPos.y + planarRange * Math.sin(tagToCameraHeading);
+        if (idleNow) {
+            // If we are re-entering idle after running for >=250ms, start a fresh camera average window.
+            if (stateChanged && previousStateDurationNs >= CAMERA_STATE_SWITCH_NS) {
+                clearPoseWindow();
+            }
 
-        // Keep camera estimate inside alliance-relative field bounds.
-        double minX = alliance == Alliance.BLUE ? -144.0 : 0.0;
-        double maxX = alliance == Alliance.BLUE ? 0.0 : 144.0;
-        solvedX = clip(solvedX, minX, maxX);
-        solvedY = clip(solvedY, 0.0, 144.0);
+            // Keep a 10-sample running average of solved camera positions.
+            Vector2D solvedPose = calculateAbsolutePosition(tag, alliance);
+            if (solvedPose == null || !isFinitePose(solvedPose)) {
+                return getPoseWindowAverage();
+            }
 
-        return smoothPose(new Vector2D(solvedX, solvedY), alliance, tag.id);
+            // Reject outliers from averaging if they jump too far from last pose, but still track last pose.
+            boolean outlier = consumeAndCheckOutlier(solvedPose);
+
+            if (!outlier) {
+                pushPoseSample(solvedPose);
+            }
+
+            Vector2D averaged = getPoseWindowAverage();
+            Vector2D outputPose = averaged != null ? averaged : solvedPose;
+
+            if (outputPose != null && isFinitePose(outputPose)) {
+                FtcDashboard.getInstance().getTelemetry().addData("rx", outputPose.x);
+                FtcDashboard.getInstance().getTelemetry().addData("ry", outputPose.y);
+            }
+
+            return outputPose;
+        } else {
+            // If we are entering non-idle after being idle for >=250ms, align odometry once from camera.
+            if (stateChanged && previousStateDurationNs >= CAMERA_STATE_SWITCH_NS) {
+                Vector2D absolutePose = calculateAbsolutePosition(tag, alliance);
+                boolean outlier = absolutePose != null && isFinitePose(absolutePose) && consumeAndCheckOutlier(absolutePose);
+                if (absolutePose != null && isFinitePose(absolutePose) && !outlier && DevicePinpoint.pinpoint != null) {
+                    Vector2D blendedForPinpoint = getTransitionSetPose(absolutePose);
+                    if (blendedForPinpoint != null && isFinitePose(blendedForPinpoint)) {
+                        DevicePinpoint.setPos(blendedForPinpoint);
+                    } else {
+                        DevicePinpoint.setPos(absolutePose);
+                    }
+                }
+            }
+
+            // While extake is running, trust localizer pose.
+            if (DevicePinpoint.pinpoint == null) return null;
+            Vector2D odoPose = DevicePinpoint.getPos();
+
+            if (odoPose != null && isFinitePose(odoPose)) {
+                FtcDashboard.getInstance().getTelemetry().addData("rx", odoPose.x);
+                FtcDashboard.getInstance().getTelemetry().addData("ry", odoPose.y);
+            }
+
+            return odoPose != null && isFinitePose(odoPose) ? odoPose : null;
+        }
     }
 
     public static Vector2D getTagPos(AprilTagDetection tag, Alliance alliance) {
@@ -125,7 +162,7 @@ public class ShotSolver {
 
     public static double getGoalDistance(AprilTagDetection tag, Alliance alliance) {
         Vector2D goalPos = getGoalPos(tag, alliance);
-        Vector2D robotPos = calculateAbsolutePosition(tag, alliance);
+        Vector2D robotPos = getCameraPos(tag, alliance);
         if (goalPos == null || robotPos == null) return Double.NaN;
 
         double dx = goalPos.x - robotPos.x;
@@ -138,12 +175,43 @@ public class ShotSolver {
         if (DevicePinpoint.pinpoint == null) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
         Vector2D goalPos = getGoalPos(tag, alliance);
-        Vector2D robotPos = calculateAbsolutePosition(tag, alliance);
+        Vector2D robotPos = getCameraPos(tag, alliance);
         if (goalPos == null || robotPos == null) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
         // Calculate the vector from robot to goal
         double dx = goalPos.x - robotPos.x;
         double dy = goalPos.y - robotPos.y;
+
+        // Get the robot's current heading from the Pinpoint (in degrees)
+        // Pinpoint uses GoBilda convention which aligns with ShotSolver's field heading system
+        double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
+        if (!Double.isFinite(currentHeading)) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
+
+        if (DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+            // Shift amount in inches
+            double shiftInches = 3.0;
+            // Convert heading to radians for trig functions
+            double headingRad = Math.toRadians(currentHeading);
+            // Robot's right direction in field coords: (cos(heading), -sin(heading))
+            // Robot's left direction in field coords: (-cos(heading), sin(heading))
+            double rightX = Math.cos(headingRad);
+            double rightY = -Math.sin(headingRad);
+
+            switch (DeviceIntake.targetSide) {
+                case LEFT:
+                    // Shift the target position 3 inches to the RIGHT (robot's perspective)
+                    dx += shiftInches * rightX;
+                    dy += shiftInches * rightY;
+                    break;
+                case RIGHT:
+                    // Shift the target position 3 inches to the LEFT (robot's perspective)
+                    dx -= shiftInches * rightX;
+                    dy -= shiftInches * rightY;
+                    break;
+                default:
+                    break;
+            }
+        }
 
         // Calculate the desired heading (angle from robot to goal) in ShotSolver's convention:
         // Heading 0 = facing +Y direction (towards your goal), +X is left for blue, right for red
@@ -153,11 +221,6 @@ public class ShotSolver {
         // Convert math-angle to field-heading: field heading 0 = +Y, so subtract PI/2
         // Field heading = PI/2 - math angle (since +Y corresponds to heading 0)
         double desiredHeadingField = Math.toDegrees(Math.PI / 2.0 - desiredHeadingMath);
-
-        // Get the robot's current heading from the Pinpoint (in degrees)
-        // Pinpoint uses GoBilda convention which aligns with ShotSolver's field heading system
-        double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
-        if (!Double.isFinite(currentHeading)) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
         // Calculate error: how much the robot needs to rotate to face the goal
         double error = normalizeDegrees(desiredHeadingField - currentHeading);
@@ -169,7 +232,8 @@ public class ShotSolver {
             filteredYawErrorDeg = normalizeDegrees(filteredYawErrorDeg + Configuration.SHOTSOLVER_YAW_ERROR_EMA_ALPHA * delta);
         }
 
-        return filteredYawErrorDeg;
+//        return filteredYawErrorDeg;
+        return error;
     }
 
     private static boolean isInvalidDetection(AprilTagDetection tag) {
@@ -180,6 +244,13 @@ public class ShotSolver {
         double normalized = angleDeg;
         while (normalized > 180.0) normalized -= 360.0;
         while (normalized < -180.0) normalized += 360.0;
+        return normalized;
+    }
+
+    private static double normalizeRadians(double angleRad) {
+        double normalized = angleRad;
+        while (normalized > Math.PI) normalized -= 2.0 * Math.PI;
+        while (normalized < -Math.PI) normalized += 2.0 * Math.PI;
         return normalized;
     }
 
@@ -194,74 +265,145 @@ public class ShotSolver {
                 + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_C;
     }
 
-    public static void clearVelocityQueue() {
-        ranger.clear();
-        sum = 0;
-        clearPoseFilter();
-    }
+    private static Vector2D calculateAbsolutePosition(AprilTagDetection tag, Alliance alliance) {
+        if (isInvalidDetection(tag) || alliance == null) return null;
+        if (tag.id != 20 && tag.id != 24) return null;
 
-    public static void clearPoseFilter() {
-        poseWindow.clear();
-        filteredPose = null;
-        filteredAlliance = null;
-        filteredTagId = -1;
-        filteredYawErrorDeg = null;
-    }
+        Vector2D goalPos = getTagPos(tag, alliance);
 
-    private static Vector2D smoothPose(Vector2D measurement, Alliance alliance, int tagId) {
-        if (measurement == null) return null;
-        if (filteredPose == null || filteredAlliance != alliance || filteredTagId != tagId) {
-            clearPoseFilter();
-            filteredPose = new Vector2D(measurement);
-            filteredAlliance = alliance;
-            filteredTagId = tagId;
-            poseWindow.add(new Vector2D(measurement));
-            return new Vector2D(filteredPose);
-        }
+        // Build goal heading using team field-heading convention from the user-provided mapping.
+        double goalHeadingField = (tag.id == 20 ? GOAL_HEADINIG : Math.PI - GOAL_HEADINIG) - (alliance == Alliance.BLUE ? 0 : Math.PI);
+        // Convert to math-angle for trig (0 = +X, CCW positive).
+        double goalHeadingMath = Math.PI / 2.0 - goalHeadingField;
 
-        // Reject single-frame spikes from vibration before they enter the window.
-        Vector2D windowSample = measurement;
-        if (measurement.difference(filteredPose).magnitude() > Configuration.SHOTSOLVER_POSE_OUTLIER_REJECT_IN) {
-            windowSample = new Vector2D(filteredPose);
-        }
+        // Secondary solve (no forced camera-height intersection): use full ftcPose directly and
+        // project into a top-down pose by ignoring Z instead of solving for a fixed Z plane.
+        double bearingRad = Math.toRadians(tag.ftcPose.bearing);
+        double elevationRad = Math.toRadians(tag.ftcPose.elevation);
+        double yawRad = Math.toRadians(tag.ftcPose.yaw);
+        double pitchRad = Math.toRadians(tag.ftcPose.pitch);
+        double rollRad = Math.toRadians(tag.ftcPose.roll);
 
-        poseWindow.add(new Vector2D(windowSample));
-        while (poseWindow.size() > Configuration.SHOTSOLVER_POSE_WINDOW_SIZE) poseWindow.remove();
+        // Horizontal distance from full 3D range ray, ignoring the vertical component.
+        double planarRange = Math.abs(tag.ftcPose.range * Math.cos(elevationRad));
+        if (!Double.isFinite(planarRange) || planarRange < 0.0) planarRange = planarRange;
 
-        double medianX = medianWindowAxis(true);
-        double medianY = medianWindowAxis(false);
+        // Use pitch/roll as a tilt attenuation factor on the horizontal centerline offset.
+        double tiltScale = Math.cos(pitchRad) * Math.cos(rollRad);
+        if (!Double.isFinite(tiltScale)) tiltScale = 1.0;
+        tiltScale = clip(tiltScale, -1.0, 1.0);
 
-        double nextX = filteredPose.x + Configuration.SHOTSOLVER_POSE_EMA_ALPHA * (medianX - filteredPose.x);
-        double nextY = filteredPose.y + Configuration.SHOTSOLVER_POSE_EMA_ALPHA * (medianY - filteredPose.y);
+        double centerlineOffsetRad = normalizeRadians((yawRad - bearingRad) * tiltScale);
+        double tagToCameraHeading = goalHeadingMath + centerlineOffsetRad;
 
-        double stepDx = nextX - filteredPose.x;
-        double stepDy = nextY - filteredPose.y;
-        double stepMag = Math.hypot(stepDx, stepDy);
-        if (stepMag > Configuration.SHOTSOLVER_POSE_MAX_STEP_IN && stepMag > 1e-6) {
-            double scale = Configuration.SHOTSOLVER_POSE_MAX_STEP_IN / stepMag;
-            stepDx *= scale;
-            stepDy *= scale;
-        }
+        double solvedX = goalPos.x + planarRange * Math.cos(tagToCameraHeading);
+        double solvedY = goalPos.y + planarRange * Math.sin(tagToCameraHeading);
 
-        filteredPose = new Vector2D(filteredPose.x + stepDx, filteredPose.y + stepDy);
-        return new Vector2D(filteredPose);
-    }
+        // Keep camera estimate inside alliance-relative field bounds.
+        double minX = alliance == Alliance.BLUE ? -144.0 : 0.0;
+        double maxX = alliance == Alliance.BLUE ? 0.0 : 144.0;
+//        solvedX = clip(solvedX, minX, maxX);
+//        solvedY = clip(solvedY, 0.0, 144.0);
 
-    private static double medianWindowAxis(boolean xAxis) {
-        int n = poseWindow.size();
-        if (n == 0) return 0.0;
-        double[] values = new double[n];
-        int i = 0;
-        for (Vector2D sample : poseWindow) {
-            values[i++] = xAxis ? sample.x : sample.y;
-        }
-        java.util.Arrays.sort(values);
-        int mid = n / 2;
-        if ((n & 1) == 1) return values[mid];
-        return (values[mid - 1] + values[mid]) * 0.5;
+        if (!(minX < solvedX && solvedX < maxX && 0 < solvedY && solvedY < 144)) return null;
+
+        FtcDashboard.getInstance().getTelemetry().addData("rx", solvedX);
+        FtcDashboard.getInstance().getTelemetry().addData("ry", solvedY);
+
+        return new Vector2D(solvedX, solvedY);
     }
 
     private static double clip(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static boolean isExtakeIdleSafe() {
+        try {
+            return DeviceExtake.isIdle();
+        } catch (RuntimeException ignored) {
+            return true;
+        }
+    }
+
+    private static boolean isFinitePose(Vector2D pose) {
+        return pose != null && Double.isFinite(pose.x) && Double.isFinite(pose.y);
+    }
+
+    private static boolean consumeAndCheckOutlier(Vector2D pose) {
+        if (!isFinitePose(pose)) return true;
+        boolean outlier = false;
+        if (lastPose != null && isFinitePose(lastPose)) {
+            double dist = Math.hypot(pose.x - lastPose.x, pose.y - lastPose.y);
+            outlier = Double.isFinite(dist) && dist > CAMERA_OUTLIER_DISTANCE_IN;
+        }
+        lastPose = new Vector2D(pose);
+        return outlier;
+    }
+
+    private static void pushPoseSample(Vector2D pose) {
+        Vector2D sample = new Vector2D(pose);
+        poseWindow.add(sample);
+        poseWindowSumX += sample.x;
+        poseWindowSumY += sample.y;
+
+        while (poseWindow.size() > CAMERA_POSE_WINDOW_SIZE) {
+            Vector2D removed = poseWindow.remove();
+            poseWindowSumX -= removed.x;
+            poseWindowSumY -= removed.y;
+        }
+
+        filteredPose = getPoseWindowAverage();
+    }
+
+    private static Vector2D getPoseWindowAverage() {
+        if (poseWindow.isEmpty()) return null;
+        double n = poseWindow.size();
+        return new Vector2D(poseWindowSumX / n, poseWindowSumY / n);
+    }
+
+    private static Vector2D getTransitionSetPose(Vector2D currentPose) {
+        if (!isFinitePose(currentPose)) return null;
+
+        Vector2D previousAvg = getPoseWindowAverage();
+        Vector2D currentAvg = getPoseWindowAverageWithCandidate(currentPose);
+
+        if (!isFinitePose(previousAvg) && !isFinitePose(currentAvg)) return currentPose;
+        if (!isFinitePose(previousAvg)) return currentAvg;
+        if (!isFinitePose(currentAvg)) return previousAvg;
+
+        // Required behavior: overall average of previous average and current average (50/50).
+        return new Vector2D(
+                0.5 * previousAvg.x + 0.5 * currentAvg.x,
+                0.5 * previousAvg.y + 0.5 * currentAvg.y
+        );
+    }
+
+    private static Vector2D getPoseWindowAverageWithCandidate(Vector2D candidate) {
+        if (!isFinitePose(candidate)) return getPoseWindowAverage();
+        if (poseWindow.isEmpty()) return new Vector2D(candidate);
+
+        double sumX = poseWindowSumX + candidate.x;
+        double sumY = poseWindowSumY + candidate.y;
+        int count = poseWindow.size() + 1;
+
+        if (count > CAMERA_POSE_WINDOW_SIZE) {
+            Vector2D oldest = poseWindow.peek();
+            if (oldest != null) {
+                sumX -= oldest.x;
+                sumY -= oldest.y;
+            }
+            count = CAMERA_POSE_WINDOW_SIZE;
+        }
+
+        if (count <= 0) return null;
+        return new Vector2D(sumX / count, sumY / count);
+    }
+
+    private static void clearPoseWindow() {
+        poseWindow.clear();
+        poseWindowSumX = 0.0;
+        poseWindowSumY = 0.0;
+        filteredPose = null;
+        lastPose = null;
     }
 }

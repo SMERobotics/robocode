@@ -10,8 +10,8 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 public class DeviceExtake extends Device {
 
-    public DcMotorEx motorExtakeLeft;
-    public DcMotorEx motorExtakeRight;
+    public static DcMotorEx motorExtakeLeft;
+    public static DcMotorEx motorExtakeRight;
 //    public PIDFController extakeLeftPIDF;
 //    public PIDFController extakeRightPIDF;
 
@@ -70,7 +70,7 @@ public class DeviceExtake extends Device {
 
     @Override
     public void start() {
-        ShotSolver.clearPoseFilter();
+
     }
 
     @Override
@@ -93,7 +93,7 @@ public class DeviceExtake extends Device {
             stabilizationCycles = 0;
             longModeInitialVelocitySet = false;
         } else if (extakeDualClose && !prevExtakeDualClose) {
-            extakeState = extakeState == ExtakeState.DUAL_SHORT ? ExtakeState.IDLE : ExtakeState.DUAL_SHORT;
+            extakeState = extakeState == ExtakeState.DUAL_SHORT || extakeState == ExtakeState.DYNAMIC? ExtakeState.IDLE : ExtakeState.DUAL_SHORT; // left bumper will now disable ANY active extake command
             stabilizationCycles = 0;
             longModeInitialVelocitySet = false;
         } else if (extakeState == ExtakeState.REVERSE) {
@@ -160,7 +160,7 @@ public class DeviceExtake extends Device {
 
     @Override
     public void stop() {
-        ShotSolver.clearVelocityQueue();
+
     }
 
     /**
@@ -199,8 +199,8 @@ public class DeviceExtake extends Device {
      * Check if the extake motors are physically idle (not spinning).
      * @return If the extake motors are idle.
      */
-    public boolean isIdle() {
-        return Math.abs(this.motorExtakeLeft.getVelocity()) <= 20 && Math.abs(this.motorExtakeRight.getVelocity()) <= 20;
+    public static boolean isIdle() {
+        return Math.abs(motorExtakeLeft.getVelocity()) <= 20 && Math.abs(motorExtakeRight.getVelocity()) <= 20;
     }
 
     /**
