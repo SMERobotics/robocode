@@ -184,12 +184,14 @@ public class ShotSolver {
 
         // Get the robot's current heading from the Pinpoint (in degrees)
         // Pinpoint uses GoBilda convention which aligns with ShotSolver's field heading system
+        // TODO: instead of getting the pinpoint's heading, calculate the heading based on the tag.ftcPose and the previously defined tag data.
         double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
+
         if (!Double.isFinite(currentHeading)) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
         if (DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
             // Shift amount in inches
-            double shiftInches = 3.0;
+            double shiftInches = 3;
             // Convert heading to radians for trig functions
             double headingRad = Math.toRadians(currentHeading);
             // Robot's right direction in field coords: (cos(heading), -sin(heading))
@@ -200,13 +202,15 @@ public class ShotSolver {
             switch (DeviceIntake.targetSide) {
                 case LEFT:
                     // Shift the target position 3 inches to the RIGHT (robot's perspective)
-                    dx += shiftInches * rightX;
-                    dy += shiftInches * rightY;
+                    // WARNING: this was previously broken??? don't trust ANYTHING
+                    dx -= shiftInches * rightX;
+                    dy -= shiftInches * rightY;
                     break;
                 case RIGHT:
                     // Shift the target position 3 inches to the LEFT (robot's perspective)
-                    dx -= shiftInches * rightX;
-                    dy -= shiftInches * rightY;
+                    // WARNING: this was previously broken??? don't trust ANYTHING
+                    dx += shiftInches * rightX;
+                    dy += shiftInches * rightY;
                     break;
                 default:
                     break;

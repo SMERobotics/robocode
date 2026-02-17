@@ -12,6 +12,7 @@ import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
+import org.technodot.ftc.twentyfivebeta.robocore.DeviceIMU;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
@@ -31,6 +32,7 @@ public class BaboOS extends OpMode {
     // all updates should be theoretically done in this order, based on usage
     public DeviceCamera deviceCamera;
     public DevicePinpoint devicePinpoint;
+//    public DeviceIMU deviceIMU;
     public DeviceDrive deviceDrive;
     public DeviceExtake deviceExtake;
     public DeviceIntake deviceIntake;
@@ -62,12 +64,14 @@ public class BaboOS extends OpMode {
 
         deviceCamera = new DeviceCamera(alliance);
         devicePinpoint = new DevicePinpoint(alliance);
+//        deviceIMU = new DeviceIMU(alliance);
         deviceDrive = new DeviceDrive(alliance);
         deviceExtake = new DeviceExtake(alliance);
         deviceIntake = new DeviceIntake(alliance);
 
         deviceCamera.init(hardwareMap, inputController);
         devicePinpoint.init(hardwareMap, inputController);
+//        deviceIMU.init(hardwareMap, inputController);
         deviceDrive.init(hardwareMap, inputController);
         deviceExtake.init(hardwareMap, inputController);
         deviceIntake.init(hardwareMap, inputController);
@@ -85,6 +89,7 @@ public class BaboOS extends OpMode {
     public void start() {
         deviceCamera.start();
         devicePinpoint.start();
+//        deviceIMU.start();
         deviceDrive.start();
         deviceExtake.start();
         deviceIntake.start();
@@ -108,6 +113,7 @@ public class BaboOS extends OpMode {
 
         deviceCamera.update();
         devicePinpoint.update();
+//        deviceIMU.update();
         deviceDrive.update();
         deviceExtake.update();
         deviceIntake.update();
@@ -115,6 +121,9 @@ public class BaboOS extends OpMode {
         telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
         telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
         telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        telemetry.addData("pin_h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        telemetry.addData("rev_h", DeviceIMU.yaw);
+//        telemetry.addData("imu_h", DeviceIMU.hubYaw);
 
         t.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
         t.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
@@ -135,11 +144,6 @@ public class BaboOS extends OpMode {
         t.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
         t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
         if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
-
-            telemetry.addData("pb_kp", Configuration.PINPOINT_BEARING_P);
-        telemetry.addData("pb_ki", Configuration.PINPOINT_BEARING_I);
-        telemetry.addData("pb_kd", Configuration.PINPOINT_BEARING_D);
-        telemetry.addData("pb_kf", Configuration.PINPOINT_BEARING_F);
 
         if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
         telemetry.addData("field_offset", deviceCamera.getFieldOffset());
@@ -185,6 +189,7 @@ public class BaboOS extends OpMode {
     public void stop() {
         deviceCamera.stop();
         devicePinpoint.stop();
+//        deviceIMU.stop();
         deviceDrive.stop();
         deviceExtake.stop();
         deviceIntake.stop();

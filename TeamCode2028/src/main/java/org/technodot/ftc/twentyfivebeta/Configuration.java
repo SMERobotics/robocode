@@ -122,9 +122,9 @@ public class Configuration {
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
     public static volatile int EXTAKE_STABILIZATION_CYCLES = 4; // TODO: test zero because human and intake latency should be enough time
     // y (ticks/sec) = -0.0306x^2 + 12.8479 x + 415.9836
-    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = 0.0400159;
-    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = -1.43296;
-    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 1069.67372;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = -0.00135941391;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = 5.06119602;
+    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 874.146043;
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT = 0.0; // + forward, - backwards // THIS VALUE NEEDS TO ALSO BE CHANGED IN TELEOP AND AUTO
     public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_A = 0.0460686;
     public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_B = -4.1204;
