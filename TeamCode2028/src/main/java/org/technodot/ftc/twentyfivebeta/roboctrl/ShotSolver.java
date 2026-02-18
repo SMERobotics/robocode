@@ -32,13 +32,30 @@ public class ShotSolver {
     private static final int CAMERA_POSE_WINDOW_SIZE = 10;
     private static final double CAMERA_OUTLIER_DISTANCE_IN = 24.0;
     private static final long CAMERA_STATE_SWITCH_NS = 250_000_000L;
+    private static final double BEARING_FILTER_CUTOFF_HZ = 5.0;
+    private static final double BEARING_FILTER_MAX_RATE_DEG_PER_SEC = 540.0;
+    private static final double BEARING_FILTER_MIN_STEP_DEG = 2.0;
+    private static final double BEARING_FILTER_RESET_GAP_S = 0.25;
+    private static final double BEARING_FILTER_DT_MIN_S = 1.0 / 240.0;
+    private static final double BEARING_FILTER_DT_MAX_S = 1.0 / 20.0;
+    private static final double BUTTERWORTH_Q = Math.sqrt(0.5);
 
     private static final double GOAL_X_OFFSET = 12.8; // in, relative to top left corner for blue goal
     private static final double GOAL_Y_OFFSET = 14.4; // in, relative to top left corner for blue goal
     private static final double GOAL_HEIGHT = 29.5; // in
+    private static final double CAMERA_HEIGHT = 17.5; // in
     // Base field-heading for BLUE goal in the team's heading convention.
     // Team heading convention is not math-angle; we convert before using cos/sin.
     private static final double GOAL_HEADINIG = Math.PI / 2 + Math.atan(4.0 / 3.0); // radians
+    private static boolean bearingFilterInitialized;
+    private static long bearingFilterLastNs;
+    private static double bearingRawUnwrappedDeg;
+    private static double bearingFilterX1;
+    private static double bearingFilterX2;
+    private static double bearingFilterY1;
+    private static double bearingFilterY2;
+    private static Alliance bearingFilterAlliance;
+    private static int bearingFilterTagId = -1;
 
     /*
     This coordinate system is going to take some explaining. It is dependent upon which alliance you are on, and I promise you there's a compelling reason.
@@ -185,7 +202,8 @@ public class ShotSolver {
         // Get the robot's current heading from the Pinpoint (in degrees)
         // Pinpoint uses GoBilda convention which aligns with ShotSolver's field heading system
         // TODO: instead of getting the pinpoint's heading, calculate the heading based on the tag.ftcPose and the previously defined tag data.
-        double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
+        // double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
+        double currentHeading = calculateBearing(tag, alliance);
 
         if (!Double.isFinite(currentHeading)) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
@@ -237,7 +255,180 @@ public class ShotSolver {
         }
 
 //        return filteredYawErrorDeg;
-        return error;
+        return -error;
+
+        /*
+        BEGIN SECOND SOLUTION
+         */
+
+//        if (isInvalidDetection(tag) || alliance == null) return Double.NaN;
+//
+//        Vector2D goalPos = getGoalPos(tag, alliance);
+//        Vector2D tagPos = getTagPos(tag, alliance);
+//        if (goalPos == null || tagPos == null) return Double.NaN;
+//
+//        double rangeIn = tag.ftcPose.range;
+//        double bearingDeg = tag.ftcPose.bearing;
+//        double elevationDeg = tag.ftcPose.elevation;
+//        double yawDeg = tag.ftcPose.yaw;
+//        if (!Double.isFinite(rangeIn) || !Double.isFinite(bearingDeg) || !Double.isFinite(elevationDeg) || !Double.isFinite(yawDeg)) {
+//            return Double.NaN;
+//        }
+//
+//        // Project 3D ray into horizontal plane using known camera height.
+//        double elevationRad = Math.toRadians(elevationDeg);
+//        double verticalOffsetIn = GOAL_HEIGHT - CAMERA_HEIGHT;
+//        double absRangeIn = Math.abs(rangeIn);
+//        double planarRangeSq = absRangeIn * absRangeIn - verticalOffsetIn * verticalOffsetIn;
+//
+//        // Fallback to elevation projection if noisy range momentarily violates geometry.
+//        // TODO: determine if fixed heights or dyanmic elevation is less noisy & impacted by vibrations.
+//        double planarRange = planarRangeSq >= 0.0
+//                ? Math.sqrt(planarRangeSq)
+//                : Math.abs(absRangeIn * Math.cos(elevationRad));
+//        if (!Double.isFinite(planarRange)) return Double.NaN;
+//
+//        // Build heading from goal -> tag in field-math angle, then offset by observed centerline
+//        // shift (yaw - bearing) to recover tag -> camera direction.
+//        double goalToTagHeadingMath = Math.atan2(tagPos.y - goalPos.y, tagPos.x - goalPos.x);
+//        double centerlineOffsetRad = normalizeRadians(Math.toRadians(yawDeg - bearingDeg));
+//        double tagToCameraHeadingMath = normalizeRadians(goalToTagHeadingMath + centerlineOffsetRad);
+//        double cameraToTagHeadingMath = normalizeRadians(tagToCameraHeadingMath + Math.PI);
+//
+//        // Recover camera heading from camera->tag heading and measured camera-frame bearing.
+//        double cameraHeadingMath = normalizeRadians(cameraToTagHeadingMath - Math.toRadians(bearingDeg));
+//        double currentHeadingFieldRad = normalizeRadians(Math.PI / 2.0 - cameraHeadingMath);
+//
+//        // Build camera->goal vector without solving absolute camera field position.
+//        double cameraToTagX = planarRange * Math.cos(cameraToTagHeadingMath);
+//        double cameraToTagY = planarRange * Math.sin(cameraToTagHeadingMath);
+//        double tagToGoalX = goalPos.x - tagPos.x;
+//        double tagToGoalY = goalPos.y - tagPos.y;
+//        double dx = cameraToTagX + tagToGoalX;
+//        double dy = cameraToTagY + tagToGoalY;
+//        if (!Double.isFinite(dx) || !Double.isFinite(dy)) return Double.NaN;
+//
+//        if (DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+//            double shiftInches = 3.0;
+//            double rightX = Math.cos(currentHeadingFieldRad);
+//            double rightY = -Math.sin(currentHeadingFieldRad);
+//
+//            switch (DeviceIntake.targetSide) {
+//                case LEFT:
+//                    dx -= shiftInches * rightX;
+//                    dy -= shiftInches * rightY;
+//                    break;
+//                case RIGHT:
+//                    dx += shiftInches * rightX;
+//                    dy += shiftInches * rightY;
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//
+//        double desiredHeadingMath = Math.atan2(dy, dx);
+//        double desiredHeadingFieldRad = normalizeRadians(Math.PI / 2.0 - desiredHeadingMath);
+//        double errorDeg = Math.toDegrees(normalizeRadians(desiredHeadingFieldRad - currentHeadingFieldRad));
+//        if (!Double.isFinite(errorDeg)) return Double.NaN;
+//
+//        return -normalizeDegrees(errorDeg);
+    }
+
+    public static double calculateBearing(AprilTagDetection tag, Alliance alliance) {
+        if (isInvalidDetection(tag) || alliance == null) return Double.NaN;
+
+        Vector2D tagPos = getTagPos(tag, alliance);
+//        Vector2D cameraPos = getCameraPos(tag, alliance); // getCameraPos smoothes discrepancies out w/ DevicePinpoint. Significantly more smooth, at cost of drifting and accuracy. PRECISION OVER ACCURACY.
+        Vector2D cameraPos = calculateAbsolutePosition(tag, alliance); // calculateAbsolutePosition outputs raw pos without any smoothing. More rough. ACCURACY OVER PRECISION.
+        if (tagPos == null || cameraPos == null || !isFinitePose(cameraPos)) return Double.NaN;
+
+        double bearingDeg = tag.ftcPose.bearing;
+        if (!Double.isFinite(bearingDeg)) return Double.NaN;
+
+        // Match the old Pinpoint "currentHeading" semantics used by ShotSolver:
+        // 1) camera->tag absolute direction in field math-angle
+        // 2) subtract camera-frame bearing to recover camera heading in math-angle
+        // 3) convert math-angle to ShotSolver field-heading (0 = +Y)
+        double cameraToTagHeadingMath = Math.atan2(tagPos.y - cameraPos.y, tagPos.x - cameraPos.x);
+        double cameraHeadingMath = normalizeRadians(cameraToTagHeadingMath - Math.toRadians(bearingDeg));
+        double headingFieldDeg = Math.toDegrees(Math.PI / 2.0 - cameraHeadingMath);
+        return filterBearingHeading(headingFieldDeg, alliance, tag.id);
+    }
+
+    private static double filterBearingHeading(double rawHeadingDeg, Alliance alliance, int tagId) {
+        if (!Double.isFinite(rawHeadingDeg)) return Double.NaN;
+
+        long nowNs = System.nanoTime();
+        boolean reset = !bearingFilterInitialized || alliance != bearingFilterAlliance || tagId != bearingFilterTagId;
+        double dt = 0.0;
+
+        if (!reset && bearingFilterLastNs > 0L) {
+            dt = (nowNs - bearingFilterLastNs) * 1e-9;
+            if (!Double.isFinite(dt) || dt <= 0.0 || dt > BEARING_FILTER_RESET_GAP_S) {
+                reset = true;
+            }
+        }
+
+        double rawNormDeg = normalizeDegrees(rawHeadingDeg);
+
+        if (reset) {
+            bearingFilterInitialized = true;
+            bearingFilterAlliance = alliance;
+            bearingFilterTagId = tagId;
+            bearingFilterLastNs = nowNs;
+            bearingRawUnwrappedDeg = rawNormDeg;
+            bearingFilterX1 = rawNormDeg;
+            bearingFilterX2 = rawNormDeg;
+            bearingFilterY1 = rawNormDeg;
+            bearingFilterY2 = rawNormDeg;
+            return rawNormDeg;
+        }
+
+        // Unwrap around +/-180 so filtering remains continuous.
+        double rawDeltaDeg = normalizeDegrees(rawNormDeg - normalizeDegrees(bearingRawUnwrappedDeg));
+        bearingRawUnwrappedDeg += rawDeltaDeg;
+
+        // Reject very sharp spikes beyond physically plausible turn rate.
+        double maxStepDeg = BEARING_FILTER_MIN_STEP_DEG + BEARING_FILTER_MAX_RATE_DEG_PER_SEC * dt;
+        double residualDeg = bearingRawUnwrappedDeg - bearingFilterY1;
+        double clampedInputDeg = bearingFilterY1 + clip(residualDeg, -maxStepDeg, maxStepDeg);
+
+        // 2nd-order Butterworth low-pass biquad.
+        double dtCoeff = clip(dt, BEARING_FILTER_DT_MIN_S, BEARING_FILTER_DT_MAX_S);
+        double fs = 1.0 / dtCoeff;
+        double fc = Math.min(BEARING_FILTER_CUTOFF_HZ, 0.45 * fs);
+        double omega = 2.0 * Math.PI * fc / fs;
+        double sinW = Math.sin(omega);
+        double cosW = Math.cos(omega);
+        double alpha = sinW / (2.0 * BUTTERWORTH_Q);
+
+        double b0 = (1.0 - cosW) * 0.5;
+        double b1 = 1.0 - cosW;
+        double b2 = (1.0 - cosW) * 0.5;
+        double a0 = 1.0 + alpha;
+        double a1 = -2.0 * cosW;
+        double a2 = 1.0 - alpha;
+
+        b0 /= a0;
+        b1 /= a0;
+        b2 /= a0;
+        a1 /= a0;
+        a2 /= a0;
+
+        double y = b0 * clampedInputDeg + b1 * bearingFilterX1 + b2 * bearingFilterX2 - a1 * bearingFilterY1 - a2 * bearingFilterY2;
+        if (!Double.isFinite(y)) {
+            bearingFilterInitialized = false;
+            return rawNormDeg;
+        }
+
+        bearingFilterX2 = bearingFilterX1;
+        bearingFilterX1 = clampedInputDeg;
+        bearingFilterY2 = bearingFilterY1;
+        bearingFilterY1 = y;
+        bearingFilterLastNs = nowNs;
+
+        return normalizeDegrees(y);
     }
 
     private static boolean isInvalidDetection(AprilTagDetection tag) {
