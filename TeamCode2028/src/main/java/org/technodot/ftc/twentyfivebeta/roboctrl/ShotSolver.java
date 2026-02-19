@@ -32,9 +32,10 @@ public class ShotSolver {
     private static final int CAMERA_POSE_WINDOW_SIZE = 10;
     private static final double CAMERA_OUTLIER_DISTANCE_IN = 24.0;
     private static final long CAMERA_STATE_SWITCH_NS = 250_000_000L;
-    private static final double BEARING_FILTER_CUTOFF_HZ = 5.0;
-    private static final double BEARING_FILTER_MAX_RATE_DEG_PER_SEC = 540.0;
-    private static final double BEARING_FILTER_MIN_STEP_DEG = 2.0;
+    // Tuned to suppress ~13 Hz heading vibration while preserving teleop-scale heading motion.
+    private static final double BEARING_FILTER_CUTOFF_HZ = 2.5;
+    private static final double BEARING_FILTER_MAX_RATE_DEG_PER_SEC = 360.0;
+    private static final double BEARING_FILTER_MIN_STEP_DEG = 0.5;
     private static final double BEARING_FILTER_RESET_GAP_S = 0.25;
     private static final double BEARING_FILTER_DT_MIN_S = 1.0 / 240.0;
     private static final double BEARING_FILTER_DT_MAX_S = 1.0 / 20.0;
@@ -138,8 +139,10 @@ public class ShotSolver {
                     Vector2D blendedForPinpoint = getTransitionSetPose(absolutePose);
                     if (blendedForPinpoint != null && isFinitePose(blendedForPinpoint)) {
                         DevicePinpoint.setPos(blendedForPinpoint);
+//                        DevicePinpoint.setHeading(calculateBearing(tag, alliance));
                     } else {
                         DevicePinpoint.setPos(absolutePose);
+//                        DevicePinpoint.setHeading(calculateBearing(tag, alliance));
                     }
                 }
             }
@@ -202,8 +205,8 @@ public class ShotSolver {
         // Get the robot's current heading from the Pinpoint (in degrees)
         // Pinpoint uses GoBilda convention which aligns with ShotSolver's field heading system
         // TODO: instead of getting the pinpoint's heading, calculate the heading based on the tag.ftcPose and the previously defined tag data.
-        // double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
-        double currentHeading = calculateBearing(tag, alliance);
+         double currentHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES);
+//        double currentHeading = calculateBearing(tag, alliance);
 
         if (!Double.isFinite(currentHeading)) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
@@ -255,7 +258,7 @@ public class ShotSolver {
         }
 
 //        return filteredYawErrorDeg;
-        return -error;
+        return error;
 
         /*
         BEGIN SECOND SOLUTION
@@ -332,7 +335,7 @@ public class ShotSolver {
 //        double errorDeg = Math.toDegrees(normalizeRadians(desiredHeadingFieldRad - currentHeadingFieldRad));
 //        if (!Double.isFinite(errorDeg)) return Double.NaN;
 //
-//        return -normalizeDegrees(errorDeg);
+//        return filterBearingHeading(-normalizeDegrees(errorDeg), alliance, tag.id);
     }
 
     public static double calculateBearing(AprilTagDetection tag, Alliance alliance) {
@@ -429,6 +432,18 @@ public class ShotSolver {
         bearingFilterLastNs = nowNs;
 
         return normalizeDegrees(y);
+    }
+
+    private static void resetBearingFilter() {
+        bearingFilterInitialized = false;
+        bearingFilterLastNs = 0L;
+        bearingRawUnwrappedDeg = 0.0;
+        bearingFilterX1 = 0.0;
+        bearingFilterX2 = 0.0;
+        bearingFilterY1 = 0.0;
+        bearingFilterY2 = 0.0;
+        bearingFilterAlliance = null;
+        bearingFilterTagId = -1;
     }
 
     private static boolean isInvalidDetection(AprilTagDetection tag) {
@@ -600,5 +615,6 @@ public class ShotSolver {
         poseWindowSumY = 0.0;
         filteredPose = null;
         lastPose = null;
+        resetBearingFilter();
     }
 }

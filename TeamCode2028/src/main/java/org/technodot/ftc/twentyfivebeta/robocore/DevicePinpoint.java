@@ -71,6 +71,14 @@ public class DevicePinpoint extends Device {
         pinpoint.setPosY(pos.x, DistanceUnit.INCH);
     }
 
+    public static double getHeading() {
+        return pinpoint.getHeading(AngleUnit.DEGREES);
+    }
+
+    public static void setHeading(double h) {
+        pinpoint.setHeading(h, AngleUnit.DEGREES);
+    }
+
     /*
      * WHAT THE FUCK GOBILDA
      * WHAT THE ACTUAL FUCK

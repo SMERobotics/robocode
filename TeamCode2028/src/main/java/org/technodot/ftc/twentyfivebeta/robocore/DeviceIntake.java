@@ -19,6 +19,9 @@ import java.util.Deque;
 
 public class DeviceIntake extends Device {
 
+    private static final long AUTO_RELOAD_WINDOW_MS = 2000;
+    private static final long AUTO_RELOAD_EMPTY_CONFIRM_MS = 100;
+
     public DcMotorEx motorIntake;
 
     public Servo servoLeft;
@@ -42,13 +45,12 @@ public class DeviceIntake extends Device {
 
     private boolean sequenceTriggered;
     private boolean sequenceOverride;
-    private boolean sequenceOverrideSkipAutoReload;
     private boolean dualShortSequenceTriggered;
     private long dualShortSequenceTriggerTime;
-    private boolean autoReloadSequenceTriggered;
-    private long autoReloadSequenceTriggerTime;
+    private boolean autoReloadWindowActive;
+    private long autoReloadWindowStartTime;
+    private long autoReloadEmptyStartTime;
     private boolean autoReloadIntakeRunning;
-    private long autoReloadIntakeStartTime;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
     public static IntakeSide targetSide = IntakeSide.LEFT;
@@ -206,11 +208,7 @@ public class DeviceIntake extends Device {
                 sequenceOverride = false;
                 dualShortSequenceTriggered = true;
                 dualShortSequenceTriggerTime = System.currentTimeMillis();
-                if (!sequenceOverrideSkipAutoReload) {
-                    autoReloadSequenceTriggered = true;
-                    autoReloadSequenceTriggerTime = System.currentTimeMillis();
-                }
-                sequenceOverrideSkipAutoReload = false;
+                startAutoReloadWindow();
             } else if (!ctrl.sequenceShoot()) {
                 dualShortSequenceTriggered = false;
                 sequenceTriggered = false;
@@ -255,11 +253,7 @@ public class DeviceIntake extends Device {
                 sequenceOverride = false;
                 nextOptimizedTransfer = System.currentTimeMillis();
                 sequenceTriggered = true;
-                if (!sequenceOverrideSkipAutoReload) {
-                    autoReloadSequenceTriggered = true;
-                    autoReloadSequenceTriggerTime = System.currentTimeMillis();
-                }
-                sequenceOverrideSkipAutoReload = false;
+                startAutoReloadWindow();
             } else if (!ctrl.sequenceShoot()) {
                 sequenceTriggered = false;
             }
@@ -294,27 +288,7 @@ public class DeviceIntake extends Device {
             }
         }
 
-        if (autoReloadSequenceTriggerTime > 0 && autoReloadSequenceTriggered) {
-            long elapsed = System.currentTimeMillis() - autoReloadSequenceTriggerTime;
-            if (elapsed >= Configuration.INTAKE_AUTO_RELOAD_DELAY_MS && intakeState == IntakeState.IDLE && !nudging && !autoReloadIntakeRunning) {
-                // Start running intake at full power
-                autoReloadIntakeRunning = true;
-                autoReloadIntakeStartTime = System.currentTimeMillis();
-                autoReloadSequenceTriggered = false;
-                autoReloadSequenceTriggerTime = 0;
-            }
-        }
-
-        // Handle auto-reload intake running at full power for configured duration
-        if (autoReloadIntakeRunning) {
-            long elapsed = System.currentTimeMillis() - autoReloadIntakeStartTime;
-            if (elapsed >= Configuration.INTAKE_AUTO_RELOAD_DURATION_MS) {
-                autoReloadIntakeRunning = false;
-                // Automatically launch the balls that are in the intake (without triggering another auto-reload)
-                sequenceOverride = true;
-                sequenceOverrideSkipAutoReload = true;
-            }
-        }
+        updateAutoReload();
 
         // self-note: should deactivate come after activate? or should activate have priority?
         boolean shouldDeactivateLeft = shouldDeactivateLeft();
@@ -539,6 +513,48 @@ public class DeviceIntake extends Device {
                 Thread.currentThread().interrupt();
             }
             colorSensorThread = null;
+        }
+    }
+
+    private void startAutoReloadWindow() {
+        autoReloadWindowActive = true;
+        autoReloadWindowStartTime = System.currentTimeMillis();
+        autoReloadEmptyStartTime = 0;
+        autoReloadIntakeRunning = false;
+    }
+
+    private void updateAutoReload() {
+        if (!autoReloadWindowActive) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - autoReloadWindowStartTime >= AUTO_RELOAD_WINDOW_MS) {
+            autoReloadWindowActive = false;
+            autoReloadWindowStartTime = 0;
+            autoReloadEmptyStartTime = 0;
+            autoReloadIntakeRunning = false;
+            return;
+        }
+
+        if (autoReloadIntakeRunning) {
+            return;
+        }
+
+        if (!isEmpty()) {
+            autoReloadEmptyStartTime = 0;
+            return;
+        }
+
+        if (autoReloadEmptyStartTime == 0) {
+            autoReloadEmptyStartTime = now;
+            return;
+        }
+
+        if (now - autoReloadEmptyStartTime >= AUTO_RELOAD_EMPTY_CONFIRM_MS
+                && intakeState == IntakeState.IDLE
+                && !nudging) {
+            autoReloadIntakeRunning = true;
         }
     }
 

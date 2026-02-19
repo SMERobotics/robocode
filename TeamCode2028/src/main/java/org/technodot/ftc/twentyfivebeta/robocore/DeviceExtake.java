@@ -236,7 +236,8 @@ public class DeviceExtake extends Device {
                         && Math.abs(motorExtakeRight.getVelocity() - targetVelocity) <= Configuration.EXTAKE_MOTOR_SPEED_TOLERANCE;
 
                 stabilizationCycles = velocityStable ? stabilizationCycles + 1 : stabilizationCycles;
-                return stabilizationCycles >= Configuration.EXTAKE_STABILIZATION_CYCLES && rangeStable;
+//                return stabilizationCycles >= Configuration.EXTAKE_STABILIZATION_CYCLES && rangeStable;
+                return stabilizationCycles >= Configuration.EXTAKE_STABILIZATION_CYCLES;
             default:
                 stabilizationCycles = 0;
                 return false;

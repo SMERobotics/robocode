@@ -303,17 +303,23 @@ public class DeviceDrive extends Device {
 
         // apply pinpoint PIDF
         double rotate = rotateInput;
-        double error = ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance);
+//        double error = ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance);
         if (aiming) {
             if (rotateInput != 0) {
                 rotate = rotateInput;
             } else if (aimPIDF != null && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
-                if (Double.isFinite(error) && DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+//                if (Double.isFinite(error) && DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+                if (DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
 //                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
                     // Camera-absolute yaw error sign is opposite of this SignedPIDF path's expected PV sign.
                     // Keep telemetry as geometric error, but invert only for controller input.
-                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
-                    bearingPIDF.reset();
+//                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
+
+                    // FUCK THE PINPOINT
+                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.RED ? 1.0 : -1.0) * ((DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? 1.0 : -1.0) + 1.5);
+                    rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
+//                    bearingPIDF.reset();
+                    aimPIDF.reset();
                 } else {
                     rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
                     aimPIDF.reset();

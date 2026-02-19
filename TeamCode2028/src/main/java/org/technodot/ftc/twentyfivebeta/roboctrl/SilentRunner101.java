@@ -92,7 +92,7 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean driveAim() {
-        return ready() && (gamepad1.a || gamepad1.x || gamepad1.b || gamepad1.left_bumper);
+        return ready() && (gamepad1.x || gamepad1.b || gamepad1.left_bumper);
     }
 
 //    public boolean extakeClose() {
@@ -140,11 +140,13 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean resetYaw() {
-        return ready() && gamepad1.options;
+//        return ready() && gamepad1.options;
+        return ready() && gamepad1.a;
     }
 
     public boolean recalibratePinpoint() {
-        return ready() && ((Configuration.DEBUG && gamepad1.startWasPressed()) || gamepad2.startWasPressed());
+//        return ready() && ((Configuration.DEBUG && gamepad1.startWasPressed()) || gamepad2.startWasPressed());
+        return false;
     }
 
 //    public boolean recalibratePinpoint() {

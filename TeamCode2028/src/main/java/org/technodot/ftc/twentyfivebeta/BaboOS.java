@@ -118,6 +118,8 @@ public class BaboOS extends OpMode {
         deviceExtake.update();
         deviceIntake.update();
 
+//        telemetry.addData("ext_stc", DeviceExtake.stabilizationCycles);
+
         telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
         telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
         telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
