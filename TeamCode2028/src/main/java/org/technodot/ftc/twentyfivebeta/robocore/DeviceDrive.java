@@ -316,12 +316,20 @@ public class DeviceDrive extends Device {
 //                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
 
                     // FUCK THE PINPOINT
-                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.RED ? 1.0 : -1.0) * ((DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? 1.0 : -1.0) + 1.5);
-                    rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
+                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.RED ? 1.0 : -1.0) * ((DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? Configuration.PINPOINT_ANGLE_SIDE_OFFSET : -Configuration.PINPOINT_ANGLE_SIDE_OFFSET) + Configuration.PINPOINT_ANGLE_OFFSET);
+                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
+
+//                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
 //                    bearingPIDF.reset();
+
+                    // only when using far bearing, use THIS part
+                    rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
                     aimPIDF.reset();
                 } else {
-                    rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
+                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing;
+                    error = DeviceCamera.goalTagDetection.ftcPose.bearing;
+                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
+                    rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
                     aimPIDF.reset();
                 }
                 DevicePinpoint.setSnapshotYaw();

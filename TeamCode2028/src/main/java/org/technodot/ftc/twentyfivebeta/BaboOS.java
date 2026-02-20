@@ -127,28 +127,28 @@ public class BaboOS extends OpMode {
 //        telemetry.addData("rev_h", DeviceIMU.yaw);
 //        telemetry.addData("imu_h", DeviceIMU.hubYaw);
 
-        t.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
-        t.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
+//        t.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
+//        t.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
 
-        if (DeviceCamera.goalTagDetection != null) {
-            Vector2D goal = ShotSolver.getGoalPos(DeviceCamera.goalTagDetection, alliance);
-            if (goal != null) {
-                telemetry.addData("gx", goal.x);
-                telemetry.addData("gy", goal.y);
-            }
-            Vector2D relocalization = ShotSolver.getCameraPos(DeviceCamera.goalTagDetection, alliance);
-            if (relocalization != null) {
-                telemetry.addData("rx", relocalization.x);
-                telemetry.addData("ry", relocalization.y);
-            }
-        }
+//        if (DeviceCamera.goalTagDetection != null) {
+//            Vector2D goal = ShotSolver.getGoalPos(DeviceCamera.goalTagDetection, alliance);
+//            if (goal != null) {
+//                telemetry.addData("gx", goal.x);
+//                telemetry.addData("gy", goal.y);
+//            }
+//            Vector2D relocalization = ShotSolver.getCameraPos(DeviceCamera.goalTagDetection, alliance);
+//            if (relocalization != null) {
+//                telemetry.addData("rx", relocalization.x);
+//                telemetry.addData("ry", relocalization.y);
+//            }
+//        }
 
-        t.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
-        t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
-        if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
+//        t.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
+//        if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
 
         if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
-        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
+//        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
 
         t.addData("ext_vel", deviceExtake.targetVelocity);
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());

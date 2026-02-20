@@ -123,7 +123,15 @@ public class DeviceExtake extends Device {
                 setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_SHORT);
                 break;
             case DUAL_SHORT:
-                setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_DUAL_SHORT);
+                // Start at default speed, dynamically adjust when AprilTag is visible
+                if (DeviceCamera.goalTagDetection != null) {
+                    setTargetVelocity(ShotSolver.calculateLaunchVelocity(DeviceCamera.goalTagDetection.ftcPose.range));
+                    longModeInitialVelocitySet = true;
+                } else if (!longModeInitialVelocitySet) {
+                    // Only set default velocity the very first time when tag is null
+                    setTargetVelocity(Configuration.EXTAKE_MOTOR_SPEED_DUAL_SHORT);
+                    longModeInitialVelocitySet = true;
+                }
                 break;
             case DYNAMIC:
                 // Start at default speed, dynamically adjust when AprilTag is visible

@@ -20,7 +20,7 @@ import java.util.Deque;
 public class DeviceIntake extends Device {
 
     private static final long AUTO_RELOAD_WINDOW_MS = 2000;
-    private static final long AUTO_RELOAD_EMPTY_CONFIRM_MS = 100;
+    private static final long AUTO_RELOAD_EMPTY_CONFIRM_MS = 67;
 
     public DcMotorEx motorIntake;
 
@@ -311,7 +311,7 @@ public class DeviceIntake extends Device {
             servoRight.setPosition(rightArtifact == Artifact.NONE ? Configuration.INTAKE_RIGHT_DEACTIVATION : Configuration.INTAKE_RIGHT_HOLD);
         }
 
-        statusTelem = (leftActive || rightActive) ? 670 : 0; // HEHEHEHA
+        statusTelem = (leftActive || rightActive) ? 1500 : 0; // HEHEHEHA
 
         // Update targetSide prediction
         predictTargetSide();

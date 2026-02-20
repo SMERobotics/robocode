@@ -23,7 +23,7 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-//@Disabled
+@Disabled
 @TeleOp(name="CalibrateExtakeMotor", group="TechnoCode")
 public class CalibrateExtakeMotor extends OpMode {
 
@@ -84,6 +84,11 @@ public class CalibrateExtakeMotor extends OpMode {
             velocity += 1;
         } else if (gamepad1.dpad_down) {
             velocity -= 1;
+        }
+
+        if (gamepad1.y) {
+            deviceIntake.activateLeft();
+            deviceIntake.activateRight();
         }
 
         deviceExtake.setExtakeOverride(velocity * 10);

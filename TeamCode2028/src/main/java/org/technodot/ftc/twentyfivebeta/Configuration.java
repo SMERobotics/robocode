@@ -90,9 +90,9 @@ public class Configuration {
     public static volatile double DRIVE_STRAFE_KF = 0.0;
     public static volatile long DRIVE_ROTATE_SNAPSHOT_DELAY_NS = 100_000000L;
 
-    public static volatile double INTAKE_MOTOR_NUDGE_POWER = 0.67;
+    public static volatile double INTAKE_MOTOR_NUDGE_POWER = -0.67;
     public static volatile int INTAKE_MOTOR_NUDGE_TICKS = -80;
-    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.59;
+    public static volatile double INTAKE_LEFT_DEACTIVATION = 0.57;
     public static volatile double INTAKE_LEFT_HOLD = INTAKE_LEFT_DEACTIVATION + 0.06;
     public static volatile double INTAKE_LEFT_ACTIVATION = INTAKE_LEFT_DEACTIVATION + 0.22;
     public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.23;
@@ -122,9 +122,27 @@ public class Configuration {
 //    public static volatile int EXTAKE_STABILIZATION_CYCLES = 4;
     public static volatile int EXTAKE_STABILIZATION_CYCLES = 1; // TODO: test zero because human and intake latency should be enough time
     // y (ticks/sec) = -0.0306x^2 + 12.8479 x + 415.9836
+
+    // ORIGINAL CALIB
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = -0.00135941391;
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = 5.06119602;
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 874.146043;
+
+    // UPDATED QUADRATIC REGRESSION
+//    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = 0.0482869;
+//    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = 3.82284;
+//    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 1179.6397;
+
+    // LINEAR REGRESSION
+//    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_A = 0.0;
+//    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_B = 4.88586;
+//    public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_C = 837.86722;
+
+    // DOUBLE FIRST CALIB
+    public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_A = -0.0147856;
+    public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_B = 6.12754;
+    public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_C = 1048.92235;
+
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT = 0.0; // + forward, - backwards // THIS VALUE NEEDS TO ALSO BE CHANGED IN TELEOP AND AUTO
     public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_A = 0.0460686;
     public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_B = -4.1204;
@@ -152,8 +170,10 @@ public class Configuration {
     public static volatile double PINPOINT_AIM_F = 0.08;
     public static volatile double PINPOINT_BEARING_P = 0.01;
     public static volatile double PINPOINT_BEARING_I = 0;
-    public static volatile double PINPOINT_BEARING_D = 0;
-    public static volatile double PINPOINT_BEARING_F = 0.1;
+    public static volatile double PINPOINT_BEARING_D = 0.0015;
+    public static volatile double PINPOINT_BEARING_F = 0.12;
+    public static volatile double PINPOINT_ANGLE_OFFSET = 2;
+    public static volatile double PINPOINT_ANGLE_SIDE_OFFSET = 2;
 
     public static volatile int SHOTSOLVER_POSE_WINDOW_SIZE = 9;
     public static volatile double SHOTSOLVER_POSE_EMA_ALPHA = 0.67;
