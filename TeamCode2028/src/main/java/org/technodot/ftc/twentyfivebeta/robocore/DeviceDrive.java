@@ -326,8 +326,8 @@ public class DeviceDrive extends Device {
                     rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
                     aimPIDF.reset();
                 } else {
-                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing;
-                    error = DeviceCamera.goalTagDetection.ftcPose.bearing;
+                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? -3.0 : 3.0);
+//                    error = DeviceCamera.goalTagDetection.ftcPose.bearing;
                     FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
                     rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
                     aimPIDF.reset();

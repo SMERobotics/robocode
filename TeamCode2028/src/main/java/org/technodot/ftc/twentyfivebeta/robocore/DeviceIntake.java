@@ -259,6 +259,11 @@ public class DeviceIntake extends Device {
             }
         }
 
+        if (ctrl.intakeUnfucker()) {
+            activateLeft();
+            activateRight();
+        }
+
         boolean shouldActivateLeft = shouldActivateLeft();
         boolean shouldActivateRight = shouldActivateRight();
 
@@ -297,14 +302,14 @@ public class DeviceIntake extends Device {
         if (shouldDeactivateLeft) leftActive = false;
         if (shouldDeactivateRight) rightActive = false;
 
-        if (leftActive) {
+        if (leftActive || ctrl.intakeUnfucker()) {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_ACTIVATION);
             DeviceExtake.unready();
         } else {
             servoLeft.setPosition(leftArtifact == Artifact.NONE ? Configuration.INTAKE_LEFT_DEACTIVATION : Configuration.INTAKE_LEFT_HOLD);
         }
 
-        if (rightActive) {
+        if (rightActive || ctrl.intakeUnfucker()) {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_ACTIVATION);
             DeviceExtake.unready();
         } else {

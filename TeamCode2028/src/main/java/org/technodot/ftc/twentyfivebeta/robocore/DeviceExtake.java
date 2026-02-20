@@ -10,6 +10,9 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 public class DeviceExtake extends Device {
 
+    private static final long INTAKE_UNFUCKER_FORWARD_MS = 200;
+    private static final long INTAKE_UNFUCKER_RELEASE_REVERSE_MS = 200;
+
     public static DcMotorEx motorExtakeLeft;
     public static DcMotorEx motorExtakeRight;
 //    public PIDFController extakeLeftPIDF;
@@ -18,12 +21,16 @@ public class DeviceExtake extends Device {
     boolean prevExtakeClose;
     boolean prevExtakeFar;
     boolean prevExtakeDualClose;
+    boolean prevIntakeUnfucker;
+    long intakeUnfuckerStartTimeMs;
+    long intakeUnfuckerReverseTailUntilMs;
 
     public static ExtakeState extakeState = ExtakeState.IDLE;
     public double targetVelocity; // current vel setpoint
     public double extakeOverride;
     public static int stabilizationCycles;
     public boolean rumbled;
+    private boolean unfuckerOpenLoopEnabled;
 
     private Double lastStableRange;
     private long rangeStableSince;
@@ -76,10 +83,51 @@ public class DeviceExtake extends Device {
     @Override
     public void update() {
         SilentRunner101 ctrl = (SilentRunner101) inputController;
+        long now = System.currentTimeMillis();
 
         boolean extakeFar = ctrl.extakeFar();
         boolean extakeClose = ctrl.extakeClose();
         boolean extakeDualClose = ctrl.extakeDualClose();
+        boolean intakeUnfuckerRequested = ctrl.intakeUnfucker();
+
+        if (intakeUnfuckerRequested && !prevIntakeUnfucker) {
+            intakeUnfuckerStartTimeMs = now;
+            intakeUnfuckerReverseTailUntilMs = 0;
+        }
+        if (!intakeUnfuckerRequested && prevIntakeUnfucker) {
+            intakeUnfuckerReverseTailUntilMs = now + INTAKE_UNFUCKER_RELEASE_REVERSE_MS;
+        }
+
+        boolean intakeUnfuckerReverseTailActive = !intakeUnfuckerRequested && now <= intakeUnfuckerReverseTailUntilMs;
+        boolean intakeUnfuckerActive = intakeUnfuckerRequested || intakeUnfuckerReverseTailActive;
+
+        if (intakeUnfuckerActive) {
+            setUnfuckerOpenLoop(true);
+
+            double unfuckerPower;
+            if (intakeUnfuckerRequested) {
+                long holdDurationMs = now - intakeUnfuckerStartTimeMs;
+                unfuckerPower = holdDurationMs < INTAKE_UNFUCKER_FORWARD_MS ? 1.0 : -1.0;
+            } else {
+                // Force reverse during release-extension so the "tail" is deterministic.
+                unfuckerPower = -1.0;
+            }
+
+            motorExtakeLeft.setPower(unfuckerPower);
+            motorExtakeRight.setPower(unfuckerPower);
+            targetVelocity = 0.0;
+            stabilizationCycles = 0;
+            rumbled = false;
+
+            // Swallow extake button edges while unfucker has control.
+            prevExtakeFar = extakeFar;
+            prevExtakeClose = extakeClose;
+            prevExtakeDualClose = extakeDualClose;
+            prevIntakeUnfucker = intakeUnfuckerRequested;
+            return;
+        }
+
+        setUnfuckerOpenLoop(false);
 
         if (ctrl.extakeReverse()) {
             extakeState = ExtakeState.REVERSE;
@@ -104,6 +152,7 @@ public class DeviceExtake extends Device {
         prevExtakeFar = extakeFar;
         prevExtakeClose = extakeClose;
         prevExtakeDualClose = extakeDualClose;
+        prevIntakeUnfucker = intakeUnfuckerRequested;
 
         // PIDF coefficients should be applied only at init
         // temp moved to update cycle so Configuration changes will take effect
@@ -264,6 +313,12 @@ public class DeviceExtake extends Device {
     private void setTargetVelocity(double targetVelocity) {
         this.targetVelocity = targetVelocity;
 
+        if (targetVelocity == 0.0) {
+            motorExtakeLeft.setVelocity(0.0);
+            motorExtakeRight.setVelocity(0.0);
+            return;
+        }
+
         // SUPER FEEDFORWARD 💪💪💪
         double leftVelocity = motorExtakeLeft.getVelocity();
         if (Math.abs(targetVelocity - leftVelocity) > Configuration.EXTAKE_MOTOR_SUPER_FEEDFORWARD_THRESHOLD) {
@@ -283,5 +338,21 @@ public class DeviceExtake extends Device {
 //        motorExtakeRight.setVelocity(targetVelocity);
 //        motorExtakeLeft.setPower(extakeLeftPIDF.calculate(motorExtakeLeft.getVelocity(), extakeVelocity));
 //        motorExtakeRight.setPower(extakeRightPIDF.calculate(motorExtakeRight.getVelocity(), extakeVelocity));
+    }
+
+    private void setUnfuckerOpenLoop(boolean enable) {
+        if (unfuckerOpenLoopEnabled == enable) return;
+
+        if (enable) {
+            motorExtakeLeft.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+            motorExtakeRight.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        } else {
+            motorExtakeLeft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            motorExtakeRight.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            motorExtakeLeft.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+            motorExtakeRight.setVelocityPIDFCoefficients(Configuration.EXTAKE_MOTOR_KP, Configuration.EXTAKE_MOTOR_KI, Configuration.EXTAKE_MOTOR_KD, Configuration.EXTAKE_MOTOR_KF);
+        }
+
+        unfuckerOpenLoopEnabled = enable;
     }
 }

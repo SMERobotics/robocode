@@ -1,6 +1,7 @@
 package org.technodot.ftc.twentyfivebeta.roboctrl;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -475,9 +476,11 @@ public class ShotSolver {
                 + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_B * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT)
                 + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_C
                 :
+                Range.clip(
                 Configuration.EXTAKE_MODEL_VELOCITY_DOUBLE_A * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT) * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT)
-                        + Configuration.EXTAKE_MODEL_VELOCITY_DOUBLE_B * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT)
-                        + Configuration.EXTAKE_MODEL_VELOCITY_DOUBLE_C;
+                + Configuration.EXTAKE_MODEL_VELOCITY_DOUBLE_B * (range + Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT)
+                + Configuration.EXTAKE_MODEL_VELOCITY_DOUBLE_C,
+                0, 1500);
     }
 
     private static Vector2D calculateAbsolutePosition(AprilTagDetection tag, Alliance alliance) {

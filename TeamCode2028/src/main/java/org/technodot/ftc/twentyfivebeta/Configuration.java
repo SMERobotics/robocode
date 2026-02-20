@@ -93,10 +93,10 @@ public class Configuration {
     public static volatile double INTAKE_MOTOR_NUDGE_POWER = -0.67;
     public static volatile int INTAKE_MOTOR_NUDGE_TICKS = -80;
     public static volatile double INTAKE_LEFT_DEACTIVATION = 0.57;
-    public static volatile double INTAKE_LEFT_HOLD = INTAKE_LEFT_DEACTIVATION + 0.06;
+    public static volatile double INTAKE_LEFT_HOLD = INTAKE_LEFT_DEACTIVATION + 0.05;
     public static volatile double INTAKE_LEFT_ACTIVATION = INTAKE_LEFT_DEACTIVATION + 0.22;
-    public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.23;
-    public static volatile double INTAKE_RIGHT_HOLD = INTAKE_RIGHT_DEACTIVATION - 0.06;
+    public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.57;
+    public static volatile double INTAKE_RIGHT_HOLD = INTAKE_RIGHT_DEACTIVATION - 0.05;
     public static volatile double INTAKE_RIGHT_ACTIVATION = INTAKE_RIGHT_DEACTIVATION - 0.22;
     public static volatile long INTAKE_SERVO_INTERVAL_MS = 150;
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS

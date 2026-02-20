@@ -187,9 +187,9 @@ public class BaboAuto extends OpMode {
                     .addPath(
                         new BezierCurve(
                             P(144 - 132.158, 56.272),
-                            P(144 - 126.024, 56.412),
-                            P(144 - 124.362, 64.578),
-                            P(144 - 129.434, 64.552)
+                            P(144 - 124.781, 56.412),
+                            P(144 - 123.533, 61.262),
+                            P(144 - 132.158, 64.552)
                         )
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(17.5), Math.toRadians(30))
@@ -204,7 +204,7 @@ public class BaboAuto extends OpMode {
 
                 PathChain close_assistGate_shootGate = follower.pathBuilder().addPath(
                         new BezierCurve(
-                            P(144 - 129.434, 64.552),
+                            P(144 - 132.158, 64.552),
                             P(144 - 99.807, 65.214),
                             P(144 - 86.000, 86.000)
                         )
@@ -243,7 +243,7 @@ public class BaboAuto extends OpMode {
                         .then((Callback) () -> follower.followPath(close_bezierSecond_assistGate)) // callback: sets intake idle and starts extake @ t=0.2
                         .then(ONE, (InterruptibleCallback) () -> follower.isTransitionable())
                         .then((Callback) () -> follower.followPath(close_assistGate_shootGate))
-                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+                        .then(TWO, (InterruptibleCallback) () -> follower.isTransitionable())
 
                         .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
                         .delay(ONE)
@@ -253,7 +253,7 @@ public class BaboAuto extends OpMode {
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
                         .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
 
-                        // go cycle gate!!!
+                        // TODO: go cycle gate!!!
 
                         // fuckass me literally forgot that we needed to open the gate after second row
 //                        .then((Callback) () -> follower.followPath(close_bezierSecond_shootPreload))

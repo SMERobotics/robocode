@@ -135,6 +135,10 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.dpad_right;
     }
 
+    public boolean intakeUnfucker() {
+        return ready() && gamepad1.b;
+    }
+
     public boolean sequenceShoot() {
         return ready() && gamepad1.right_bumper;
     }
