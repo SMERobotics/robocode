@@ -5,7 +5,6 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -19,8 +18,8 @@ import org.technodot.ftc.twentyfivebeta.batch.InterruptibleCallback;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Drawing;
 import org.technodot.ftc.twentyfivebeta.pedro.Follower;
+import org.technodot.ftc.twentyfivebeta.robocore.Device;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
-import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
@@ -82,7 +81,8 @@ public class BaboAuto extends OpMode {
                     )
                     .setHeadingInterpolation(
                         HeadingInterpolator.facingPoint(
-                            P(14.4, 144 - 12.8)
+//                            P(14.4, 144 - 12.8)
+                            P(0, 132)
                         )
                     )
                     .build();
@@ -123,22 +123,22 @@ public class BaboAuto extends OpMode {
 //                                new Pose(133.226, 41.853)
 
                             close_shootPreload,
-                            P(144 - 98.702, 60.686),
+                            P(144 - 101.681, 63.168),
                             P(144 - 120.123, 60.503),
                             P(144 - 125.112, 54.148),
-                            P(144 - 132.158, 55.114)
+                            P(144 - 132.158, 54.114)
                         )
                     )
                     .setHeadingInterpolation(
                         HeadingInterpolator.piecewise( // TODO: make ts interpolate the heading CORRECTLY
 //                            new HeadingInterpolator.PiecewiseNode(
-//                                0, 0.33,
+//                                0, 0.2,
 //                                HeadingInterpolator.linear(
-//                                    0, Math.toRadians(310)
+//                                    A(0), A(130)
 //                                )
 //                            ),
 //                            new HeadingInterpolator.PiecewiseNode(
-//                                0.33, 1,
+//                                0.2, 1,
 //                                HeadingInterpolator.tangent
 //                            )
 //                                new HeadingInterpolator.PiecewiseNode(
@@ -147,6 +147,7 @@ public class BaboAuto extends OpMode {
 //                                        Math.toRadians(310), Math.toRadians(0)
 //                                    )
 //                                )
+
                                 new HeadingInterpolator.PiecewiseNode(
                                     0, 1,
                                     HeadingInterpolator.tangent
@@ -187,16 +188,18 @@ public class BaboAuto extends OpMode {
                     .addPath(
                         new BezierCurve(
                             P(144 - 132.158, 56.272),
-                            P(144 - 124.781, 56.412),
-                            P(144 - 123.533, 61.262),
-                            P(144 - 132.158, 64.552)
+                            P(144 - 122.383, 54.260),
+                            P(144 - 122.045, 65.405),
+                            P(144 - 136.158, 64.552)
+
                         )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(17.5), Math.toRadians(30))
+                    .setLinearHeadingInterpolation(A(72.5), A(105))
                     .addParametricCallback(0.2, new Runnable() {
                         @Override
                         public void run() {
                             deviceIntake.setIntakeIdle();
+//                            deviceExtake.setExtakeState(deviceIntake.getArtifactCount() == 2 ? DeviceExtake.ExtakeState.DUAL_SHORT : DeviceExtake.ExtakeState.DYNAMIC);
                             deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT);
                         }
                     })
@@ -204,17 +207,104 @@ public class BaboAuto extends OpMode {
 
                 PathChain close_assistGate_shootGate = follower.pathBuilder().addPath(
                         new BezierCurve(
-                            P(144 - 132.158, 64.552),
+                            P(144 - 136.158, 64.552),
                             P(144 - 99.807, 65.214),
                             P(144 - 86.000, 86.000)
                         )
                     )
                     .setHeadingInterpolation(
-                        HeadingInterpolator.facingPoint(
-                            P(14.4, 144 - 12.8)
+                        HeadingInterpolator.piecewise(
+                            new HeadingInterpolator.PiecewiseNode(
+                                0, 0.2,
+                                HeadingInterpolator.constant(A(105))
+                            ),
+                            new HeadingInterpolator.PiecewiseNode(
+                                0.2, 1,
+                                HeadingInterpolator.facingPoint(
+//                                    P(14.4, 144 - 12.8)
+                                    P(0, 132)
+                                )
+                            )
                         )
                     )
+                    .build();
 
+                // the servos can go fuck themselves
+
+//                PathChain close_shootGate_openGate = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 86.000, 90.000),
+//                            P(144 - 96.000, 70.000),
+//                            P(144 - 129.496, 58.811)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(A(45), A(72))
+//                    .build();
+//
+//                PathChain close_openGate_intakeGate = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 129.496, 58.811),
+//                            P(144 - 126.751, 55.301),
+//                            P(144 - 136.806, 56.301)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(A(72), A(83.3))
+//                    .build();
+//
+//                PathChain close_intakeGate_shootGate = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 136.806, 56.301),
+//                            P(144 - 99.807, 65.214),
+//                            P(144 - 86.000, 90.000)
+//                        )
+//                    )
+//                    .setHeadingInterpolation(
+//                        HeadingInterpolator.facingPoint(
+//                            P(0, 132)
+//                        )
+//                    )
+//                    .addParametricCallback(0.4, new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            deviceIntake.setIntakeIdle();
+//                        }
+//                    })
+//                    .build();
+//
+//                PathChain close_shootGate_finishPos = follower.pathBuilder().addPath(
+//                        new BezierLine(
+//                            P(144 - 86.000, 90.000),
+//                            P(144 - 96.000, 72.000)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(A(45), A(60))
+//                    .build();
+
+                PathChain close_shootGate_bezierFirst = follower.pathBuilder().addPath(
+                        new BezierCurve(
+                            P(144 - 86.000, 90.000),
+                            P(144 - 109.959, 70.828),
+                            P(144 - 121.234, 88.648),
+                            P(144 - 128.000, 88.500)
+                        )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+                PathChain close_bezierFirst_shootGate = follower.pathBuilder().addPath(
+                        new BezierLine(
+                            P(144 - 128.000, 88.500),
+                            P(144 - 96, 98.000)
+                        )
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.facingPoint(
+                            P(0, 132)
+                        )
+                    )
                     .build();
 
                 runtime.plan(
@@ -224,34 +314,35 @@ public class BaboAuto extends OpMode {
                         .then(TWO, (InterruptibleCallback) () -> follower.isReady())
 
                         .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
-                        .delay(ONE)
-                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
                         .delay(HALF)
-                        .then(ONE, (InterruptibleCallback) () -> !deviceIntake.isEmpty())
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
+                        .then(TWO, (InterruptibleCallback) () -> !deviceIntake.isEmpty())
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
 
                         // tucker is the goat
                         .then((Callback) () -> follower.followPath(close_shootPreload_bezierSecond))
-                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE))
-                        .then((Callback) () -> deviceExtake.setExtakeOverride(670))
-//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE))
+//                        .then((Callback) () -> deviceExtake.setExtakeOverride(670))
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
                         .then((Callback) () -> deviceIntake.setIntakeIn())
                         .then(THREE, (InterruptibleCallback) () -> follower.isReady())
 
-                        .then((Callback) () -> follower.followPath(close_bezierSecond_assistGate)) // callback: sets intake idle and starts extake @ t=0.2
-                        .then(ONE, (InterruptibleCallback) () -> follower.isTransitionable())
+                        .then((Callback) () -> follower.followPath(close_bezierSecond_assistGate)) // callback: set intake idle and starts extake @ t=0.2
+                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
+                        .delay(ONE)
                         .then((Callback) () -> follower.followPath(close_assistGate_shootGate))
-                        .then(TWO, (InterruptibleCallback) () -> follower.isTransitionable())
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
 
                         .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
-                        .delay(ONE)
+                        .delay(TWO)
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
                         .delay(HALF)
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
 
                         // TODO: go cycle gate!!!
 
@@ -274,6 +365,52 @@ public class BaboAuto extends OpMode {
 //                        .then((Callback) () -> follower.followPath(close_shootPreload_cycleGate))
 ////                        .then((Callback) () -> deviceIntake.setIntakeIn())
 //                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+
+                    // i can go fuck myself
+
+//                        .then((Callback) () -> follower.followPath(close_shootGate_openGate))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE))
+//                        .then((Callback) () -> deviceExtake.setExtakeOverride(670))
+//                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+//                        .delay(ONE)
+//                        .then((Callback) () -> follower.followPath(close_openGate_intakeGate))
+//                        .then((Callback) () -> deviceIntake.setIntakeIn())
+//                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
+//
+//                        .then((Callback) () -> follower.followPath(close_intakeGate_shootGate)) // callback: set intake idle @ t=0.3
+////                        .then((Callback) () -> deviceExtake.setExtakeState(deviceIntake.getArtifactCount() == 2 ? DeviceExtake.ExtakeState.DUAL_SHORT : DeviceExtake.ExtakeState.DYNAMIC))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT))
+//                        .then(THREE, (InterruptibleCallback) () -> follower.isReady())
+//
+//                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+//                        .delay(ONE)
+//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+//                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+//                        .delay(HALF)
+//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+//                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+//
+//                        .then((Callback) () -> follower.followPath(close_shootGate_finishPos))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+//                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then((Callback) () -> follower.followPath(close_shootGate_bezierFirst, 0.5, true))
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+                        .then(5000L, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then((Callback) () -> follower.followPath(close_bezierFirst_shootGate))
+                        .then((Callback) () -> deviceIntake.setIntakeIdle())
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT))
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+                        .delay(ONE)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
                     );
 
                 break;
@@ -422,5 +559,9 @@ public class BaboAuto extends OpMode {
         double d = Configuration.LOCALIZER_LENGTH_BACK_OFFSET - Configuration.ROBOT_LENGTH / 2.0;
         double theta = Math.toRadians(h);
         return P(x - d * Math.sin(theta), y + d * Math.cos(theta), h);
+    }
+
+    private double A(double deg) {
+        return Math.toRadians(90 + alliance.apply(deg));
     }
 }

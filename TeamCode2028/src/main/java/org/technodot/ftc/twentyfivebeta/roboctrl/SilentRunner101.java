@@ -92,7 +92,7 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean driveAim() {
-        return ready() && (gamepad1.x || gamepad1.b || gamepad1.left_bumper);
+        return ready() && (gamepad1.x || gamepad1.y || gamepad1.left_bumper);
     }
 
 //    public boolean extakeClose() {
@@ -124,7 +124,8 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean intakeNudge() {
-        return ready() && gamepad1.y;
+//        return ready() && gamepad1.y;
+        return false;
     }
 
     public boolean intakeServoLeft() {

@@ -158,6 +158,8 @@ public class BaboOS extends OpMode {
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
         telemetry.addData("cr_a", deviceIntake.rightArtifact);
         telemetry.addData("int_s", deviceIntake.targetSide);
+
+        telemetry.addData("a", deviceDrive.aiming);
         
         // Time-based vibration reminders for endgame (only when not in DEBUG mode)
         if (!Configuration.DEBUG && inputController instanceof SilentRunner101) {

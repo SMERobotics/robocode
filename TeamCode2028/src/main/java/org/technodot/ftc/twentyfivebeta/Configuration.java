@@ -93,12 +93,12 @@ public class Configuration {
     public static volatile double INTAKE_MOTOR_NUDGE_POWER = -0.67;
     public static volatile int INTAKE_MOTOR_NUDGE_TICKS = -80;
     public static volatile double INTAKE_LEFT_DEACTIVATION = 0.57;
-    public static volatile double INTAKE_LEFT_HOLD = INTAKE_LEFT_DEACTIVATION + 0.05;
+    public static volatile double INTAKE_LEFT_HOLD = INTAKE_LEFT_DEACTIVATION + 0.03;
     public static volatile double INTAKE_LEFT_ACTIVATION = INTAKE_LEFT_DEACTIVATION + 0.22;
     public static volatile double INTAKE_RIGHT_DEACTIVATION = 0.57;
-    public static volatile double INTAKE_RIGHT_HOLD = INTAKE_RIGHT_DEACTIVATION - 0.05;
+    public static volatile double INTAKE_RIGHT_HOLD = INTAKE_RIGHT_DEACTIVATION - 0.03;
     public static volatile double INTAKE_RIGHT_ACTIVATION = INTAKE_RIGHT_DEACTIVATION - 0.22;
-    public static volatile long INTAKE_SERVO_INTERVAL_MS = 150;
+    public static volatile long INTAKE_SERVO_INTERVAL_MS = 200;
 //    public static volatile long INTAKE_SERVO_DELAY_MS = 500; // global delay for now, PREVIOUSLY WAS 670MS
     public static volatile long INTAKE_SERVO_SHORT_DELAY_MS = 400;
 //    public static volatile long INTAKE_SERVO_LONG_DELAY_MS = 670;
@@ -110,7 +110,7 @@ public class Configuration {
     public static volatile double EXTAKE_MOTOR_KP = 150.0;
     public static volatile double EXTAKE_MOTOR_KI = 0.0;
     public static volatile double EXTAKE_MOTOR_KD = 0.0;
-    public static volatile double EXTAKE_MOTOR_KF = 17;
+    public static volatile double EXTAKE_MOTOR_KF = 17.1;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_DUAL_SHORT = 1400; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1520; // TODO: adjust

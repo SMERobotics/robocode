@@ -31,7 +31,7 @@ public class DeviceDrive extends Device {
     private AutoControl autoControl; // only takes effect in DriveState.AUTO mode
     private DcMotorEx.RunMode runMode;
 
-    private boolean aiming; // teleop only
+    public boolean aiming; // teleop only
     private boolean rotating; // teleop only
     private long lastRotateNs;
     private boolean snapped;
@@ -334,10 +334,15 @@ public class DeviceDrive extends Device {
                 }
                 DevicePinpoint.setSnapshotYaw();
             } else {
-                if (pinpointPIDF != null) pinpointPIDF.reset();
+                if (pinpointPIDF != null && !rotating) {
+                    double e = DevicePinpoint.getSnapshotYawError();
+//                FtcDashboard.getInstance().getTelemetry().addData("rot_e", error);
+                    rotate = Range.clip(pinpointPIDF.calculate(e), -1.0, 1.0);
+                } else {
+                    rotate = rotateInput;
+                }
                 if (aimPIDF != null) aimPIDF.reset();
                 if (bearingPIDF != null) bearingPIDF.reset();
-                rotate = rotateInput;
             }
         } else if (pinpointPIDF != null) {
             if (rotateLockToggleActive && !rotating) {
