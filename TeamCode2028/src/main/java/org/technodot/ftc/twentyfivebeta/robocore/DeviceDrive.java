@@ -316,20 +316,21 @@ public class DeviceDrive extends Device {
 //                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
 
                     // FUCK THE PINPOINT
-                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.RED ? 1.0 : -1.0) * ((DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? Configuration.PINPOINT_ANGLE_SIDE_OFFSET : -Configuration.PINPOINT_ANGLE_SIDE_OFFSET) + Configuration.PINPOINT_ANGLE_OFFSET);
-                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
+//                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.RED ? 1.0 : -1.0) * ((DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? Configuration.PINPOINT_ANGLE_SIDE_OFFSET : -Configuration.PINPOINT_ANGLE_SIDE_OFFSET) + Configuration.PINPOINT_ANGLE_OFFSET);
+                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", DeviceCamera.goalTagDetection.ftcPose.bearing);
 
 //                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
 //                    bearingPIDF.reset();
 
                     // only when using far bearing, use THIS part
-                    rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
+                    rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
                     aimPIDF.reset();
                 } else {
-                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? -3.0 : 3.0);
+//                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? 4.0 : -4.0);
+//                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? 1.0 : -1.0);
 //                    error = DeviceCamera.goalTagDetection.ftcPose.bearing;
-                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
-                    rotate = Range.clip(bearingPIDF.calculate(error), -1.0, 1.0);
+                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", DeviceCamera.goalTagDetection.ftcPose.bearing);
+                    rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
                     aimPIDF.reset();
                 }
                 DevicePinpoint.setSnapshotYaw();

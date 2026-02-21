@@ -205,7 +205,8 @@ public class BaboAuto extends OpMode {
                     })
                     .build();
 
-                PathChain close_assistGate_shootGate = follower.pathBuilder().addPath(
+                PathChain close_assistGate_shootGate = follower.pathBuilder()
+                    .addPath(
                         new BezierCurve(
                             P(144 - 136.158, 64.552),
                             P(144 - 99.807, 65.214),
@@ -283,7 +284,8 @@ public class BaboAuto extends OpMode {
 //                    .setLinearHeadingInterpolation(A(45), A(60))
 //                    .build();
 
-                PathChain close_shootGate_bezierFirst = follower.pathBuilder().addPath(
+                PathChain close_shootGate_bezierFirst = follower.pathBuilder()
+                    .addPath(
                         new BezierCurve(
                             P(144 - 86.000, 90.000),
                             P(144 - 109.959, 70.828),
@@ -294,7 +296,8 @@ public class BaboAuto extends OpMode {
                     .setTangentHeadingInterpolation()
                     .build();
 
-                PathChain close_bezierFirst_shootGate = follower.pathBuilder().addPath(
+                PathChain close_bezierFirst_shootGate = follower.pathBuilder()
+                    .addPath(
                         new BezierLine(
                             P(144 - 128.000, 88.500),
                             P(144 - 96, 98.000)
@@ -304,6 +307,19 @@ public class BaboAuto extends OpMode {
                         HeadingInterpolator.facingPoint(
                             P(0, 132)
                         )
+                    )
+                    .build();
+
+                PathChain close_shootGate_finishPos = follower.pathBuilder()
+                    .addPath(
+                        new BezierLine(
+                            P(144 - 96, 98.000),
+                            P(48, 72)
+                        )
+                    )
+                    .setLinearHeadingInterpolation(
+                        A(45),
+                        A(60)
                     )
                     .build();
 
@@ -411,25 +427,77 @@ public class BaboAuto extends OpMode {
                         .delay(HALF)
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
                         .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+
+                        .then((Callback) () -> follower.followPath(close_shootGate_finishPos))
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
                     );
 
                 break;
             case FAR:
                 Pose far_start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
-                Pose far_shootPreload = P(48, 48, 0);
-//                Pose far_start = P(0, 0, 0);
-//                Pose far_shootPreload = P(0, 0, 0);
+                Pose far_shootPreload = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 6 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET);
 
                 follower.setStartingPose(far_start);
 
-                PathChain far_start_shootPreload = follower.pathBuilder().addPath(
+                PathChain far_start_shootPreload = follower.pathBuilder()
+                    .addPath(
                         new BezierLine(far_start, far_shootPreload)
-                ).setLinearHeadingInterpolation(far_start.getHeading(), far_shootPreload.getHeading())
-                .build();
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.facingPoint(
+                            P(0, 140)
+                        )
+                    )
+                    .build();
 
-                runtime.plan(new ContiguousSequence(0)
+//                PathChain far_shootPreload_finishPos = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierLine(
+//                            far_shootPreload,
+//                            P(48, 60)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(
+//                        A(20), A(90)
+//                    )
+//                    .build();
+
+                PathChain far_shootPreload_bezierThird = follower.pathBuilder()
+                    .addPath(
+                        new BezierCurve(
+                            P(144 - 88.000, 15.000),
+                            P(144 - 95.552, 69.614),
+                            P(144 - 104.793, 36.966),
+                            P(144 - 127.021, 29.172),
+                            P(144 - 133.393, 33.248)
+                        )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+                runtime.plan(
+                    new ContiguousSequence(0)
                         .then((Callback) () -> follower.followPath(far_start_shootPreload))
-                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DYNAMIC))
+                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+                        .delay(ONE)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+
+//                        .then((Callback) () -> follower.followPath(far_shootPreload_finishPos))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+//                        .then(THREE, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then((Callback) () -> follower.followPath(far_shootPreload_bezierThird, 0.67, true))
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+                        .then(6767L, (InterruptibleCallback) () -> follower.isReady())
                 );
 
                 break;

@@ -72,7 +72,7 @@ public class DeviceCamera extends Device {
 
     @Override
     public void update() {
-//        configureCamera();
+        configureCamera();
 
         goalTagDetection = null;
         AprilTagDetection fallbackGoalTagDetection = null;

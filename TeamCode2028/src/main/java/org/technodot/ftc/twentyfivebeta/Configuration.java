@@ -110,7 +110,7 @@ public class Configuration {
     public static volatile double EXTAKE_MOTOR_KP = 150.0;
     public static volatile double EXTAKE_MOTOR_KI = 0.0;
     public static volatile double EXTAKE_MOTOR_KD = 0.0;
-    public static volatile double EXTAKE_MOTOR_KF = 17.1;
+    public static volatile double EXTAKE_MOTOR_KF = 16.9;
     public static volatile double EXTAKE_MOTOR_SPEED_SHORT = 1200; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_DUAL_SHORT = 1400; // TODO: adjust
     public static volatile double EXTAKE_MOTOR_SPEED_LONG = 1520; // TODO: adjust
@@ -141,7 +141,7 @@ public class Configuration {
     // DOUBLE FIRST CALIB
     public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_A = -0.0147856;
     public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_B = 6.12754;
-    public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_C = 1048.92235;
+    public static volatile double EXTAKE_MODEL_VELOCITY_DOUBLE_C = 1038.92235;
 
     public static volatile double EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT = 0.0; // + forward, - backwards // THIS VALUE NEEDS TO ALSO BE CHANGED IN TELEOP AND AUTO
     public static volatile double EXTAKE_MODEL_VELOCITY_PINPOINT_A = 0.0460686;
@@ -172,7 +172,7 @@ public class Configuration {
     public static volatile double PINPOINT_BEARING_I = 0;
     public static volatile double PINPOINT_BEARING_D = 0.0015;
     public static volatile double PINPOINT_BEARING_F = 0.12;
-    public static volatile double PINPOINT_ANGLE_OFFSET = 2;
+    public static volatile double PINPOINT_ANGLE_OFFSET = -2;
     public static volatile double PINPOINT_ANGLE_SIDE_OFFSET = 2;
 
     public static volatile int SHOTSOLVER_POSE_WINDOW_SIZE = 9;
