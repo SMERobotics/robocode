@@ -17,7 +17,7 @@ apply from: '../build.dependencies.gradle'
 apply plugin: 'org.team11260.fast-load-plugin'
 
 android {
-    namespace = 'org.technodot.ftc.twentyfivebeta'
+    namespace = 'org.technodot.ftc.twentyfiveoff'
 
     compileSdk 36
     defaultConfig {
