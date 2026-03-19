@@ -43,6 +43,7 @@ Also...
 Criteria described as:
 
 > The Control Award celebrates a team that uses sensors and software to increase the ROBOT’S functionality during gameplay. This award is given to the team that demonstrates innovative thinking and solutions to solve game challenges such as autonomous operation, improving mechanical systems with intelligent control, or using sensors to achieve better results. The solution(s) should work consistently during MATCHES but does not have to work all the time. Solutions considered for this award are not solely limited to the AUTO period of the MATCH and may also be used during TELEOP. The team’s PORTFOLIO must contain a summary of the software, sensors, and mechanical control but would not include copies of the code itself.
+
 i.e. ts award was won largely due to my efforts. Completely reallocated academic and circadian idle time of days leading up to the competitions towards productive lock ins.
 
 ![award](https://fileshare.milesmuehlbach.com/public/media/robotics/IMG_0234.jpg)
