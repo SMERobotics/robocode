@@ -1,23 +1,32 @@
 # robocode
 
-This repo contains the code used by Shawnee Mission East Robotics for the FTC DECODE 2025-2026 season.
+This repo contains the code used by Shawnee Mission East Robotics for the FTC BIOBUZZ 2026-2027 season.
 
-### teams and maintainers
+## teams and maintainers
 
-- [20181 (SME Lancers)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2026/src/main/java/com/mech/ftc) the oldest sibling
-  - @SM-mech (Jake Winfield)
-- [26855 (SME Cavalry)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2028/src/main/java/org/technodot/ftc) the middle child 🥀
+- [20181 (SME Lancers)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2028/src/main/java/org/technodot/ftc)
   - @TechDudie (TechnoDot)
-- [21692 (SME Knights)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2029/src/main/java/com/n0tasha4k/ftc) the youngest sibling
+- [26855 (SME Cavalry)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2029/src/main/java/com/n0tasha4k/ftc)
   - @n0tasha4k-glitch (???)
+- 21692 (SME Knights)
+  - todo: TBD
+- ????? (SME ????????)
+  - todo: very much TBD
 
-### setup
+### alumni
 
-Java 17 and Android Studio Otter (2025.2.1) recommended!
+- [class of 2026](https://github.com/SMERobotics/robocode/tree/master/TeamCode2026/src/main/java/com/mech/ftc) you will be missed jake </3
+  - @SM-mech (Jake Winfield)
 
-Create a Personal Access Token for Github and configure Android Studio to use the token for all git operations. Clone the repository.
+## setup
 
-### team
+Java 17 and Android Studio Quail 4 (2026.1.4) recommended! FTC SDK version 12.0 requires Android Studio Narwhal 3 Feature Drop or later.
+
+Create a Personal Access Token for GitHub and configure Android Studio to use the token for all git operations. Then, clone the repository.
+
+If you don't know what the frick you're doing, PLEASE talk to @TechDudie
+
+## team
 
 Do not decide to use Java "just because you can." Ensuring that everything works **when you need it** and **at the same time** is a massive pain. You should be very familiar with Java, using an IDE and API/SDK, and Git or other VCS. If you decide to use Java:
 
