@@ -8,6 +8,7 @@ import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -27,6 +28,7 @@ import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import java.util.List;
 
+@Disabled
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends OpMode {
 

@@ -2,6 +2,7 @@ package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -23,6 +24,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.List;
 
+@Disabled
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
 

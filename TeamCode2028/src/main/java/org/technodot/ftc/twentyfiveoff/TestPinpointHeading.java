@@ -1,11 +1,13 @@
 package org.technodot.ftc.twentyfiveoff;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+@Disabled
 @TeleOp(name = "TestPinpointHeading", group = "TechnoCode")
 public class TestPinpointHeading extends OpMode {
 

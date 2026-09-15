@@ -1,11 +1,13 @@
 package org.technodot.ftc.twentyfivebeta.targets;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.technodot.ftc.twentyfivebeta.BaboOS;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 
+@Disabled
 @TeleOp(name="BaboOS/RED", group="_")
 public class BaboOSRed extends BaboOS {
     @Override

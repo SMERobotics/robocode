@@ -1,11 +1,13 @@
 package org.technodot.ftc.twentyfivebeta.targets;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.technodot.ftc.twentyfivebeta.BaboAuto;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 
+@Disabled
 @Autonomous(name="BaboAuto/CLOSE/RED", group="_", preselectTeleOp="BaboOS/RED")
 public class BaboAutoCloseRed extends BaboAuto {
     @Override
