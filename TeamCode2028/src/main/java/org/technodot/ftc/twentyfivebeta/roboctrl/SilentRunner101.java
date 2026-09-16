@@ -73,6 +73,8 @@ public class SilentRunner101 extends InputController {
         super(gamepad1, gamepad2);
     }
 
+    // GAMEPAD 1 CTRLS
+
     public float driveForward() {
         return ready() && Math.abs(gamepad1.left_stick_y) > Configuration.DRIVE_CONTROLLER_DEADZONE ? -gamepad1.left_stick_y : 0.0f;
     }
@@ -85,8 +87,12 @@ public class SilentRunner101 extends InputController {
         return ready() && Math.abs(gamepad1.right_stick_x) > Configuration.DRIVE_CONTROLLER_DEADZONE ? gamepad1.right_stick_x : 0.0f;
     }
 
+    public boolean driveRotationLockToggle() {
+        return ready() && gamepad1.right_stick_button;
+    }
+
     public boolean driveAim() {
-        return ready() && (gamepad1.a || gamepad1.x || gamepad1.b || gamepad1.left_bumper);
+        return ready() && (gamepad1.x || gamepad1.y || gamepad1.left_bumper);
     }
 
 //    public boolean extakeClose() {
@@ -118,7 +124,8 @@ public class SilentRunner101 extends InputController {
     }
 
     public boolean intakeNudge() {
-        return ready() && gamepad1.y;
+//        return ready() && gamepad1.y;
+        return false;
     }
 
     public boolean intakeServoLeft() {
@@ -129,21 +136,27 @@ public class SilentRunner101 extends InputController {
         return ready() && gamepad1.dpad_right;
     }
 
+    public boolean intakeUnfucker() {
+        return ready() && gamepad1.b;
+    }
+
     public boolean sequenceShoot() {
         return ready() && gamepad1.right_bumper;
     }
 
     public boolean resetYaw() {
-        return ready() && gamepad1.start;
+//        return ready() && gamepad1.options;
+        return ready() && gamepad1.a;
     }
 
-    public boolean queuePurple() {
-        return ready() && (gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y);
+    public boolean recalibratePinpoint() {
+//        return ready() && ((Configuration.DEBUG && gamepad1.startWasPressed()) || gamepad2.startWasPressed());
+        return false;
     }
 
-    public boolean queueGreen() {
-        return ready() && (gamepad2.dpad_up || gamepad2.dpad_down || gamepad2.dpad_left || gamepad2.dpad_right);
-    }
+//    public boolean recalibratePinpoint() {
+//        return false; // WTAF GOBILDA
+//    }
 
     public void vibrateExtakeReady() {
         if (ready()) {
@@ -167,5 +180,34 @@ public class SilentRunner101 extends InputController {
         if (ready()) {
             gamepad1.rumble(1.0, 1.0, Configuration.GAMEPAD_RUMBLE_FINALE_MS);
         }
+    }
+
+    // GAMEPAD 2 CTRLS
+
+    public boolean queuePurple() {
+        return ready() && (gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y);
+    }
+
+    public boolean queueGreen() {
+        return ready() && (gamepad2.dpad_up || gamepad2.dpad_down || gamepad2.dpad_left || gamepad2.dpad_right);
+    }
+
+    // actually, continuous relocalization may not be the best idea
+    // maybe only relocalizing when the trigger(s) are down would be a better impl
+
+    public boolean relocalizeBlueGoalEnable() {
+        return ready() && gamepad2.left_trigger > 0.5;
+    }
+
+    public boolean relocalizeBlueGoalDisable() {
+        return ready() && gamepad2.left_bumper;
+    }
+
+    public boolean relocalizeRedGoalEnable() {
+        return ready() && gamepad2.right_trigger > 0.5;
+    }
+
+    public boolean relocalizeRedGoalDisable() {
+        return ready() && gamepad2.right_bumper;
     }
 }

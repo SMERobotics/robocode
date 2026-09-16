@@ -8,10 +8,10 @@ public abstract class Device {
 
     protected InputController inputController;
 
-    protected final Alliance alliance;
+    protected static Alliance alliance = Alliance.BLUE;
 
     public Device(Alliance alliance) {
-        this.alliance = alliance;
+        Device.alliance = alliance;
     }
 
     public abstract void init(HardwareMap hardwareMap, InputController inputController);

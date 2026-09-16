@@ -1,8 +1,14 @@
 package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -11,26 +17,28 @@ import org.technodot.ftc.twentyfivebeta.batch.Callback;
 import org.technodot.ftc.twentyfivebeta.batch.ContiguousSequence;
 import org.technodot.ftc.twentyfivebeta.batch.InterruptibleCallback;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.common.Drawing;
+import org.technodot.ftc.twentyfivebeta.pedro.Follower;
+import org.technodot.ftc.twentyfivebeta.robocore.Device;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
-import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
-import org.technodot.ftc.twentyfivebeta.robocore.DeviceIMU;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import java.util.List;
 
+@Disabled
 @Autonomous(name="BaboAuto", group="TechnoCode")
 public class BaboAuto extends OpMode {
 
     // WARNING: ts could not be very fun
     List<LynxModule> hubs;
 
+    private Follower follower;
+
     // all updates should be theoretically done in this order, based on usage
     public DeviceCamera deviceCamera;
-    public DeviceIMU deviceIMU;
-    public DeviceDrive deviceDrive;
     public DeviceExtake deviceExtake;
     public DeviceIntake deviceIntake;
 
@@ -44,7 +52,10 @@ public class BaboAuto extends OpMode {
 
     public Telemetry t = FtcDashboard.getInstance().getTelemetry();
 
-    public final long S = 1000L;
+    public final long HALF = 500L;
+    public final long ONE = 1000L;
+    public final long TWO = 2000L;
+    public final long THREE = 3000L;
     public final long X = 6767L; // general "idfk" delay HEHEHEHA
 
     public static long now;
@@ -58,316 +69,437 @@ public class BaboAuto extends OpMode {
     public void configure() {
         switch (autoType) {
             case CLOSE:
-//                runtime.plan(new ContiguousSequence()
-//                        .then((Callback) () -> deviceDrive.addMovement(-4.4, alliance.apply(-0.1), alliance.apply(DeviceIMU.GOAL_DEG)))
-//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+                Pose close_start = P(0 + (20.323), 144 - (24.236), Math.toDegrees(Math.atan(4.0 / 3.0)));
+                Pose close_shootPreload = P(48, 98);
+
+                follower.setStartingPose(close_start);
+
+                PathChain close_start_shootPreload = follower.pathBuilder()
+                    .addPath(
+                        new BezierLine(
+                            close_start,
+                            close_shootPreload
+                        )
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.facingPoint(
+//                            P(14.4, 144 - 12.8)
+                            P(0, 132)
+                        )
+                    )
+                    .build();
+
+                PathChain close_shootPreload_bezierSecond = follower.pathBuilder()
+                    .addPath(
+                        new BezierCurve( // this bezier curve was designed for red goal, so it has `144 - x` on each point
+//                                P(144 - 96.000, 96.000),
+//                                P(144 - 98.602, 70.221),
+//                                P(144 - 120.848, 63.196),
+//                                P(144 - 126.976, 49.677),
+//                                P(144 - 134.365, 53.560)
+
+//                                P(144 - 96.000, 96.000),
+//                                P(144 - 90.000, 73.221),
+//                                P(144 - 120.848, 63.196),
+//                                P(144 - 125.215, 48.434),
+////                                P(144 - 131.364, 56.076),
+////                                P(144 - 134.573, 56.253)
+////                                P(144 - 131.364, 56.076)
+//                                P(Configuration.LOCALIZER_LENGTH_FRONT_OFFSET, 56.076),
+//                                P(Configuration.LOCALIZER_LENGTH_FRONT_OFFSET, 56.076)
+
+//                                    close_shootPreload,
+//                                    P(144 - 90.000, 73.221),
+//                                    P(144 - 120.848, 63.196),
+//                                    P(144 - 126.355, 54.252),
+//                                    P(144 - 128.396, 41.935),
+//                                    P(144 - 132.729, 40.514)
+//                                    P(144 - 128.396, 40.514)
+
+//                                new Pose(96.000, 98.000),
+//                                new Pose(90.000, 73.221),
+//                                new Pose(120.848, 63.196),
+//                                new Pose(125.112, 54.148),
+//                                new Pose(130.571, 50.845),
+//                                new Pose(124.524, 40.921),
+//                                new Pose(133.226, 41.853)
+
+                            close_shootPreload,
+                            P(144 - 101.681, 63.168),
+                            P(144 - 120.123, 60.503),
+                            P(144 - 125.112, 54.148),
+                            P(144 - 132.158, 54.114)
+                        )
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.piecewise( // TODO: make ts interpolate the heading CORRECTLY
+//                            new HeadingInterpolator.PiecewiseNode(
+//                                0, 0.2,
+//                                HeadingInterpolator.linear(
+//                                    A(0), A(130)
+//                                )
+//                            ),
+//                            new HeadingInterpolator.PiecewiseNode(
+//                                0.2, 1,
+//                                HeadingInterpolator.tangent
+//                            )
+//                                new HeadingInterpolator.PiecewiseNode(
+//                                    0.67, 1,
+//                                    HeadingInterpolator.linear(
+//                                        Math.toRadians(310), Math.toRadians(0)
+//                                    )
+//                                )
+
+                                new HeadingInterpolator.PiecewiseNode(
+                                    0, 1,
+                                    HeadingInterpolator.tangent
+                                )
+                        )
+                    )
+                    .build();
+
+//                PathChain close_bezierSecond_shootPreload = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 132.729, 40.514),
+//                            P(144 - 96.000, 67.000),
+//                            P(144 - 96.000, 98.000)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(Math.toRadians(-15), Math.toRadians(45))
+//                    .addParametricCallback(0.05, new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            deviceIntake.setIntakeIdle();
+//                        }
+//                    })
+//                    .build();
 //
-//                        .then((Callback) () -> {
-//                            deviceDrive.addMovement(0, 0, alliance.apply(-DeviceIMU.GOAL_DEG));
+//                PathChain close_shootPreload_cycleGate = follower.pathBuilder().addPath(
+//                        new BezierCurve(
+//                            P(144 - 96.000, 98.000),
+//                            P(144 - 96.000, 64.000),
+//                            P(144 - 129.496, 58.811)
+////                            P(144 - 120.496, 58.811) // DOES NOT OPEN GATE YET
+//                        )
 //
-//                            // prepare to shoot
-//                            // may be kinda late
-//                            deviceExtake.setExtakeOverride(1200);
-//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
-//                        })
-//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
+//                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(18))
+//                    .build();
+
+                PathChain close_bezierSecond_assistGate = follower.pathBuilder()
+                    .addPath(
+                        new BezierCurve(
+                            P(144 - 132.158, 56.272),
+                            P(144 - 122.383, 54.260),
+                            P(144 - 122.045, 65.405),
+                            P(144 - 136.158, 64.552)
+
+                        )
+                    )
+                    .setLinearHeadingInterpolation(A(72.5), A(105))
+                    .addParametricCallback(0.2, new Runnable() {
+                        @Override
+                        public void run() {
+                            deviceIntake.setIntakeIdle();
+//                            deviceExtake.setExtakeState(deviceIntake.getArtifactCount() == 2 ? DeviceExtake.ExtakeState.DUAL_SHORT : DeviceExtake.ExtakeState.DYNAMIC);
+                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT);
+                        }
+                    })
+                    .build();
+
+                PathChain close_assistGate_shootGate = follower.pathBuilder()
+                    .addPath(
+                        new BezierCurve(
+                            P(144 - 136.158, 64.552),
+                            P(144 - 99.807, 65.214),
+                            P(144 - 86.000, 86.000)
+                        )
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.piecewise(
+                            new HeadingInterpolator.PiecewiseNode(
+                                0, 0.2,
+                                HeadingInterpolator.constant(A(105))
+                            ),
+                            new HeadingInterpolator.PiecewiseNode(
+                                0.2, 1,
+                                HeadingInterpolator.facingPoint(
+//                                    P(14.4, 144 - 12.8)
+                                    P(0, 132)
+                                )
+                            )
+                        )
+                    )
+                    .build();
+
+                // the servos can go fuck themselves
+
+//                PathChain close_shootGate_openGate = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 86.000, 90.000),
+//                            P(144 - 96.000, 70.000),
+//                            P(144 - 129.496, 58.811)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(A(45), A(72))
+//                    .build();
 //
-//                        .then(S, (InterruptibleCallback) () -> {
-//                            deviceDrive.stageAim();
-//                            return deviceDrive.isReady();
-//                        })
-//                        .then(X, (InterruptibleCallback) () -> deviceExtake.isReady())
+//                PathChain close_openGate_intakeGate = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 129.496, 58.811),
+//                            P(144 - 126.751, 55.301),
+//                            P(144 - 136.806, 56.301)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(A(72), A(83.3))
+//                    .build();
 //
-//                        // DOES NOT UTILIZE OBELISK & COLOR SENSOR YET, ONLY SHOOTS 2
-//                        // TODO: dynamically reconfigure shots based on obelisk
+//                PathChain close_intakeGate_shootGate = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierCurve(
+//                            P(144 - 136.806, 56.301),
+//                            P(144 - 99.807, 65.214),
+//                            P(144 - 86.000, 90.000)
+//                        )
+//                    )
+//                    .setHeadingInterpolation(
+//                        HeadingInterpolator.facingPoint(
+//                            P(0, 132)
+//                        )
+//                    )
+//                    .addParametricCallback(0.4, new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            deviceIntake.setIntakeIdle();
+//                        }
+//                    })
+//                    .build();
+//
+//                PathChain close_shootGate_finishPos = follower.pathBuilder().addPath(
+//                        new BezierLine(
+//                            P(144 - 86.000, 90.000),
+//                            P(144 - 96.000, 72.000)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(A(45), A(60))
+//                    .build();
+
+                PathChain close_shootGate_bezierFirst = follower.pathBuilder()
+                    .addPath(
+                        new BezierCurve(
+                            P(144 - 86.000, 90.000),
+                            P(144 - 109.959, 70.828),
+                            P(144 - 121.234, 88.648),
+                            P(144 - 128.000, 88.500)
+                        )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+                PathChain close_bezierFirst_shootGate = follower.pathBuilder()
+                    .addPath(
+                        new BezierLine(
+                            P(144 - 128.000, 88.500),
+                            P(144 - 96, 98.000)
+                        )
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.facingPoint(
+                            P(0, 132)
+                        )
+                    )
+                    .build();
+
+                PathChain close_shootGate_finishPos = follower.pathBuilder()
+                    .addPath(
+                        new BezierLine(
+                            P(144 - 96, 98.000),
+                            P(48, 72)
+                        )
+                    )
+                    .setLinearHeadingInterpolation(
+                        A(45),
+                        A(60)
+                    )
+                    .build();
+
+                runtime.plan(
+                    new ContiguousSequence(0)
+                        .then((Callback) () -> follower.followPath(close_start_shootPreload))
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT))
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+                        .delay(HALF)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
+                        .then(TWO, (InterruptibleCallback) () -> !deviceIntake.isEmpty())
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+
+                        // tucker is the goat
+                        .then((Callback) () -> follower.followPath(close_shootPreload_bezierSecond))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE))
+//                        .then((Callback) () -> deviceExtake.setExtakeOverride(670))
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+                        .then(THREE, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then((Callback) () -> follower.followPath(close_bezierSecond_assistGate)) // callback: set intake idle and starts extake @ t=0.2
+                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
+                        .delay(ONE)
+                        .then((Callback) () -> follower.followPath(close_assistGate_shootGate))
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+                        .delay(TWO)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+
+                        // TODO: go cycle gate!!!
+
+                        // fuckass me literally forgot that we needed to open the gate after second row
+//                        .then((Callback) () -> follower.followPath(close_bezierSecond_shootPreload))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT))
+////                        .delay(ONE)
+////                        .then((Callback) () -> deviceIntake.setIntakeIdle())
+//                        .then(THREE, (InterruptibleCallback) () -> follower.isReady())
+//
+////                        .delay(TWO)
+//                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+//                        .delay(ONE)
 //                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-//                        .then(X, (InterruptibleCallback) () -> deviceIntake.isEmpty())
-//                        .delay(670)
+//                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+//                        .delay(HALF)
+//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+//                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
 //
-//                        .then((Callback) () -> {
-//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
-//                            deviceExtake.setExtakeOverride(0);
+//                        .then((Callback) () -> follower.followPath(close_shootPreload_cycleGate))
+////                        .then((Callback) () -> deviceIntake.setIntakeIn())
+//                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+
+                    // i can go fuck myself
+
+//                        .then((Callback) () -> follower.followPath(close_shootGate_openGate))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE))
+//                        .then((Callback) () -> deviceExtake.setExtakeOverride(670))
+//                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+//                        .delay(ONE)
+//                        .then((Callback) () -> follower.followPath(close_openGate_intakeGate))
+//                        .then((Callback) () -> deviceIntake.setIntakeIn())
+//                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
 //
-//                            deviceDrive.addMovement(-1.0, -2.0, 0.0);
-//                        })
-//                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
-//                );
+//                        .then((Callback) () -> follower.followPath(close_intakeGate_shootGate)) // callback: set intake idle @ t=0.3
+////                        .then((Callback) () -> deviceExtake.setExtakeState(deviceIntake.getArtifactCount() == 2 ? DeviceExtake.ExtakeState.DUAL_SHORT : DeviceExtake.ExtakeState.DYNAMIC))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT))
+//                        .then(THREE, (InterruptibleCallback) () -> follower.isReady())
+//
+//                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+//                        .delay(ONE)
+//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+//                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+//                        .delay(HALF)
+//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+//                        .then(ONE, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+//
+//                        .then((Callback) () -> follower.followPath(close_shootGate_finishPos))
+//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+//                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
 
-                // close auto is just gonna be my auto control testing playground for now
+                        .then((Callback) () -> follower.followPath(close_shootGate_bezierFirst, 0.5, true))
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+                        .then(5000L, (InterruptibleCallback) () -> follower.isReady())
 
-                runtime.plan(new ContiguousSequence()
-                        .then((Callback) () -> deviceDrive.addMovement(6, 6, 90))
-//                        .then((InterruptibleCallback) () -> deviceDrive.isReady())
-//                        .then((Callback) () -> deviceDrive.addMovement(0, -6, 45))
-//                        .then((InterruptibleCallback) () -> deviceDrive.isReady())
-//                        .then((Callback) () -> deviceDrive.addMovement(6 * (Math.sqrt(2) / 2), 6 * (Math.sqrt(2) / 2), 45))
-                        .delay(6700)
-                        .then((Callback) () -> deviceDrive.setTargetFieldHeading(0))
-                        .then(6700, (Callback) () -> deviceDrive.setAutoControl(DeviceDrive.AutoControl.IMU_ABSOLUTE))
-                );
+                        .then((Callback) () -> follower.followPath(close_bezierFirst_shootGate))
+                        .then((Callback) () -> deviceIntake.setIntakeIdle())
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT))
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+
+                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+                        .delay(ONE)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
+                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+
+                        .then((Callback) () -> follower.followPath(close_shootGate_finishPos))
+                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
+                        .then(TWO, (InterruptibleCallback) () -> follower.isReady())
+                    );
 
                 break;
             case FAR:
+                Pose far_start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
+                Pose far_shootPreload = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 6 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET);
 
-//                // move the robot forward and start up the extake
-//                runtime.plan(0, (Callback) () -> deviceDrive.addMovement(0.67, 0.0, 0.0));
-//                runtime.plan(0, (Callback) () -> {
-//                    deviceExtake.setExtakeOverride(1530);
-//                    deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
-//                });
-//
-//                runtime.plan(new ContiguousSequence(1000)
-//                        // aim at the goal, nice and long
-//                        .then(3000, (InterruptibleCallback) () -> {
-//                            deviceDrive.stageAim();
-//                            return deviceDrive.isReady() && deviceExtake.isReady();
-//                        })
-////                        .then(2500, (Callback) () -> deviceDrive.stageAim())
-//
-//                        // trigger 2 shots
-//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-//                        .then(X, (InterruptibleCallback) () -> {
-//                            deviceDrive.stageAim();
-//                            return deviceIntake.isEmpty();
-//                        })
-//
-//                        // grab the 3rd artifact
-////                        .then((Callback) () -> deviceIntake.triggerNudge())
-//                        .then((Callback) () -> deviceIntake.setIntakeIn())
-//                        .then(500, (Callback) () -> deviceDrive.stageAim())
-//                        .then((Callback) () -> deviceIntake.setIntakeIdle())
-//
-//                        // trigger the 3rd shot
-//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-//                        .then(X, (InterruptibleCallback) () -> {
-//                            deviceDrive.stageAim();
-//                            return deviceIntake.isEmpty();
-//                        })
-//                        .then(500, (Callback) () -> deviceDrive.stageAim())
-//
-//                        // shutdown extake and turn towards ts balls fr
-//                        .then((Callback) () -> {
-//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
-//                            deviceExtake.setExtakeOverride(0);
-//
-//                            deviceDrive.addMovement(0.0, 0.0, alliance.apply(-92));
-//                        })
-//                        .then(1000, (InterruptibleCallback) () -> deviceDrive.isReady())
-//
-//                        // init intake to start accepting ts balls fr
-//                        .then((Callback) () -> deviceIntake.setIntakeIn())
-//
-//                        // move to ts balls fr
-//                        .then((Callback) () -> deviceDrive.addMovement(4.0, alliance.apply(-0.3), 0.0))
-////                        .then(1000, (InterruptibleCallback) () -> deviceDrive.isReady())
-//                        .delay(3000)
-//
-//                        // move back to shooting position
-//                        .then((Callback) () -> deviceDrive.addMovement(-3.9, 0.0, alliance.apply(-2.0)))
-//                        .then((Callback) () -> {
-//                            deviceExtake.setExtakeOverride(1500);
-//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.OVERRIDE);
-//                        })
-////                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
-//                        .delay(3000) // realistically too long, just for testing purposes
-//
-//                        // turn off intake, turn towards goalish and move back a bit
-//                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(90)))
-////                        .then(X, (InterruptibleCallback) () -> deviceDrive.isReady())
-//                        .delay(1500) // realistically too long, just for testing purposes
-//                        .then((Callback) () -> deviceIntake.setIntakeIdle())
-//                        .then((Callback) () -> deviceDrive.addMovement(-0.3, 0.0, 0.0))
-//                        .delay(300)
-//
-//                        // aim at the goal, nice and long
-//                        .then(3000, (InterruptibleCallback) () -> {
-//                            deviceDrive.stageAim();
-//                            return deviceDrive.isReady() && deviceExtake.isReady();
-//                        })
-//
-//                        // trigger 2 shots
-//                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-//                        .then(X, (InterruptibleCallback) () -> {
-//                            deviceDrive.stageAim();
-//                            return deviceIntake.isEmpty();
-//                        })
-//                        .then(500, (Callback) () -> deviceDrive.stageAim())
-//
-//                        // shutdown extake and park
-//                        .then((Callback) () -> {
-//                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE);
-//                            deviceExtake.setExtakeOverride(0);
-//
-//                            deviceDrive.addMovement(2.67, alliance.apply(0.67), alliance.apply(-25.0));
-//                        })
-//
-//                );
+                follower.setStartingPose(far_start);
 
-                runtime.plan(new ContiguousSequence()
-                        .then((Callback) () -> deviceDrive.addMovement(0.867, 0.0, 0.0))
+                PathChain far_start_shootPreload = follower.pathBuilder()
+                    .addPath(
+                        new BezierLine(far_start, far_shootPreload)
+                    )
+                    .setHeadingInterpolation(
+                        HeadingInterpolator.facingPoint(
+                            P(0, 140)
+                        )
+                    )
+                    .build();
 
-                        // # SEQUENCE: SHOOT THREE
+//                PathChain far_shootPreload_finishPos = follower.pathBuilder()
+//                    .addPath(
+//                        new BezierLine(
+//                            far_shootPreload,
+//                            P(48, 60)
+//                        )
+//                    )
+//                    .setLinearHeadingInterpolation(
+//                        A(20), A(90)
+//                    )
+//                    .build();
 
-                        // start extake and aim
+                PathChain far_shootPreload_bezierThird = follower.pathBuilder()
+                    .addPath(
+                        new BezierCurve(
+                            P(144 - 88.000, 15.000),
+                            P(144 - 95.552, 69.614),
+                            P(144 - 104.793, 36.966),
+                            P(144 - 127.021, 29.172),
+                            P(144 - 133.393, 33.248)
+                        )
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+                runtime.plan(
+                    new ContiguousSequence(0)
+                        .then((Callback) () -> follower.followPath(far_start_shootPreload))
                         .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DYNAMIC))
-                        .delay(300)
-//                        .then(3000, (InterruptibleCallback) () -> {
-                        .then(3000, (InterruptibleCallback) () -> {
-                            Configuration.DRIVE_AIM_OFFSET = 2.5;
-                            Configuration.EXTAKE_MODEL_VELOCITY_SIMPLE_RANGE_SHIFT = 2.0;
-                            deviceDrive.stageAim();
-                            return deviceExtake.isReady();
-                        })
-                        .delay(500)
+                        .then(ONE, (InterruptibleCallback) () -> follower.isReady())
 
-                        // shoot two
+                        .then(THREE, (InterruptibleCallback) () -> deviceExtake.isReady())
+                        .delay(ONE)
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(2000, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-
-                        // intake third
-                        .then((Callback) () -> deviceIntake.setIntakeIn())
-                        .then(300, (Callback) () -> deviceDrive.stageAim())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
+                        .delay(HALF)
                         .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(500, (Callback) () -> deviceDrive.stageAim())
-                        .then((Callback) () -> deviceIntake.setIntakeIdle())
+                        .then(TWO, (InterruptibleCallback) () -> deviceIntake.isEmpty())
 
-                        // shoot third
-                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(1000, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
-
-                        // # END SEQUENCE
-
-                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(-92.0), 2000))
-                        .delay(1000)
-                        .then((Callback) () -> deviceIntake.setIntakeIn())
-                        .then((Callback) () -> deviceDrive.addMovement(4.0, alliance.apply(-0.3), 0.0, 2000))
-                        .delay(2000)
-                        .then((Callback) () -> deviceDrive.addMovement(-4.0, alliance.apply(-0.5), 0.0))
-                        .delay(2000)
-                        .then((Callback) () -> deviceIntake.setIntakeIdle())
-                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(60), 2000))
-                        .delay(670)
-
-                        // # SEQUENCE: SHOOT TWO
-
-                        // start extake and aim
-                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DYNAMIC))
-                        .delay(100)
-                        .then(2000, (InterruptibleCallback) () -> {
-                            Configuration.DRIVE_AIM_OFFSET = 1.5;
-                            deviceDrive.stageAim();
-                            return deviceExtake.isReady();
-                        })
-
-                        // shoot two
-                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(2000, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-
-                        // only shoot third if its present
-                        .then((Callback) () -> deviceIntake.setIntakeIn())
-                        .delay(200)
-                        .then(200, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-                        .then((Callback) () -> {
-                            deviceIntake.triggerSequenceShoot();
-                        })
-                        .then(500, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-                        .then((Callback) () -> {
-                            deviceIntake.setIntakeIdle();
-                        })
-                        .delay(500)
-                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
-
-                        // # END SEQUENCE
-
-                        // R:103 B:20 Y:53.5
-
-                        .then((Callback) () -> deviceDrive.setCameraAbsolutePositioning(106.7, alliance.apply(20), 53.5)) // nothing is done with yaw
-                        .then(2000, (Callback) () -> deviceDrive.setAutoControl(DeviceDrive.AutoControl.CAMERA_ABSOLUTE)) // maybe turn down time
-                        .then((Callback) () -> deviceDrive.resyncEncoders())
-
-                        .then((Callback) () -> deviceDrive.addMovement(0.0, 0.0, alliance.apply(-56), 2000)) // TODO: maybe closer to 45 ish?
-//                        .delay(1000)
-                        .delay(670) // extra time there
-
-                        .then((Callback) () -> deviceIntake.setIntakeIn())
-
-                        .then((Callback) () -> deviceDrive.addMovement(4.0, alliance.apply(-0.2), 0.0, 2000))
-                        .delay(2000)
-                        .then((Callback) () -> deviceIntake.setIntakeIdle())
-
-                        .then((Callback) () -> deviceDrive.addMovement(-2.5, 0.0, alliance.apply(67), 2000))
-                        .delay(3000)
-
-                        .then((Callback) () -> deviceDrive.addMovement(-2.5, 0.0, 0.0, 2000))
-                        .delay(1600)
-
-                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.REVERSE))
-                        .then((Callback) () -> deviceIntake.triggerNudge())
-                        .delay(500)
-                        .then((Callback) () -> {
-                            deviceIntake.activateLeft();
-                            deviceIntake.activateRight();
-                        })
+//                        .then((Callback) () -> follower.followPath(far_shootPreload_finishPos))
 //                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
-                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DYNAMIC))
-//                        .delay(200)
-//                        .delay(1200)
+//                        .then(THREE, (InterruptibleCallback) () -> follower.isReady())
 
-                        // # SEQUENCE: SHOOT TWO
-
-                        // start extake and aim
-//                        .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DYNAMIC))
-                        .delay(100)
-                        .then(2000, (InterruptibleCallback) () -> {
-                            Configuration.DRIVE_AIM_OFFSET = 2.5;
-                            deviceDrive.stageAim();
-                            return deviceExtake.isReady();
-                        })
-
-                        // shoot two
-                        .then((Callback) () -> deviceIntake.triggerSequenceShoot())
-                        .then(2000, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-
-                        // only shoot third if its present
-                        .then((Callback) () -> deviceIntake.setIntakeIn())
-                        .delay(200)
-                        .then(200, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-                        .then((Callback) () -> {
-                            deviceIntake.triggerSequenceShoot();
-                        })
-                        .then(500, (InterruptibleCallback) () -> {
-                            deviceDrive.stageAim();
-                            return deviceIntake.isEmpty();
-                        })
-                        .then((Callback) () -> {
-                            deviceIntake.setIntakeIdle();
-                        })
-                        .delay(500)
+                        .then((Callback) () -> follower.followPath(far_shootPreload_bezierThird, 0.67, true))
                         .then((Callback) () -> deviceExtake.setExtakeState(DeviceExtake.ExtakeState.IDLE))
-
-                        // # END SEQUENCE
+                        .then((Callback) () -> deviceIntake.setIntakeIn())
+                        .then(6767L, (InterruptibleCallback) () -> follower.isReady())
                 );
 
                 break;
@@ -389,29 +521,27 @@ public class BaboAuto extends OpMode {
         hubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : hubs) hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
+        follower = Configuration.createFollower(hardwareMap);
+
         deviceCamera = new DeviceCamera(alliance);
-        deviceIMU = new DeviceIMU(alliance);
-        deviceDrive = new DeviceDrive(alliance);
         deviceExtake = new DeviceExtake(alliance);
         deviceIntake = new DeviceIntake(alliance);
 
         deviceCamera.init(hardwareMap, inputController);
-        deviceIMU.init(hardwareMap, inputController);
-        deviceDrive.init(hardwareMap, inputController);
         deviceExtake.init(hardwareMap, inputController);
         deviceIntake.init(hardwareMap, inputController);
 
-        deviceDrive.setDriveState(DeviceDrive.DriveState.AUTO);
-
         configure();
+
+        Drawing.init();
     }
 
     @Override
     public void init_loop() {
-        Configuration.DRIVE_AIM_OFFSET = 3.0;
-
         telemetry.addData("status", "initialized");
         telemetry.update();
+
+        Drawing.draw(follower);
     }
 
     @Override
@@ -419,25 +549,8 @@ public class BaboAuto extends OpMode {
         config(); // tf??? IDFK Y BUT IT WORKS SO FUCK IT
 
         deviceCamera.start();
-        deviceIMU.start();
-        deviceDrive.start();
         deviceExtake.start();
         deviceIntake.start();
-
-        // recalibrate IMU heading
-        double headingOffset = 0;
-        switch (autoType) {
-            case CLOSE:
-                headingOffset = alliance.apply(-36.0);
-                break;
-            case FAR:
-                headingOffset = alliance.apply(-90.0);
-                break;
-        }
-        deviceIMU.zeroYaw();
-        deviceIMU.setHeadingOffset(headingOffset);
-
-        // if IMU can't recalibrate in this time, put a delay before each batch auto
 
         telemetry.addData("status", "starting");
         telemetry.update();
@@ -451,27 +564,34 @@ public class BaboAuto extends OpMode {
         // especially in auto, bulk reading could result in poorer quality data
         for (LynxModule hub : hubs) hub.clearBulkCache();
 
-        this.runtime.run();
-
         deviceCamera.update();
-        deviceIMU.update();
-        deviceDrive.update();
+        follower.update();
+        this.runtime.run();
         deviceExtake.update();
         deviceIntake.update();
 
-        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("b=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.yaw));
-        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
-        telemetry.addData("h", DeviceIMU.yaw);
+        Drawing.draw(follower);
+
+//        telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
+//        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
+//        telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+
+        telemetry.addData("p", follower.getPose());
+
+        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
+//        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
+
+//        if (DeviceCamera.goalTagDetection != null) t.addData("r", DeviceCamera.goalTagDetection.ftcPose.range);
+//        if (DeviceCamera.goalTagDetection != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET));
 
         t.addData("ext_vel", deviceExtake.targetVelocity);
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());
-        if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel" , deviceExtake.motorExtakeRight.getVelocity());
+        if (deviceExtake.motorExtakeRight != null) t.addData("exr_vel", deviceExtake.motorExtakeRight.getVelocity());
         t.addData("int_srv" , deviceIntake.statusTelem); // intake servo status, displayed for timing purposes
 
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
         telemetry.addData("cr_a", deviceIntake.rightArtifact);
-
-        if (DeviceCamera.goalTagDetection != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
+        telemetry.addData("int_s", deviceIntake.targetSide);
 
         t.addData("t", (now - last) / 1e6);
         telemetry.addData("t", (now - last) / 1e6);
@@ -488,12 +608,30 @@ public class BaboAuto extends OpMode {
         this.runtime.reset();
 
         deviceCamera.stop();
-        deviceIMU.stop();
-        deviceDrive.stop();
         deviceExtake.stop();
         deviceIntake.stop();
 
         telemetry.addData("status", "stopping");
         telemetry.update();
+
+        follower.setHeading(follower.getHeading() + Math.toRadians(-90) + alliance.apply(Math.toRadians(-90)));
+    }
+
+    private Pose P(double x, double y, double h) {
+        return new Pose(alliance == Alliance.BLUE ? x : 144 - x, y, Math.toRadians(90 + alliance.apply(h)));
+    }
+
+    private Pose P(double x, double y) {
+        return P(x, y, 0);
+    }
+
+    private Pose R(double x, double y, double h) {
+        double d = Configuration.LOCALIZER_LENGTH_BACK_OFFSET - Configuration.ROBOT_LENGTH / 2.0;
+        double theta = Math.toRadians(h);
+        return P(x - d * Math.sin(theta), y + d * Math.cos(theta), h);
+    }
+
+    private double A(double deg) {
+        return Math.toRadians(90 + alliance.apply(deg));
     }
 }

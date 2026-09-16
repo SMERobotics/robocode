@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
@@ -13,6 +14,8 @@ import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.roboctrl.DebounceController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.PIDFController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
+import org.technodot.ftc.twentyfivebeta.roboctrl.SignedPIDFController;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import java.util.ArrayList;
@@ -28,7 +31,7 @@ public class DeviceDrive extends Device {
     private AutoControl autoControl; // only takes effect in DriveState.AUTO mode
     private DcMotorEx.RunMode runMode;
 
-    private boolean aiming; // teleop only
+    public boolean aiming; // teleop only
     private boolean rotating; // teleop only
     private long lastRotateNs;
     private boolean snapped;
@@ -36,11 +39,15 @@ public class DeviceDrive extends Device {
     private DebounceController translateDebounce;
     private DebounceController rotateDebounce; // specifically for AutoControl.IMU_ABSOLUTE
 
-    private static boolean extakeFreeRotateAvailable;
-    private static boolean extakeFreeRotateConsumed;
-    private DeviceExtake.ExtakeState lastExtakeState = DeviceExtake.ExtakeState.IDLE;
+    private SignedPIDFController pinpointPIDF;
+    private SignedPIDFController aimPIDF;
+    private SignedPIDFController bearingPIDF;
 
-    private PIDFController aimPID;
+    private boolean rotateLockToggleTriggered;
+    private boolean rotateLockToggleActive;
+
+    // below thingys deprecated but its not broken so i'm not removing it
+
     private PIDFController rotationLockPID;
     private PIDFController forwardPID;
     private PIDFController strafePID;
@@ -92,9 +99,19 @@ public class DeviceDrive extends Device {
         motorBackLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         motorBackRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        aimPID = new PIDFController(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
-        aimPID.setSetPoint(0.0);
-        aimPID.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
+        pinpointPIDF = new SignedPIDFController(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
+        pinpointPIDF.setSetPoint(0.0);
+        pinpointPIDF.setIntegrationBounds(-1.0, 1.0);
+
+        aimPIDF = new SignedPIDFController(Configuration.PINPOINT_AIM_P, Configuration.PINPOINT_AIM_I, Configuration.PINPOINT_AIM_D, Configuration.PINPOINT_AIM_F);
+        aimPIDF.setSetPoint(0.0);
+        aimPIDF.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
+
+        bearingPIDF = new SignedPIDFController(Configuration.PINPOINT_BEARING_P, Configuration.PINPOINT_BEARING_I, Configuration.PINPOINT_BEARING_D, Configuration.PINPOINT_BEARING_F);
+        bearingPIDF.setSetPoint(0.0);
+        bearingPIDF.setIntegrationBounds(-Configuration.DRIVE_AIM_INTEGRATION_BOUNDS, Configuration.DRIVE_AIM_INTEGRATION_BOUNDS);
+
+        // some of below thingys deprecated but its not broken so i'm not removing it
 
         rotationLockPID = new PIDFController(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
         rotationLockPID.setSetPoint(0.0);
@@ -129,116 +146,227 @@ public class DeviceDrive extends Device {
             setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         }
         lastRotateNs = System.nanoTime();
+        rotateLockToggleActive = true;
     }
 
     @Override
     public void update() {
-        switch (driveState) {
-            case TELEOP:
-                if (Configuration.DEBUG) aimPID.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
-                if (Configuration.DEBUG) rotationLockPID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
+//        switch (driveState) {
+//            case TELEOP:
+//                if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+//                if (Configuration.DEBUG) rotationLockPID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
+//
+//                SilentRunner101 ctrl = (SilentRunner101) inputController;
+//                double rotateInput = ctrl.driveRotate();
+//                long nowish = System.nanoTime();
+//
+//                if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
+//                if (DeviceExtake.extakeState == DeviceExtake.ExtakeState.IDLE || DeviceExtake.extakeState == DeviceExtake.ExtakeState.ZERO) aiming = false;
+//                boolean tagAvailable = DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null;
+//
+//                rotating = !rotateGamepadDebounce.update(rotateInput, nowish);
+//                if (rotating) { // we need to take another snapshot
+//                    lastRotateNs = nowish;
+//                    snapped = false;
+//                } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
+//                    DevicePinpoint.setSnapshotYaw();
+//                    snapped = true;
+//                }
+//
+//                // apply the aiming and rotation pid loops
+//                double rotate = rotateInput;
+//                if (aiming) {
+//                    if (rotateInput != 0) {
+//                        rotate = rotateInput;
+//                    } else if (tagAvailable) {
+//                        rotate = calculateAim();
+//                    } else {
+//                        rotate = rotateInput; // allow manual rotate to find a tag
+//                    }
+//                } else {
+//                    if (aimPIDF != null) aimPIDF.reset();
+//                    if (!rotating) { // if we're tryna stay still, we stay the fuck still
+////                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
+//                        rotate = Range.clip(rotationLockPID.calculate(DevicePinpoint.getSnapshotYawError()), -1.0, 1.0);
+//                    }
+//                }
+//
+//                // field-centric kinematics for teleop
+//                Vector2D fieldCentric = DevicePinpoint.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
+//                this.update(fieldCentric.x, fieldCentric.y, rotate);
+//
+//                break;
+//            case AUTO:
+//                switch (autoControl) {
+//                    case CAMERA_AIM:
+//                        setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+//                        this.update(0, 0, calculateAim());
+//                        break;
+//
+//                    case CAMERA_ABSOLUTE:
+//                        // TODO: implement camera-based absolute positioning
+//
+//                        AprilTagDetection tag = DeviceCamera.goalTagDetection;
+//
+//                        if (tag != null && tag.ftcPose != null) {
+//                            this.update(
+//                                    Range.clip(forwardPID.calculate(tag.ftcPose.range * Math.cos(Math.toRadians(tag.ftcPose.elevation))), -1.0, 1.0) / 3, // i think i did 2D correctly? irdfk
+//                                    Range.clip(strafePID.calculate(tag.ftcPose.bearing), -1.0, 1.0) / 3, // CHECK THE NEGATIVE SIGNS
+//                                    // which PID is better? rotate or aim? which coefficients are mroe optimized?
+//                                    Range.clip(rotatePID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
+////                                    Range.clip(aimPIDF.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
+//                            );
+//                        }
+//
+//                        break;
+//
+//                    case IMU_ABSOLUTE:
+////                        this.update(0, 0, Range.clip(rotationLockPID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
+//                        break;
+//
+//                    case FIELD_TRANSLATE:
+//                        executeTranslateMovement(true);
+//                        break;
+//
+//                    case ROBOT_TRANSLATE:
+//                    default:
+//                        executeTranslateMovement(false);
+//                        break;
+//                }
+//
+//                break;
+//        }
 
-                SilentRunner101 ctrl = (SilentRunner101) inputController;
-                double rotateInput = ctrl.driveRotate();
-                long nowish = System.nanoTime();
+//        if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.DRIVE_AIM_KP, Configuration.DRIVE_AIM_KI, Configuration.DRIVE_AIM_KD, Configuration.DRIVE_AIM_KF);
+//        if (Configuration.DEBUG) rotationLockPID.setPIDF(Configuration.DRIVE_ROTATE_KP, Configuration.DRIVE_ROTATE_KI, Configuration.DRIVE_ROTATE_KD, Configuration.DRIVE_ROTATE_KF);
 
-                DeviceExtake.ExtakeState extakeState = DeviceExtake.extakeState;
-                boolean extakeActive = extakeState == DeviceExtake.ExtakeState.SHORT || extakeState == DeviceExtake.ExtakeState.DYNAMIC;
-                boolean extakeWasActive = lastExtakeState == DeviceExtake.ExtakeState.SHORT || lastExtakeState == DeviceExtake.ExtakeState.DYNAMIC;
-                if (extakeActive && !extakeWasActive) {
-                    extakeFreeRotateAvailable = true;
-                    extakeFreeRotateConsumed = false;
-                } else if (!extakeActive) {
-                    extakeFreeRotateAvailable = false;
-                    extakeFreeRotateConsumed = false;
-                }
-                lastExtakeState = extakeState;
+//        pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
+        if (Configuration.DEBUG) pinpointPIDF.setPIDF(Configuration.PINPOINT_HEADING_P, Configuration.PINPOINT_HEADING_I, Configuration.PINPOINT_HEADING_D, Configuration.PINPOINT_HEADING_F);
+        if (Configuration.DEBUG) aimPIDF.setPIDF(Configuration.PINPOINT_AIM_P, Configuration.PINPOINT_AIM_I, Configuration.PINPOINT_AIM_D, Configuration.PINPOINT_AIM_F);
+        if (Configuration.DEBUG) bearingPIDF.setPIDF(Configuration.PINPOINT_BEARING_P, Configuration.PINPOINT_BEARING_I, Configuration.PINPOINT_BEARING_D, Configuration.PINPOINT_BEARING_F);
 
-                if (ctrl.driveAim()) aiming = true; // drive aim can ONLY enable
-                if (extakeState == DeviceExtake.ExtakeState.IDLE || extakeState == DeviceExtake.ExtakeState.ZERO) aiming = false;
-                boolean tagAvailable = DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null;
-                boolean freeRotateAllowed = aiming && rotateInput != 0 && extakeFreeRotateAvailable && !extakeFreeRotateConsumed;
-                if (freeRotateAllowed) {
-                    extakeFreeRotateAvailable = false;
-                }
+//        SilentRunner101 ctrl = (SilentRunner101) inputController;
+//        double rotateInput = ctrl.driveRotate();
+//        long nowish = System.nanoTime();
 
-                rotating = !rotateGamepadDebounce.update(rotateInput, nowish);
-                if (rotating) { // we need to take another snapshot
-                    lastRotateNs = nowish;
-                    snapped = false;
-                } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
-                    DeviceIMU.setSnapshotYaw();
-                    snapped = true;
-                }
+        SilentRunner101 ctrl = (SilentRunner101) inputController;
+        double rotateInput = ctrl.driveRotate();
 
-                // apply the aiming and rotation pid loops
-                double rotate = rotateInput;
-                if (aiming) {
-                    if (rotateInput != 0) {
-                        rotate = rotateInput;
-                    } else if (tagAvailable) {
-                        rotate = calculateAim();
-                    } else {
-                        rotate = rotateInput; // allow manual rotate to find a tag
-                    }
-                } else {
-                    if (aimPID != null) aimPID.reset();
-                    if (!rotating) { // if we're tryna stay still, we stay the fuck still
-                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
-                    }
-                }
+        boolean togglePressed = ctrl.driveRotationLockToggle();
+        if (togglePressed && !rotateLockToggleTriggered) {
+            rotateLockToggleActive = !rotateLockToggleActive;
+            rotateLockToggleTriggered = true;
 
-                // field-centric kinematics for teleop
-                Vector2D fieldCentric = DeviceIMU.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
-                this.update(fieldCentric.x, fieldCentric.y, rotate);
-
-                break;
-            case AUTO:
-                switch (autoControl) {
-                    case CAMERA_AIM:
-                        setRunMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-                        this.update(0, 0, calculateAim());
-                        break;
-
-                    case CAMERA_ABSOLUTE:
-                        // TODO: implement camera-based absolute positioning
-
-                        AprilTagDetection tag = DeviceCamera.goalTagDetection;
-
-                        if (tag != null && tag.ftcPose != null) {
-                            this.update(
-                                    Range.clip(forwardPID.calculate(tag.ftcPose.range * Math.cos(Math.toRadians(tag.ftcPose.elevation))), -1.0, 1.0) / 3, // i think i did 2D correctly? irdfk
-                                    Range.clip(strafePID.calculate(tag.ftcPose.bearing), -1.0, 1.0) / 3, // CHECK THE NEGATIVE SIGNS
-                                    // which PID is better? rotate or aim? which coefficients are mroe optimized?
-                                    Range.clip(rotatePID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
-//                                    Range.clip(aimPID.calculate(tag.ftcPose.yaw), -1.0, 1.0) / 3 // CHECK THE NEGATIVE SINGS
-                            );
-                        }
-
-                        break;
-
-                    case IMU_ABSOLUTE:
-                        this.update(0, 0, Range.clip(rotationLockPID.calculate(DeviceIMU.calculateYawError(targetFieldHeading)), -1.0, 1.0));
-                        break;
-
-                    case FIELD_TRANSLATE:
-                        executeTranslateMovement(true);
-                        break;
-
-                    case ROBOT_TRANSLATE:
-                    default:
-                        executeTranslateMovement(false);
-                        break;
-                }
-
-                break;
+            // when enabling lock, take a fresh snapshot so lock holds "now"
+            if (rotateLockToggleActive) {
+                DevicePinpoint.setSnapshotYaw();
+                if (pinpointPIDF != null) pinpointPIDF.reset();
+            }
+        } else if (!togglePressed) {
+            rotateLockToggleTriggered = false;
         }
+
+        if (ctrl.driveAim()) {
+            aiming = true; // drive aim can ONLY enable
+        }
+        if (DeviceExtake.extakeState == DeviceExtake.ExtakeState.IDLE || DeviceExtake.extakeState == DeviceExtake.ExtakeState.ZERO) {
+            aiming = false;
+            pinpointPIDF.reset();
+        }
+
+        long nowish = System.nanoTime();
+        rotating = !rotateGamepadDebounce.update(rotateInput, nowish);
+        if (rotating) { // we need to take another snapshot
+            lastRotateNs = nowish;
+            snapped = false;
+        } else if (!snapped && nowish > lastRotateNs + Configuration.DRIVE_ROTATE_SNAPSHOT_DELAY_NS) { // if its been a while since last rotate, take ts snapshot
+            DevicePinpoint.setSnapshotYaw();
+            snapped = true;
+        }
+
+//        // apply the aiming and rotation pid loops
+//        if (aiming) {
+//            if (rotateInput != 0) {
+//                rotate = rotateInput;
+//            } else if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
+//                rotate = calculateAim();
+//            } else {
+//                rotate = rotateInput; // allow manual rotate to find a tag
+//            }
+//        } else {
+//            if (aimPIDF != null) aimPIDF.reset();
+//            if (!rotating) { // if we're tryna stay still, we stay the fuck still
+////                        rotate = Range.clip(rotationLockPID.calculate(DeviceIMU.getSnapshotYawError()), -1.0, 1.0);
+//                rotate = Range.clip(rotationLockPID.calculate(DevicePinpoint.getSnapshotYawError()), -1.0, 1.0);
+//            }
+//        }
+
+        // apply pinpoint PIDF
+        double rotate = rotateInput;
+//        double error = ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance);
+        if (aiming) {
+            if (rotateInput != 0) {
+                rotate = rotateInput;
+            } else if (aimPIDF != null && DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) {
+//                if (Double.isFinite(error) && DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+                if (DeviceExtake.extakeState != DeviceExtake.ExtakeState.DUAL_SHORT) {
+//                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", error);
+                    // Camera-absolute yaw error sign is opposite of this SignedPIDF path's expected PV sign.
+                    // Keep telemetry as geometric error, but invert only for controller input.
+//                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
+
+                    // FUCK THE PINPOINT
+//                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.RED ? 1.0 : -1.0) * ((DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? Configuration.PINPOINT_ANGLE_SIDE_OFFSET : -Configuration.PINPOINT_ANGLE_SIDE_OFFSET) + Configuration.PINPOINT_ANGLE_OFFSET);
+                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", DeviceCamera.goalTagDetection.ftcPose.bearing);
+
+//                    rotate = Range.clip(aimPIDF.calculate(error), -1.0, 1.0);
+//                    bearingPIDF.reset();
+
+                    // only when using far bearing, use THIS part
+                    rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
+                    aimPIDF.reset();
+                } else {
+//                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? 4.0 : -4.0);
+//                    double error = DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? 1.0 : -1.0);
+//                    error = DeviceCamera.goalTagDetection.ftcPose.bearing;
+                    FtcDashboard.getInstance().getTelemetry().addData("aim_e", DeviceCamera.goalTagDetection.ftcPose.bearing);
+                    rotate = Range.clip(bearingPIDF.calculate(DeviceCamera.goalTagDetection.ftcPose.bearing), -1.0, 1.0);
+                    aimPIDF.reset();
+                }
+                DevicePinpoint.setSnapshotYaw();
+            } else {
+                if (pinpointPIDF != null && !rotating) {
+                    double e = DevicePinpoint.getSnapshotYawError();
+//                FtcDashboard.getInstance().getTelemetry().addData("rot_e", error);
+                    rotate = Range.clip(pinpointPIDF.calculate(e), -1.0, 1.0);
+                } else {
+                    rotate = rotateInput;
+                }
+                if (aimPIDF != null) aimPIDF.reset();
+                if (bearingPIDF != null) bearingPIDF.reset();
+            }
+        } else if (pinpointPIDF != null) {
+            if (rotateLockToggleActive && !rotating) {
+                double e = DevicePinpoint.getSnapshotYawError();
+//                FtcDashboard.getInstance().getTelemetry().addData("rot_e", error);
+                rotate = Range.clip(pinpointPIDF.calculate(e), -1.0, 1.0);
+            } else {
+                pinpointPIDF.reset();
+                aimPIDF.reset();
+                bearingPIDF.reset();
+            }
+        }
+
+        // field-centric kinematics for teleop
+        Vector2D fieldCentric = DevicePinpoint.rotateVector(new Vector2D(ctrl.driveForward(), ctrl.driveStrafe()));
+        this.update(scaleInput(fieldCentric.x), scaleInput(fieldCentric.y), rotate);
     }
 
     @Override
     public void stop() {
-        aimPID.reset();
-        rotationLockPID.reset();
+        aimPIDF.reset();
+        pinpointPIDF.reset();
+        bearingPIDF.reset();
     }
 
     public void update(double forward, double strafe, double rotate) {
@@ -287,22 +415,17 @@ public class DeviceDrive extends Device {
 //            double bearing = ShotSolver.projectGoal(new Vector3D(tag.ftcPose.x, tag.ftcPose.y, tag.ftcPose.z), tag.ftcPose.yaw);
 
 //            if (Math.abs(bearing) < Configuration.DRIVE_AIM_TOLERANCE) {
-//                if (aimPID != null) aimPID.reset();
+//                if (aimPIDF != null) aimPIDF.reset();
 //                return 0.0;
 //            } else {
-//                return aimPID.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
+//                return aimPIDF.calculate(bearing, DeviceCamera.goalTagTimestamp / 1_000_000_000.0);
 //            }
 
-            return Range.clip(aimPID.calculate(bearing), -1.0, 1.0);
+            return Range.clip(aimPIDF.calculate(bearing), -1.0, 1.0);
         } else {
-//            if (aimPID != null) aimPID.reset();
+//            if (aimPIDF != null) aimPIDF.reset();
             return 0.0;
         }
-    }
-
-    public static void consumeExtakeFreeRotate() {
-        extakeFreeRotateAvailable = false;
-        extakeFreeRotateConsumed = true;
     }
 
     /**
@@ -485,13 +608,13 @@ public class DeviceDrive extends Device {
                 }
                 return translationDone;
             case CAMERA_AIM:
-                if (DeviceCamera.goalTagDetection != null) return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET)) <= 2.0;
+                if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) return Math.abs(DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET)) <= 2.0;
                 return false;
             case CAMERA_ABSOLUTE:
                 return false; // TODO
             case IMU_ABSOLUTE:
-                double yawError = Math.abs(DeviceIMU.calculateYawError(targetFieldHeading));
-                return rotateDebounce.update(yawError);
+//                double yawError = Math.abs(DeviceIMU.calculateYawError(targetFieldHeading));
+//                return rotateDebounce.update(yawError);
             default:
                 return false;
         }
@@ -553,7 +676,8 @@ public class DeviceDrive extends Device {
 
         // apply field-centric rotation if needed
         if (fieldCentric) {
-            Vector2D fieldVector = DeviceIMU.rotateVector(new Vector2D(totalForward, totalStrafe));
+//            Vector2D fieldVector = DeviceIMU.rotateVector(new Vector2D(totalForward, totalStrafe));
+            Vector2D fieldVector = DevicePinpoint.rotateVector(new Vector2D(totalForward, totalStrafe));
             totalForward = fieldVector.x;
             totalStrafe = fieldVector.y;
         }
@@ -582,7 +706,8 @@ public class DeviceDrive extends Device {
             if (!canBlendRotation && Math.abs(totalRotate) > 1e-6) {
                 // rotation is too large to cleanly combine with translation; queue an IMU-based rotation after the translate step
                 rotationQueued = true;
-                queuedTargetHeading = DeviceIMU.yaw + totalRotate;
+//                queuedTargetHeading = DeviceIMU.yaw + totalRotate;
+                queuedTargetHeading = DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES) + totalRotate;
                 rotationForEncoders = 0;
                 compensatedForward = totalForward;
                 compensatedStrafe = totalStrafe;
@@ -654,14 +779,21 @@ public class DeviceDrive extends Device {
     }
 
     private double scaleInput(double value) {
-        // robot does not begin to move until power overcomes ts weight and friction forces idk
-        // but yeah it doesnt start moving at 0.0 power so we gotta scale it
-        if (value > 0) {
-            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value + Configuration.DRIVE_MOTOR_ACTIVATION;
-        } else if (value < 0) {
-            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value - Configuration.DRIVE_MOTOR_ACTIVATION;
-        } else {
-            return 0;
-        }
+//        // robot does not begin to move until power overcomes ts weight and friction forces idk
+//        // but yeah it doesnt start moving at 0.0 power so we gotta scale it
+//        if (value > 0) {
+//            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value + Configuration.DRIVE_MOTOR_ACTIVATION;
+//        } else if (value < 0) {
+//            return -value * Configuration.DRIVE_MOTOR_ACTIVATION + value - Configuration.DRIVE_MOTOR_ACTIVATION;
+//        } else {
+//            return 0;
+//        }
+
+//        double x = Range.clip(value, -1.0, 1.0);
+//        return Range.clip(
+//                (x / (2.0 - Math.abs(x))), // f\left(x\right)=\frac{x}{2-\left|x\right|}
+//        -1.0, 1.0);
+
+        return value;
     }
 }

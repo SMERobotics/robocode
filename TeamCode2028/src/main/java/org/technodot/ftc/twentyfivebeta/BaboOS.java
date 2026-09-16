@@ -2,21 +2,29 @@ package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
+import org.technodot.ftc.twentyfivebeta.common.Vector2D;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceCamera;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceDrive;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceExtake;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIMU;
 import org.technodot.ftc.twentyfivebeta.robocore.DeviceIntake;
+import org.technodot.ftc.twentyfivebeta.robocore.DevicePinpoint;
 import org.technodot.ftc.twentyfivebeta.roboctrl.InputController;
+import org.technodot.ftc.twentyfivebeta.roboctrl.ShotSolver;
 import org.technodot.ftc.twentyfivebeta.roboctrl.SilentRunner101;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.List;
 
+@Disabled
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
 
@@ -25,7 +33,8 @@ public class BaboOS extends OpMode {
 
     // all updates should be theoretically done in this order, based on usage
     public DeviceCamera deviceCamera;
-    public DeviceIMU deviceIMU;
+    public DevicePinpoint devicePinpoint;
+//    public DeviceIMU deviceIMU;
     public DeviceDrive deviceDrive;
     public DeviceExtake deviceExtake;
     public DeviceIntake deviceIntake;
@@ -56,13 +65,15 @@ public class BaboOS extends OpMode {
         for (LynxModule hub : hubs) hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         deviceCamera = new DeviceCamera(alliance);
-        deviceIMU = new DeviceIMU(alliance);
+        devicePinpoint = new DevicePinpoint(alliance);
+//        deviceIMU = new DeviceIMU(alliance);
         deviceDrive = new DeviceDrive(alliance);
         deviceExtake = new DeviceExtake(alliance);
         deviceIntake = new DeviceIntake(alliance);
 
         deviceCamera.init(hardwareMap, inputController);
-        deviceIMU.init(hardwareMap, inputController);
+        devicePinpoint.init(hardwareMap, inputController);
+//        deviceIMU.init(hardwareMap, inputController);
         deviceDrive.init(hardwareMap, inputController);
         deviceExtake.init(hardwareMap, inputController);
         deviceIntake.init(hardwareMap, inputController);
@@ -79,7 +90,8 @@ public class BaboOS extends OpMode {
     @Override
     public void start() {
         deviceCamera.start();
-        deviceIMU.start();
+        devicePinpoint.start();
+//        deviceIMU.start();
         deviceDrive.start();
         deviceExtake.start();
         deviceIntake.start();
@@ -102,17 +114,43 @@ public class BaboOS extends OpMode {
         for (LynxModule hub : hubs) hub.clearBulkCache();
 
         deviceCamera.update();
-        deviceIMU.update();
+        devicePinpoint.update();
+//        deviceIMU.update();
         deviceDrive.update();
         deviceExtake.update();
         deviceIntake.update();
 
-        if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
-        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
-        telemetry.addData("h", DeviceIMU.yaw);
+//        telemetry.addData("ext_stc", DeviceExtake.stabilizationCycles);
 
-        if (DeviceCamera.goalTagDetection != null) t.addData("r", DeviceCamera.goalTagDetection.ftcPose.range);
-        if (DeviceCamera.goalTagDetection != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing + (alliance == Alliance.BLUE ? Configuration.DRIVE_AIM_OFFSET : -Configuration.DRIVE_AIM_OFFSET) + (DeviceIntake.targetSide == DeviceIntake.IntakeSide.LEFT ? -Configuration.DRIVE_AIM_INTAKE_OFFSET : Configuration.DRIVE_AIM_INTAKE_OFFSET));
+        telemetry.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
+        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
+        telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        telemetry.addData("pin_h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        telemetry.addData("rev_h", DeviceIMU.yaw);
+//        telemetry.addData("imu_h", DeviceIMU.hubYaw);
+
+//        t.addData("x", DevicePinpoint.pinpoint.getPosX(DistanceUnit.INCH));
+//        t.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
+
+//        if (DeviceCamera.goalTagDetection != null) {
+//            Vector2D goal = ShotSolver.getGoalPos(DeviceCamera.goalTagDetection, alliance);
+//            if (goal != null) {
+//                telemetry.addData("gx", goal.x);
+//                telemetry.addData("gy", goal.y);
+//            }
+//            Vector2D relocalization = ShotSolver.getCameraPos(DeviceCamera.goalTagDetection, alliance);
+//            if (relocalization != null) {
+//                telemetry.addData("rx", relocalization.x);
+//                telemetry.addData("ry", relocalization.y);
+//            }
+//        }
+
+//        t.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
+//        t.addData("a", ShotSolver.getGoalYawError(DeviceCamera.goalTagDetection, this.alliance));
+//        if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) t.addData("b", DeviceCamera.goalTagDetection.ftcPose.bearing);
+
+        if (DeviceCamera.goalTagDetection != null && DeviceCamera.goalTagDetection.ftcPose != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
+//        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
 
         t.addData("ext_vel", deviceExtake.targetVelocity);
         if (deviceExtake.motorExtakeLeft != null) t.addData("exl_vel", deviceExtake.motorExtakeLeft.getVelocity());
@@ -121,6 +159,9 @@ public class BaboOS extends OpMode {
 
         telemetry.addData("cl_a", deviceIntake.leftArtifact);
         telemetry.addData("cr_a", deviceIntake.rightArtifact);
+        telemetry.addData("int_s", deviceIntake.targetSide);
+
+        telemetry.addData("a", deviceDrive.aiming);
         
         // Time-based vibration reminders for endgame (only when not in DEBUG mode)
         if (!Configuration.DEBUG && inputController instanceof SilentRunner101) {
@@ -153,7 +194,8 @@ public class BaboOS extends OpMode {
     @Override
     public void stop() {
         deviceCamera.stop();
-        deviceIMU.stop();
+        devicePinpoint.stop();
+//        deviceIMU.stop();
         deviceDrive.stop();
         deviceExtake.stop();
         deviceIntake.stop();

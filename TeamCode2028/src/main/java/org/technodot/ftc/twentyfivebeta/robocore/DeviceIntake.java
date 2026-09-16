@@ -19,6 +19,9 @@ import java.util.Deque;
 
 public class DeviceIntake extends Device {
 
+    private static final long AUTO_RELOAD_WINDOW_MS = 2000;
+    private static final long AUTO_RELOAD_EMPTY_CONFIRM_MS = 67;
+
     public DcMotorEx motorIntake;
 
     public Servo servoLeft;
@@ -44,6 +47,10 @@ public class DeviceIntake extends Device {
     private boolean sequenceOverride;
     private boolean dualShortSequenceTriggered;
     private long dualShortSequenceTriggerTime;
+    private boolean autoReloadWindowActive;
+    private long autoReloadWindowStartTime;
+    private long autoReloadEmptyStartTime;
+    private boolean autoReloadIntakeRunning;
     public Deque<IntakeSide> sideDeque = new ArrayDeque<>();
     public long nextOptimizedTransfer; // timestamp for next optimized transfer attempt in ms
     public static IntakeSide targetSide = IntakeSide.LEFT;
@@ -156,8 +163,10 @@ public class DeviceIntake extends Device {
 
         switch (intakeState) {
             case IDLE:
-                if (!nudging) {
+                if (!nudging && !autoReloadIntakeRunning) {
                     motorIntake.setPower(0);
+                } else if (autoReloadIntakeRunning) {
+                    motorIntake.setPower(1.0);
                 }
                 break;
             case IN:
@@ -194,12 +203,12 @@ public class DeviceIntake extends Device {
                         rightActivationTime = now;
                     }
                     sideDeque.clear();
-                    DeviceDrive.consumeExtakeFreeRotate();
                 }
 
                 sequenceOverride = false;
                 dualShortSequenceTriggered = true;
                 dualShortSequenceTriggerTime = System.currentTimeMillis();
+                startAutoReloadWindow();
             } else if (!ctrl.sequenceShoot()) {
                 dualShortSequenceTriggered = false;
                 sequenceTriggered = false;
@@ -244,9 +253,15 @@ public class DeviceIntake extends Device {
                 sequenceOverride = false;
                 nextOptimizedTransfer = System.currentTimeMillis();
                 sequenceTriggered = true;
+                startAutoReloadWindow();
             } else if (!ctrl.sequenceShoot()) {
                 sequenceTriggered = false;
             }
+        }
+
+        if (ctrl.intakeUnfucker()) {
+            activateLeft();
+            activateRight();
         }
 
         boolean shouldActivateLeft = shouldActivateLeft();
@@ -256,7 +271,6 @@ public class DeviceIntake extends Device {
             leftActive = true;
             leftActivationTime = System.currentTimeMillis();
             leftTriggered = true;
-            DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateLeft) {
             leftTriggered = false;
         }
@@ -265,7 +279,6 @@ public class DeviceIntake extends Device {
             rightActive = true;
             rightActivationTime = System.currentTimeMillis();
             rightTriggered = true;
-            DeviceDrive.consumeExtakeFreeRotate();
         } else if (!shouldActivateRight) {
             rightTriggered = false;
         }
@@ -280,6 +293,8 @@ public class DeviceIntake extends Device {
             }
         }
 
+        updateAutoReload();
+
         // self-note: should deactivate come after activate? or should activate have priority?
         boolean shouldDeactivateLeft = shouldDeactivateLeft();
         boolean shouldDeactivateRight = shouldDeactivateRight();
@@ -287,21 +302,21 @@ public class DeviceIntake extends Device {
         if (shouldDeactivateLeft) leftActive = false;
         if (shouldDeactivateRight) rightActive = false;
 
-        if (leftActive) {
+        if (leftActive || ctrl.intakeUnfucker()) {
             servoLeft.setPosition(Configuration.INTAKE_LEFT_ACTIVATION);
             DeviceExtake.unready();
         } else {
             servoLeft.setPosition(leftArtifact == Artifact.NONE ? Configuration.INTAKE_LEFT_DEACTIVATION : Configuration.INTAKE_LEFT_HOLD);
         }
 
-        if (rightActive) {
+        if (rightActive || ctrl.intakeUnfucker()) {
             servoRight.setPosition(Configuration.INTAKE_RIGHT_ACTIVATION);
             DeviceExtake.unready();
         } else {
             servoRight.setPosition(rightArtifact == Artifact.NONE ? Configuration.INTAKE_RIGHT_DEACTIVATION : Configuration.INTAKE_RIGHT_HOLD);
         }
 
-        statusTelem = (leftActive || rightActive) ? 670 : 0; // HEHEHEHA
+        statusTelem = (leftActive || rightActive) ? 1500 : 0; // HEHEHEHA
 
         // Update targetSide prediction
         predictTargetSide();
@@ -503,6 +518,48 @@ public class DeviceIntake extends Device {
                 Thread.currentThread().interrupt();
             }
             colorSensorThread = null;
+        }
+    }
+
+    private void startAutoReloadWindow() {
+        autoReloadWindowActive = true;
+        autoReloadWindowStartTime = System.currentTimeMillis();
+        autoReloadEmptyStartTime = 0;
+        autoReloadIntakeRunning = false;
+    }
+
+    private void updateAutoReload() {
+        if (!autoReloadWindowActive) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - autoReloadWindowStartTime >= AUTO_RELOAD_WINDOW_MS) {
+            autoReloadWindowActive = false;
+            autoReloadWindowStartTime = 0;
+            autoReloadEmptyStartTime = 0;
+            autoReloadIntakeRunning = false;
+            return;
+        }
+
+        if (autoReloadIntakeRunning) {
+            return;
+        }
+
+        if (!isEmpty()) {
+            autoReloadEmptyStartTime = 0;
+            return;
+        }
+
+        if (autoReloadEmptyStartTime == 0) {
+            autoReloadEmptyStartTime = now;
+            return;
+        }
+
+        if (now - autoReloadEmptyStartTime >= AUTO_RELOAD_EMPTY_CONFIRM_MS
+                && intakeState == IntakeState.IDLE
+                && !nudging) {
+            autoReloadIntakeRunning = true;
         }
     }
 
