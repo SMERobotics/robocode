@@ -35,9 +35,6 @@ android {
     namespace = 'com.n0tasha4k.ftc.twentyfive'
 
     packagingOptions {
-        jniLibs {
-            pickFirsts += ['**/*.so']
-        }
         jniLibs.useLegacyPackaging true
     }
 }
