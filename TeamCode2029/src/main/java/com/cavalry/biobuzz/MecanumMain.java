@@ -6,8 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 @Config
-@TeleOp(name = "Mecanum Test 9/22")
-public class MecanumTest extends LinearOpMode {
+@TeleOp(name = "BioBuzz TeleOp")
+public class MecanumMain extends LinearOpMode {
 
     @Override
     public void runOpMode() {
