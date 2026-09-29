@@ -7,7 +7,7 @@ This repo contains the code used by Shawnee Mission East Robotics for the FTC BI
 - [20181 (SME Lancers)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2028/src/main/java/org/technodot/ftc)
   - @TechDudie (TechnoDot)
 - [26855 (SME Cavalry)](https://github.com/SMERobotics/robocode/tree/master/TeamCode2029/src/main/java/com/n0tasha4k/ftc)
-  - @n0tasha4k-glitch (???)
+  - @n0tasha4k-glitch (shark)
 - 21692 (SME Knights)
   - todo: TBD
 - ????? (SME ????????)
