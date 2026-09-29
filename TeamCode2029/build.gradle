@@ -32,7 +32,7 @@ apply plugin: 'org.team11260.fast-load-plugin'
 
 
 android {
-    namespace = 'com.n0tasha4k.ftc.twentyfive'
+    namespace = 'com.shark.ftc.twentysix'
 
     // Connect this module's Android build to its C++ library.
     externalNativeBuild {

@@ -1,4 +1,4 @@
-package com.cavalry.biobuzz;
+package com.shark.ftc.twentysix;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
