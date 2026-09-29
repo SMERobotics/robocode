@@ -4,7 +4,7 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 import org.technodot.ftc.twentyfivebeta.Configuration;
 import org.technodot.ftc.twentyfivebeta.common.Alliance;
 import org.technodot.ftc.twentyfivebeta.common.Vector2D;
@@ -86,7 +86,7 @@ public class ShotSolver {
                  ^-YOU  (0, 0) YOU-^
      */
 
-    public static Vector2D getCameraPos(AprilTagDetection tag, Alliance alliance) {
+    public static Vector2D getCameraPos(AprilTagSingleDetection tag, Alliance alliance) {
         boolean idleNow = isExtakeIdleSafe();
         long nowNs = System.nanoTime();
 
@@ -161,7 +161,7 @@ public class ShotSolver {
         }
     }
 
-    public static Vector2D getTagPos(AprilTagDetection tag, Alliance alliance) {
+    public static Vector2D getTagPos(AprilTagSingleDetection tag, Alliance alliance) {
         if (isInvalidDetection(tag) || alliance == null) return null;
         if (tag.id != 20 && tag.id != 24) return null;
 
@@ -171,7 +171,7 @@ public class ShotSolver {
         );
     }
 
-    public static Vector2D getGoalPos(AprilTagDetection tag, Alliance alliance) {
+    public static Vector2D getGoalPos(AprilTagSingleDetection tag, Alliance alliance) {
         if (isInvalidDetection(tag) || alliance == null) return null;
         if (tag.id != 20 && tag.id != 24) return null;
 
@@ -181,7 +181,7 @@ public class ShotSolver {
         );
     }
 
-    public static double getGoalDistance(AprilTagDetection tag, Alliance alliance) {
+    public static double getGoalDistance(AprilTagSingleDetection tag, Alliance alliance) {
         Vector2D goalPos = getGoalPos(tag, alliance);
         Vector2D robotPos = getCameraPos(tag, alliance);
         if (goalPos == null || robotPos == null) return Double.NaN;
@@ -191,7 +191,7 @@ public class ShotSolver {
         return Math.hypot(dx, dy);
     }
 
-    public static double getGoalYawError(AprilTagDetection tag, Alliance alliance) {
+    public static double getGoalYawError(AprilTagSingleDetection tag, Alliance alliance) {
         if (isInvalidDetection(tag) || alliance == null) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
         if (DevicePinpoint.pinpoint == null) return filteredYawErrorDeg != null ? filteredYawErrorDeg : Double.NaN;
 
@@ -339,7 +339,7 @@ public class ShotSolver {
 //        return filterBearingHeading(-normalizeDegrees(errorDeg), alliance, tag.id);
     }
 
-    public static double calculateBearing(AprilTagDetection tag, Alliance alliance) {
+    public static double calculateBearing(AprilTagSingleDetection tag, Alliance alliance) {
         if (isInvalidDetection(tag) || alliance == null) return Double.NaN;
 
         Vector2D tagPos = getTagPos(tag, alliance);
@@ -447,7 +447,7 @@ public class ShotSolver {
         bearingFilterTagId = -1;
     }
 
-    private static boolean isInvalidDetection(AprilTagDetection tag) {
+    private static boolean isInvalidDetection(AprilTagSingleDetection tag) {
         return tag == null || tag.ftcPose == null;
     }
 
@@ -483,7 +483,7 @@ public class ShotSolver {
                 0, 1500);
     }
 
-    private static Vector2D calculateAbsolutePosition(AprilTagDetection tag, Alliance alliance) {
+    private static Vector2D calculateAbsolutePosition(AprilTagSingleDetection tag, Alliance alliance) {
         if (isInvalidDetection(tag) || alliance == null) return null;
         if (tag.id != 20 && tag.id != 24) return null;
 

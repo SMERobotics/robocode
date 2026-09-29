@@ -10,6 +10,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 
 import java.util.List;
 
@@ -92,7 +93,9 @@ public class DeviceCamera extends Device {
         // BACK first (may disable itself)
         if (!backDisabled && visionPortalBack != null && aprilTagProcessorBack != null) {
             List<AprilTagDetection> backDetections = aprilTagProcessorBack.getDetections();
-            for (AprilTagDetection d : backDetections) {
+            for (AprilTagDetection detection : backDetections) {
+                if (!(detection instanceof AprilTagSingleDetection)) continue;
+                AprilTagSingleDetection d = (AprilTagSingleDetection) detection;
                 if (isObelisk(d.id)) {
                     assignObelisk(d.id);
                     disableBackCamera();
@@ -107,7 +110,9 @@ public class DeviceCamera extends Device {
         // FRONT detections
         if (aprilTagProcessor != null) {
             List<AprilTagDetection> frontDetections = aprilTagProcessor.getDetections();
-            for (AprilTagDetection d : frontDetections) {
+            for (AprilTagDetection detection : frontDetections) {
+                if (!(detection instanceof AprilTagSingleDetection)) continue;
+                AprilTagSingleDetection d = (AprilTagSingleDetection) detection;
                 if (isObelisk(d.id)) {
                     assignObelisk(d.id); // FRONT never disables itself
                 } else if (returnTeamTag && isTeamTag(d.id) && d.id == teamID && teamTagDetection == null) {

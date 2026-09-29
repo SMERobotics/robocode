@@ -9,6 +9,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,10 +87,12 @@ public class MayTagDetector {
     @SuppressLint("DefaultLocale")
     public double[][] detectAprilTag() {
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        List<AprilTagDetection> validDetections = new ArrayList<AprilTagDetection>();
+        List<AprilTagSingleDetection> validDetections = new ArrayList<AprilTagSingleDetection>();
         telemetry.addData("# AprilTags Detected", currentDetections.size());
 
-        for (AprilTagDetection detection : currentDetections) {
+        for (AprilTagDetection rawDetection : currentDetections) {
+            if (!(rawDetection instanceof AprilTagSingleDetection)) continue;
+            AprilTagSingleDetection detection = (AprilTagSingleDetection) rawDetection;
             if (detection.metadata != null) {
                 telemetry.addLine(String.format("ID %d %s RYB %6.1f %6.1f %6.1f", detection.id, detection.metadata.name, detection.ftcPose.range, detection.ftcPose.yaw, detection.ftcPose.bearing));
                 validDetections.add(detection);
@@ -98,7 +101,7 @@ public class MayTagDetector {
 
         double[][] tagDataArray = new double[validDetections.size()][4];
         for (int i = 0; i < validDetections.size(); i++) {
-            AprilTagDetection detection = validDetections.get(i);
+            AprilTagSingleDetection detection = validDetections.get(i);
             tagDataArray[i] = new double[]{detection.id, detection.ftcPose.range, detection.ftcPose.yaw, detection.ftcPose.bearing};
         }
         return tagDataArray;

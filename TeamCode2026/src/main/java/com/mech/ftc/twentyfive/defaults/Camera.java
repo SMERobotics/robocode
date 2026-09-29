@@ -6,6 +6,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -40,7 +41,9 @@ public class Camera {
     }
     public int TagID() {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
-        for (AprilTagDetection tagDetected : detections) {
+        for (AprilTagDetection detection : detections) {
+            if (!(detection instanceof AprilTagSingleDetection)) continue;
+            AprilTagSingleDetection tagDetected = (AprilTagSingleDetection) detection;
             switch (tagDetected.id) {
                 case 20:
                     aprilTagIdCode = 20;
@@ -67,7 +70,9 @@ public class Camera {
     public double getTagDistance() {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
         double tagDistance = 0;
-        for (AprilTagDetection tagDetected : detections) {
+        for (AprilTagDetection detection : detections) {
+            if (!(detection instanceof AprilTagSingleDetection)) continue;
+            AprilTagSingleDetection tagDetected = (AprilTagSingleDetection) detection;
             if (tagDetected.metadata == null) {
                 return 0;
             }
@@ -78,7 +83,9 @@ public class Camera {
     public double getTagBearing() {
         List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
         double bearing = 0;
-        for (AprilTagDetection tagDetected : detections) {
+        for (AprilTagDetection detection : detections) {
+            if (!(detection instanceof AprilTagSingleDetection)) continue;
+            AprilTagSingleDetection tagDetected = (AprilTagSingleDetection) detection;
             if (tagDetected.metadata == null) {
                 return 0;
             }
