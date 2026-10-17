@@ -1,5 +1,6 @@
 package org.technodot.ftc.twentysixseven;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -7,6 +8,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import org.technodot.ftc.twentyfivebeta.Configuration;
 
+@Disabled
 @TeleOp(name="BaboOS", group="TechnoCode")
 public class BaboOS extends OpMode {
 
