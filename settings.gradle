@@ -1,17 +1,3 @@
-pluginManagement {
-    repositories {
-        mavenLocal {
-            content {
-                includeGroup 'org.technodot.ftclightning'
-                includeGroup 'org.technodot.ftclightning.component'
-            }
-        }
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
 include ':FtcRobotController'
 include ':TeamCode'
 include ':TeamCode2026'
