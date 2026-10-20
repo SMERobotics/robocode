@@ -1,0 +1,119 @@
+import com.android.build.api.instrumentation.AsmClassVisitorFactory
+import com.android.build.api.instrumentation.ClassContext
+import com.android.build.api.instrumentation.ClassData
+import com.android.build.api.instrumentation.InstrumentationParameters
+import com.android.build.api.instrumentation.InstrumentationScope
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+
+buildscript {
+    dependencies {
+        // Applied scripts have their own classpath; reuse the FTC project's AGP.
+        classpath files(rootProject.buildscript.configurations.classpath)
+    }
+}
+
+// Sloth 0.3.2 hardcodes its team package in two places. Both must change:
+// SinisterImpl selects reloadable classes; RootClassLoader keeps the installed
+// APK from taking precedence over those classes in an uploaded dex.
+// Instrument only this application's copy of Sloth, leaving other modules and
+// the downloaded dependency untouched. Apply this before Sloth's first boot.
+abstract class TeamCodeSlothVisitorFactory implements AsmClassVisitorFactory<InstrumentationParameters.None> {
+    @Override
+    boolean isInstrumentable(ClassData classData) {
+        return classData.className in [
+            'dev.frozenmilk.sinister.SinisterImpl',
+            'dev.frozenmilk.sinister.loaders.RootClassLoader',
+            'dev.frozenmilk.sinister.OnBotJavaLoader' // delete after upstream gets patched (https://github.com/Dairy-Foundation/Sloth/pull/13)
+        ]
+    }
+
+    @Override
+    ClassVisitor createClassVisitor(ClassContext classContext, ClassVisitor nextClassVisitor) {
+        // delete after upstream gets patched (https://github.com/Dairy-Foundation/Sloth/pull/13)
+        if (classContext.currentClassData.className == 'dev.frozenmilk.sinister.OnBotJavaLoader') {
+            return new SlothOnBotJavaNamesVisitor(instrumentationContext.apiVersion.get(), nextClassVisitor)
+        }
+        return new TeamCodeSlothClassVisitor(instrumentationContext.apiVersion.get(), nextClassVisitor)
+    }
+}
+
+class TeamCodeSlothClassVisitor extends ClassVisitor {
+    private int replacements = 0
+
+    TeamCodeSlothClassVisitor(int api, ClassVisitor next) {
+        super(api, next)
+    }
+
+    @Override
+    MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        MethodVisitor next = super.visitMethod(access, name, descriptor, signature, exceptions)
+        return new MethodVisitor(api, next) {
+            @Override
+            void visitLdcInsn(Object value) {
+                if (value == 'org.firstinspires.ftc.teamcode') {
+                    replacements++
+                    super.visitLdcInsn('org.technodot.ftc.twentysix')
+                } else {
+                    super.visitLdcInsn(value)
+                }
+            }
+        }
+    }
+
+    @Override
+    void visitEnd() {
+        if (replacements != 1) {
+            throw new IllegalStateException(
+                "Expected one Sloth 0.3.2 package filter, found ${replacements}; review the package adapter before upgrading Sloth."
+            )
+        }
+        super.visitEnd()
+    }
+}
+
+// delete after upstream gets patched (https://github.com/Dairy-Foundation/Sloth/pull/13)
+// Existing OnBotJava programs expose a Sloth 0.3.2 bug: stripping ".class"
+// from a ZIP entry leaves slashes, but Class.forName requires dotted names.
+// Normalize that one conversion so installation preserves the hub's programs.
+class SlothOnBotJavaNamesVisitor extends ClassVisitor {
+    private int replacements = 0
+
+    SlothOnBotJavaNamesVisitor(int api, ClassVisitor next) {
+        super(api, next)
+    }
+
+    @Override
+    MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        MethodVisitor next = super.visitMethod(access, name, descriptor, signature, exceptions)
+        return new MethodVisitor(api, next) {
+            @Override
+            void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor, boolean isInterface) {
+                super.visitMethodInsn(opcode, owner, methodName, methodDescriptor, isInterface)
+                if (opcode == Opcodes.INVOKEVIRTUAL && owner == 'java/lang/String' &&
+                    methodName == 'substring' && methodDescriptor == '(II)Ljava/lang/String;') {
+                    replacements++
+                    super.visitIntInsn(Opcodes.BIPUSH, 47) // '/'
+                    super.visitIntInsn(Opcodes.BIPUSH, 46) // '.'
+                    super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, 'java/lang/String', 'replace',
+                        '(CC)Ljava/lang/String;', false)
+                }
+            }
+        }
+    }
+
+    @Override
+    void visitEnd() {
+        if (replacements != 1) {
+            throw new IllegalStateException(
+                "Expected one Sloth 0.3.2 OnBotJava class-name conversion, found ${replacements}; review the adapter before upgrading Sloth."
+            )
+        }
+        super.visitEnd()
+    }
+}
+
+androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+    variant.instrumentation.transformClassesWith(TeamCodeSlothVisitorFactory, InstrumentationScope.ALL) {}
+}

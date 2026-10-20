@@ -11,13 +11,35 @@
 
 // Custom definitions may go here
 
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+        maven {
+            url = providers.gradleProperty('dairyMavenUrl').getOrElse('https://repo.dairy.foundation/releases')
+            allowInsecureProtocol = url.host in ['127.0.0.1', 'localhost']
+        }
+    }
+    dependencies {
+        classpath('dev.frozenmilk:Load:0.3.2') {
+            // Use the Android plugin selected by the root project.
+            exclude group: 'com.android.tools.build', module: 'gradle'
+        }
+    }
+}
+
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
-apply plugin: 'org.team11260.fast-load-plugin'
+apply plugin: 'dev.frozenmilk.sinister.sloth.load'
+apply from: 'sloth.gradle'
+
+load {
+    autoconnect = dev.frozenmilk.sinister.sloth.AutoConnect.valueOf('NEVER')
+}
 
 android {
-    namespace = 'org.technodot.ftc.twentyfiveoff'
+    namespace = 'org.technodot.ftc.twentysix'
 
     compileSdk 36
     defaultConfig {
@@ -29,43 +51,47 @@ android {
     }
 }
 
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url = 'https://www.matthewo.tech/maven/'
-        }
-    }
-
-    dependencies {
-        classpath 'org.team11260:fast-load-plugin:0.1.4-beta1'
-    }
-}
-
 repositories {
 //    mavenLocal()
     maven {
         url = 'https://maven.brott.dev/'
     }
-    maven {
-        url = 'https://www.matthewo.tech/maven/'
-    }
-    maven {
-        url = "https://mymaven.bylazar.com/releases"
+    // Resolve Sloth and its forks directly from their publisher.
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = providers.gradleProperty('dairyMavenUrl').getOrElse('https://repo.dairy.foundation/releases')
+                // Permit a local relay without allowing unencrypted remote mirrors.
+                allowInsecureProtocol = url.host in ['127.0.0.1', 'localhost']
+            }
+        }
+        filter {
+            includeGroupAndSubgroups 'dev.frozenmilk'
+            includeGroup 'com.acmerobotics.slothboard'
+            includeGroup 'com.bylazar.sloth'
+        }
     }
     mavenCentral()
 }
 
+// These libraries retain their Java packages in the Sloth-compatible forks.
+// Exclude their originals even when another dependency brings them in.
+configurations.configureEach {
+    exclude group: 'com.acmerobotics.dashboard'
+    exclude group: 'com.bylazar'
+}
 
 dependencies {
     implementation project(':FtcRobotController')
 
-    implementation "com.acmerobotics.dashboard:dashboard:0.5.0"
-    implementation "com.bylazar:fullpanels:1.0.12"
+    implementation 'com.acmerobotics.slothboard:dashboard:0.3.2+0.6.0'
+    implementation('com.bylazar.sloth:fullpanels:0.3.2+1.0.13') {
+        // Dashboard already serves these ports; a second proxy crashes Panels.
+        exclude group: 'com.bylazar.sloth', module: 'limelightproxy'
+    }
 
     implementation 'com.pedropathing:ftc:2.0.5'
     implementation 'com.pedropathing:telemetry:1.0.0'
 
-//    implementation 'org.technodot:fast-load:0.1.5'
-    implementation 'org.team11260:fast-load:0.1.4-beta1'
+    implementation 'dev.frozenmilk.sinister:Sloth:0.3.2'
 }
