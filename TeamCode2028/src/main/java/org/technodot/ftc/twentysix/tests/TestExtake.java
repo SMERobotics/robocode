@@ -11,9 +11,9 @@ public class TestExtake extends OpMode {
     public DcMotorEx motorExtake;
     public Servo servoExtake;
 
-    public static final double SERVO_NECTAR_POS_A = 0.25;
-    public static final double SERVO_POLLEN_POS_A = 0.54;
-    public static final double SERVO_NECTAR_POS_B = 0.83;
+    public static final double SERVO_NECTAR_POS_A = 0.37;
+    public static final double SERVO_POLLEN_POS_A = 0.67;
+    public static final double SERVO_NECTAR_POS_B = 0.97;
 
 
     @Override
@@ -44,7 +44,16 @@ public class TestExtake extends OpMode {
 
     @Override
     public void loop() {
-        motorExtake.setPower(gamepad1.right_bumper ? 1.0 : gamepad1.right_trigger);
+        if (gamepad1.right_bumper) {
+            motorExtake.setPower(1.0);
+        } else if (gamepad1.right_trigger > 0.0) {
+            motorExtake.setPower(gamepad1.right_trigger);
+        } else {
+            double motorAdjustment = (gamepad1.dpad_up ? 0.001 : 0.0)
+                    - (gamepad1.dpad_down ? 0.001 : 0.0);
+            motorExtake.setPower(Math.max(-1.0, Math.min(1.0,
+                    motorExtake.getPower() + motorAdjustment)));
+        }
 
         if (gamepad1.a) {
             servoExtake.setPosition(SERVO_POLLEN_POS_A);
