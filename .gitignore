@@ -42,6 +42,7 @@ captures/
 # IntelliJ
 *.iml
 .idea/
+!.idea/fileTemplates/OpMode.java
 
 # For Mac users
 .DS_Store
