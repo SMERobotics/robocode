@@ -33,7 +33,7 @@ public class BaboOS extends OpMode {
         motorFrontLeft.setDirection(DcMotorEx.Direction.FORWARD);
         motorFrontRight.setDirection(DcMotorEx.Direction.FORWARD);
         motorBackLeft.setDirection(DcMotorEx.Direction.FORWARD);
-        motorBackRight.setDirection(DcMotorEx.Direction.FORWARD);
+        motorBackRight.setDirection(DcMotorEx.Direction.REVERSE);
 
         motorFrontLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         motorFrontRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -43,7 +43,7 @@ public class BaboOS extends OpMode {
         motorIntakeLeft = hardwareMap.get(DcMotorEx.class, "motorIntakeLeft");
         motorIntakeRight = hardwareMap.get(DcMotorEx.class, "motorIntakeRight");
         motorIntakeLeft.setDirection(DcMotorEx.Direction.FORWARD);
-        motorIntakeRight.setDirection(DcMotorEx.Direction.FORWARD);
+        motorIntakeRight.setDirection(DcMotorEx.Direction.REVERSE);
         motorIntakeLeft.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         motorIntakeRight.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
