@@ -5,16 +5,13 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.technodot.ftc.twentysix.robocore.DeviceExtake;
+
 @TeleOp(name="TestExtake", group="TechnoCode")
 public class TestExtake extends OpMode {
 
     public DcMotorEx motorExtake;
     public Servo servoExtake;
-
-    public static final double SERVO_NECTAR_POS_A = 0.37;
-    public static final double SERVO_POLLEN_POS_A = 0.67;
-    public static final double SERVO_NECTAR_POS_B = 0.97;
-
 
     @Override
     public void init() {
@@ -36,7 +33,7 @@ public class TestExtake extends OpMode {
         motorExtake.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         motorExtake.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
-        servoExtake.setPosition(nearestNectarPosition(servoExtake.getPosition()));
+        servoExtake.setPosition(DeviceExtake.SERVO_NECTAR_POS);
 
         telemetry.addData("status", "starting");
         telemetry.update();
@@ -56,14 +53,9 @@ public class TestExtake extends OpMode {
         }
 
         if (gamepad1.a) {
-            servoExtake.setPosition(SERVO_POLLEN_POS_A);
+            servoExtake.setPosition(DeviceExtake.SERVO_POLLEN_POS);
         } else if (gamepad1.b) {
-            servoExtake.setPosition(nearestNectarPosition(servoExtake.getPosition()));
-        } else {
-            double servoAdjustment = (gamepad1.dpad_right ? 0.001 : 0.0)
-                    - (gamepad1.dpad_left ? 0.001 : 0.0);
-            servoExtake.setPosition(Math.max(0.0, Math.min(1.0,
-                    servoExtake.getPosition() + servoAdjustment)));
+            servoExtake.setPosition(DeviceExtake.SERVO_NECTAR_POS);
         }
 
         telemetry.addData("servo_pos", servoExtake.getPosition());
@@ -73,12 +65,6 @@ public class TestExtake extends OpMode {
 
         telemetry.addData("status", "running");
         telemetry.update();
-    }
-
-    private double nearestNectarPosition(double position) {
-        return Math.abs(position - SERVO_NECTAR_POS_A)
-                <= Math.abs(position - SERVO_NECTAR_POS_B)
-                ? SERVO_NECTAR_POS_A : SERVO_NECTAR_POS_B;
     }
 
     @Override

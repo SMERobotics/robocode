@@ -5,12 +5,10 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.technodot.ftc.twentysix.robocore.DeviceExtake;
+
 @TeleOp(name="TestRobot", group="TechnoCode")
 public class TestRobot extends OpMode {
-
-    public static final double SERVO_NECTAR_POS_A = 0.37;
-    public static final double SERVO_POLLEN_POS = 0.67;
-    public static final double SERVO_NECTAR_POS_B = 0.97;
 
     public DcMotorEx motorExtake;
     public DcMotorEx motorTurret;
@@ -54,14 +52,9 @@ public class TestRobot extends OpMode {
         motorExtake.setPower(gamepad1.right_bumper ? 1.0 : gamepad1.right_trigger);
 
         if (gamepad1.a) {
-            servoExtake.setPosition(SERVO_POLLEN_POS);
+            servoExtake.setPosition(DeviceExtake.SERVO_POLLEN_POS);
         } else if (gamepad1.b) {
-            servoExtake.setPosition(nearestNectarPosition(servoExtake.getPosition()));
-        } else {
-            double servoAdjustment = (gamepad1.dpad_right ? 0.001 : 0.0)
-                - (gamepad1.dpad_left ? 0.001 : 0.0);
-            servoExtake.setPosition(Math.max(0.0, Math.min(1.0,
-                servoExtake.getPosition() + servoAdjustment)));
+            servoExtake.setPosition(DeviceExtake.SERVO_NECTAR_POS);
         }
 
         double turretVelocity = (gamepad1.dpad_up ? 0.1 : 0.0) + (gamepad1.dpad_down ? -0.1 : 0.0);
@@ -79,12 +72,6 @@ public class TestRobot extends OpMode {
 
         telemetry.addData("status", "running");
         telemetry.update();
-    }
-
-    private double nearestNectarPosition(double position) {
-        return Math.abs(position - SERVO_NECTAR_POS_A)
-            <= Math.abs(position - SERVO_NECTAR_POS_B)
-            ? SERVO_NECTAR_POS_A : SERVO_NECTAR_POS_B;
     }
 
     @Override
