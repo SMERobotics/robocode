@@ -2,14 +2,15 @@ package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
-import com.pedropathing.control.FilteredPIDFCoefficients;
-import com.pedropathing.control.PIDFCoefficients;
-import com.pedropathing.follower.FollowerConstants;
-import com.pedropathing.ftc.drivetrains.Mecanum;
-import com.pedropathing.ftc.drivetrains.MecanumConstants;
-import com.pedropathing.ftc.localization.constants.PinpointConstants;
-import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
-import com.pedropathing.paths.PathConstraints;
+import com.pedropathing.algorithm.Foresight;
+import com.pedropathing.algorithm.ForesightConfig;
+import com.pedropathing.controllers.Controller;
+import com.pedropathing.math.Matrix;
+import com.pedropathing.math.Vector2D;
+import com.pedropathing.revhub.drivetrains.Mecanum;
+import com.pedropathing.revhub.drivetrains.MecanumConfig;
+import com.pedropathing.revhub.localizers.PinpointConfig;
+import com.pedropathing.revhub.localizers.PinpointLocalizer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -202,54 +203,72 @@ public class Configuration {
     public static volatile double LOCALIZER_LENGTH_BACK_OFFSET = 5.54;
     public static volatile double LOCALIZER_WIDTH_RIGHT_OFFSET = ROBOT_WIDTH / 2;
 
-    public static volatile PinpointConstants ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS = new PinpointConstants()
-            .forwardPodY(PINPOINT_OFFSET_FORWARD_Y)
-            .strafePodX(PINPOINT_OFFSET_STRAFE_X)
-            .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("pinpoint")
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD) // LEO YOU MF IM GONNA UNALIVE YOU
-            .forwardEncoderDirection(PINPOINT_DIRECTION_FORWARD)
-            .strafeEncoderDirection(PINPOINT_DIRECTION_STRAFE);
+    public static final PinpointConfig ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS = new PinpointConfig(c -> {
+        c.name.set("pinpoint");
+        c.xPodOffset.set(PINPOINT_OFFSET_FORWARD_Y);
+        c.yPodOffset.set(PINPOINT_OFFSET_STRAFE_X);
+        c.offsetUnits.set(DistanceUnit.INCH);
+        c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD);
+        c.xPodDirection.set(PINPOINT_DIRECTION_FORWARD);
+        c.yPodDirection.set(PINPOINT_DIRECTION_STRAFE);
+        c.resetMode.set(PinpointLocalizer.ResetMode.RESET_AND_RECALIBRATE_IMU);
+    });
 
-    public static volatile MecanumConstants ODOMETRY_DRIVE_MECANUM_CONSTANTS = new MecanumConstants()
-            .maxPower(1)
-            .leftFrontMotorName("motorFrontLeft")
-            .rightFrontMotorName("motorFrontRight")
-            .leftRearMotorName("motorBackLeft")
-            .rightRearMotorName("motorBackRight")
-            .leftFrontMotorDirection(DcMotorEx.Direction.FORWARD)
-            .rightFrontMotorDirection(DcMotorEx.Direction.FORWARD)
-            .leftRearMotorDirection(DcMotorEx.Direction.REVERSE)
-            .rightRearMotorDirection(DcMotorEx.Direction.FORWARD)
-            .xVelocity(72.367958) // measured 2/6/2026
-            .yVelocity(55.709416); // measured 2/6/2026
+    public static final MecanumConfig ODOMETRY_DRIVE_MECANUM_CONSTANTS = new MecanumConfig(c -> {
+        c.frontLeftName.set("motorFrontLeft");
+        c.frontRightName.set("motorFrontRight");
+        c.backLeftName.set("motorBackLeft");
+        c.backRightName.set("motorBackRight");
+        c.frontLeftDirection.set(DcMotorEx.Direction.FORWARD);
+        c.frontRightDirection.set(DcMotorEx.Direction.FORWARD);
+        c.backLeftDirection.set(DcMotorEx.Direction.REVERSE);
+        c.backRightDirection.set(DcMotorEx.Direction.FORWARD);
+    });
 
-    public static volatile FollowerConstants ODOMETRY_FOLLOWER_CONSTANTS = new FollowerConstants()
-            .mass(14.606) // TODO: NOT MEASURED, ONLY GUESSTIMATED
-            .forwardZeroPowerAcceleration(-55.351116) // measured 2/6/2026
-            .lateralZeroPowerAcceleration(-80.316819) // measured 2/6/2026
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.067, 0, 0.01, 0.03)) // calibrated 2/6/2026
-            .headingPIDFCoefficients(new PIDFCoefficients(1, 0, 0.067, 0.04)) // calibrated 2/6/2026
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.008, 0, 0.0005, 0.6, 0.025)) // calibrated 2/6/2026
-            .centripetalScaling(0.000175); // calibrated 2/6/2026
+    // Live feedback/feedforward tuning through Dashboard and Panels.
+    public static volatile double ODOMETRY_HEADING_P = 1;
+    public static volatile double ODOMETRY_HEADING_D = 0.067;
+    public static volatile double ODOMETRY_HEADING_STATIC_FF = 0.04;
+    public static volatile double ODOMETRY_TRANSLATIONAL_P = 0.067;
+    public static volatile double ODOMETRY_TRANSLATIONAL_D = 0.01;
+    public static volatile double ODOMETRY_TRANSLATIONAL_STATIC_FF = 0.03;
+    public static volatile double ODOMETRY_BRAKE_VELOCITY_FF = 1 / 72.367958;
+    public static volatile double ODOMETRY_COAST_VELOCITY_FF = 1 / 72.367958;
 
-    public static volatile PathConstraints ODOMETRY_PATH_CONSTANTS = new PathConstraints(0.99, 100, 1, 1);
+    // Pedro 3 uses Foresight instead of the Pedro 2 mass/centripetal/drive PID model.
+    // These controller gains are starting values; validate Foresight on the robot.
+    public static ForesightConfig createFollowerConfig() {
+        return new ForesightConfig(c -> {
+            c.maxAchievableForwardVelocity.set(72.367958);
+            c.maxAchievableStrafeVelocity.set(55.709416);
+            c.naturalForwardDeceleration.set(55.351116);
+            c.naturalStrafeDeceleration.set(80.316819);
+            c.headingFeedback.set(Controller.proportional(() -> ODOMETRY_HEADING_P)
+                    .plus(Controller.derivative(() -> ODOMETRY_HEADING_D)));
+            c.headingStaticFF.set(Controller.staticFeedforward(() -> ODOMETRY_HEADING_STATIC_FF));
+            c.forwardTranslational.set(Controller.proportional(() -> ODOMETRY_TRANSLATIONAL_P)
+                    .plus(Controller.derivative(() -> ODOMETRY_TRANSLATIONAL_D))
+                    .plus(Controller.staticFeedforward(() -> ODOMETRY_TRANSLATIONAL_STATIC_FF)));
+            c.strafeTranslational.set(Controller.proportional(() -> ODOMETRY_TRANSLATIONAL_P)
+                    .plus(Controller.derivative(() -> ODOMETRY_TRANSLATIONAL_D))
+                    .plus(Controller.staticFeedforward(() -> ODOMETRY_TRANSLATIONAL_STATIC_FF)));
+            // Foresight brake/coast controllers receive target speed, not the old drive PID error.
+            c.brake.set(Controller.proportionalFeedforward(() -> ODOMETRY_BRAKE_VELOCITY_FF));
+            c.coast.set(Controller.proportionalFeedforward(() -> ODOMETRY_COAST_VELOCITY_FF));
+            // Constant-deceleration estimate: stopping distance = v^2 / (2a).
+            // Replace with measured Foresight brake model coefficients after tuning.
+            c.linearBrakeCoefficients.set(Matrix.zero(2));
+            c.quadraticBrakeCoefficients.set(Matrix.diag(1 / (2 * 55.351116), 1 / (2 * 80.316819)));
+            c.headingBrakeCoefficients.set(Vector2D.zero());
+            c.parametricTConstraint.set(0.01);
+            c.timeoutConstraint.set(100.0);
+        });
+    }
 
     public static org.technodot.ftc.twentyfivebeta.pedro.Follower createFollower(HardwareMap hardwareMap) {
-//        return new FollowerBuilder(ODOMETRY_FOLLOWER_CONSTANTS, hardwareMap)
-//                .pinpointLocalizer(ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS)
-//                .mecanumDrivetrain(ODOMETRY_DRIVE_MECANUM_CONSTANTS)
-//                .pathConstraints(ODOMETRY_PATH_CONSTANTS)
-//                .build();
-
-        PathConstraints.setDefaultConstraints(ODOMETRY_PATH_CONSTANTS);
-
-        // NOTICE: we return our better extended follower!
         return new org.technodot.ftc.twentyfivebeta.pedro.Follower(
-                ODOMETRY_FOLLOWER_CONSTANTS,
                 new PinpointLocalizer(hardwareMap, ODOMETRY_LOCALIZER_PINPOINT_CONSTANTS),
                 new Mecanum(hardwareMap, ODOMETRY_DRIVE_MECANUM_CONSTANTS),
-                ODOMETRY_PATH_CONSTANTS
-        );
+                new Foresight(createFollowerConfig()));
     }
 }

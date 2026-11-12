@@ -1,11 +1,12 @@
 package org.technodot.ftc.twentyfivebeta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.curves.bezier.BezierCurve;
+import com.pedropathing.paths.curves.Line;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.interpolator.Interpolator;
+import static com.pedropathing.api.Paths.path;
+import com.pedropathing.paths.Path;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -72,25 +73,22 @@ public class BaboAuto extends OpMode {
                 Pose close_start = P(0 + (20.323), 144 - (24.236), Math.toDegrees(Math.atan(4.0 / 3.0)));
                 Pose close_shootPreload = P(48, 98);
 
-                follower.setStartingPose(close_start);
+                follower.setPose(close_start);
 
-                PathChain close_start_shootPreload = follower.pathBuilder()
-                    .addPath(
-                        new BezierLine(
+                Path close_start_shootPreload = path(
+                        new Line(
                             close_start,
                             close_shootPreload
                         )
                     )
-                    .setHeadingInterpolation(
-                        HeadingInterpolator.facingPoint(
+                    .heading(
+                        Interpolator.facingPoint(
 //                            P(14.4, 144 - 12.8)
                             P(0, 132)
                         )
-                    )
-                    .build();
+                    );
 
-                PathChain close_shootPreload_bezierSecond = follower.pathBuilder()
-                    .addPath(
+                Path close_shootPreload_bezierSecond = path(
                         new BezierCurve( // this bezier curve was designed for red goal, so it has `144 - x` on each point
 //                                P(144 - 96.000, 96.000),
 //                                P(144 - 98.602, 70.221),
@@ -131,34 +129,11 @@ public class BaboAuto extends OpMode {
                             P(144 - 132.158, 54.114)
                         )
                     )
-                    .setHeadingInterpolation(
-                        HeadingInterpolator.piecewise( // TODO: make ts interpolate the heading CORRECTLY
-//                            new HeadingInterpolator.PiecewiseNode(
-//                                0, 0.2,
-//                                HeadingInterpolator.linear(
-//                                    A(0), A(130)
-//                                )
-//                            ),
-//                            new HeadingInterpolator.PiecewiseNode(
-//                                0.2, 1,
-//                                HeadingInterpolator.tangent
-//                            )
-//                                new HeadingInterpolator.PiecewiseNode(
-//                                    0.67, 1,
-//                                    HeadingInterpolator.linear(
-//                                        Math.toRadians(310), Math.toRadians(0)
-//                                    )
-//                                )
+                    .heading(
+                        Interpolator.tangent
+                    );
 
-                                new HeadingInterpolator.PiecewiseNode(
-                                    0, 1,
-                                    HeadingInterpolator.tangent
-                                )
-                        )
-                    )
-                    .build();
-
-//                PathChain close_bezierSecond_shootPreload = follower.pathBuilder()
+//                Path close_bezierSecond_shootPreload = follower.pathBuilder()
 //                    .addPath(
 //                        new BezierCurve(
 //                            P(144 - 132.729, 40.514),
@@ -166,16 +141,10 @@ public class BaboAuto extends OpMode {
 //                            P(144 - 96.000, 98.000)
 //                        )
 //                    )
-//                    .setLinearHeadingInterpolation(Math.toRadians(-15), Math.toRadians(45))
-//                    .addParametricCallback(0.05, new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            deviceIntake.setIntakeIdle();
-//                        }
-//                    })
-//                    .build();
+//                    .linear(Math.toRadians(-15), Math.toRadians(45))
+//;
 //
-//                PathChain close_shootPreload_cycleGate = follower.pathBuilder().addPath(
+//                Path close_shootPreload_cycleGate = follower.pathBuilder().addPath(
 //                        new BezierCurve(
 //                            P(144 - 96.000, 98.000),
 //                            P(144 - 96.000, 64.000),
@@ -183,11 +152,10 @@ public class BaboAuto extends OpMode {
 ////                            P(144 - 120.496, 58.811) // DOES NOT OPEN GATE YET
 //                        )
 //
-//                    ).setLinearHeadingInterpolation(Math.toRadians(45), Math.toRadians(18))
+//                    ).linear(Math.toRadians(45), Math.toRadians(18))
 //                    .build();
 
-                PathChain close_bezierSecond_assistGate = follower.pathBuilder()
-                    .addPath(
+                Path close_bezierSecond_assistGate = path(
                         new BezierCurve(
                             P(144 - 132.158, 56.272),
                             P(144 - 122.383, 54.260),
@@ -196,45 +164,24 @@ public class BaboAuto extends OpMode {
 
                         )
                     )
-                    .setLinearHeadingInterpolation(A(72.5), A(105))
-                    .addParametricCallback(0.2, new Runnable() {
-                        @Override
-                        public void run() {
-                            deviceIntake.setIntakeIdle();
-//                            deviceExtake.setExtakeState(deviceIntake.getArtifactCount() == 2 ? DeviceExtake.ExtakeState.DUAL_SHORT : DeviceExtake.ExtakeState.DYNAMIC);
-                            deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT);
-                        }
-                    })
-                    .build();
+                    .linear(A(72.5), A(105));
 
-                PathChain close_assistGate_shootGate = follower.pathBuilder()
-                    .addPath(
+                Path close_assistGate_shootGate = path(
                         new BezierCurve(
                             P(144 - 136.158, 64.552),
                             P(144 - 99.807, 65.214),
                             P(144 - 86.000, 86.000)
                         )
                     )
-                    .setHeadingInterpolation(
-                        HeadingInterpolator.piecewise(
-                            new HeadingInterpolator.PiecewiseNode(
-                                0, 0.2,
-                                HeadingInterpolator.constant(A(105))
-                            ),
-                            new HeadingInterpolator.PiecewiseNode(
-                                0.2, 1,
-                                HeadingInterpolator.facingPoint(
-//                                    P(14.4, 144 - 12.8)
-                                    P(0, 132)
-                                )
-                            )
-                        )
-                    )
-                    .build();
+                    .heading(
+                        Interpolator.piecewise()
+                            .until(0.2, Interpolator.constant(A(105)))
+                            .until(1, Interpolator.facingPoint(P(0, 132)))
+                    );
 
                 // the servos can go fuck themselves
 
-//                PathChain close_shootGate_openGate = follower.pathBuilder()
+//                Path close_shootGate_openGate = follower.pathBuilder()
 //                    .addPath(
 //                        new BezierCurve(
 //                            P(144 - 86.000, 90.000),
@@ -242,10 +189,10 @@ public class BaboAuto extends OpMode {
 //                            P(144 - 129.496, 58.811)
 //                        )
 //                    )
-//                    .setLinearHeadingInterpolation(A(45), A(72))
+//                    .linear(A(45), A(72))
 //                    .build();
 //
-//                PathChain close_openGate_intakeGate = follower.pathBuilder()
+//                Path close_openGate_intakeGate = follower.pathBuilder()
 //                    .addPath(
 //                        new BezierCurve(
 //                            P(144 - 129.496, 58.811),
@@ -253,10 +200,10 @@ public class BaboAuto extends OpMode {
 //                            P(144 - 136.806, 56.301)
 //                        )
 //                    )
-//                    .setLinearHeadingInterpolation(A(72), A(83.3))
+//                    .linear(A(72), A(83.3))
 //                    .build();
 //
-//                PathChain close_intakeGate_shootGate = follower.pathBuilder()
+//                Path close_intakeGate_shootGate = follower.pathBuilder()
 //                    .addPath(
 //                        new BezierCurve(
 //                            P(144 - 136.806, 56.301),
@@ -264,8 +211,8 @@ public class BaboAuto extends OpMode {
 //                            P(144 - 86.000, 90.000)
 //                        )
 //                    )
-//                    .setHeadingInterpolation(
-//                        HeadingInterpolator.facingPoint(
+//                    .heading(
+//                        Interpolator.facingPoint(
 //                            P(0, 132)
 //                        )
 //                    )
@@ -277,17 +224,16 @@ public class BaboAuto extends OpMode {
 //                    })
 //                    .build();
 //
-//                PathChain close_shootGate_finishPos = follower.pathBuilder().addPath(
-//                        new BezierLine(
+//                Path close_shootGate_finishPos = follower.pathBuilder().addPath(
+//                        new Line(
 //                            P(144 - 86.000, 90.000),
 //                            P(144 - 96.000, 72.000)
 //                        )
 //                    )
-//                    .setLinearHeadingInterpolation(A(45), A(60))
+//                    .linear(A(45), A(60))
 //                    .build();
 
-                PathChain close_shootGate_bezierFirst = follower.pathBuilder()
-                    .addPath(
+                Path close_shootGate_bezierFirst = path(
                         new BezierCurve(
                             P(144 - 86.000, 90.000),
                             P(144 - 109.959, 70.828),
@@ -295,35 +241,30 @@ public class BaboAuto extends OpMode {
                             P(144 - 128.000, 88.500)
                         )
                     )
-                    .setTangentHeadingInterpolation()
-                    .build();
+                    .tangent();
 
-                PathChain close_bezierFirst_shootGate = follower.pathBuilder()
-                    .addPath(
-                        new BezierLine(
+                Path close_bezierFirst_shootGate = path(
+                        new Line(
                             P(144 - 128.000, 88.500),
                             P(144 - 96, 98.000)
                         )
                     )
-                    .setHeadingInterpolation(
-                        HeadingInterpolator.facingPoint(
+                    .heading(
+                        Interpolator.facingPoint(
                             P(0, 132)
                         )
-                    )
-                    .build();
+                    );
 
-                PathChain close_shootGate_finishPos = follower.pathBuilder()
-                    .addPath(
-                        new BezierLine(
+                Path close_shootGate_finishPos = path(
+                        new Line(
                             P(144 - 96, 98.000),
                             P(48, 72)
                         )
                     )
-                    .setLinearHeadingInterpolation(
+                    .linear(
                         A(45),
                         A(60)
-                    )
-                    .build();
+                    );
 
                 runtime.plan(
                     new ContiguousSequence(0)
@@ -348,7 +289,13 @@ public class BaboAuto extends OpMode {
                         .then((Callback) () -> deviceIntake.setIntakeIn())
                         .then(THREE, (InterruptibleCallback) () -> follower.isReady())
 
-                        .then((Callback) () -> follower.followPath(close_bezierSecond_assistGate)) // callback: set intake idle and starts extake @ t=0.2
+                        .then((Callback) () -> {
+                            follower.followPath(close_bezierSecond_assistGate);
+                            follower.onParametric(0.2, () -> {
+                                deviceIntake.setIntakeIdle();
+                                deviceExtake.setExtakeState(DeviceExtake.ExtakeState.DUAL_SHORT);
+                            });
+                        }) // callback: set intake idle and starts extake @ t=0.2
                         .then(ONE, (InterruptibleCallback) () -> follower.isReady())
                         .delay(ONE)
                         .then((Callback) () -> follower.followPath(close_assistGate_shootGate))
@@ -440,33 +387,30 @@ public class BaboAuto extends OpMode {
                 Pose far_start = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 0 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET, 0);
                 Pose far_shootPreload = P(48 + Configuration.LOCALIZER_WIDTH_LEFT_OFFSET, 6 + Configuration.LOCALIZER_LENGTH_BACK_OFFSET);
 
-                follower.setStartingPose(far_start);
+                follower.setPose(far_start);
 
-                PathChain far_start_shootPreload = follower.pathBuilder()
-                    .addPath(
-                        new BezierLine(far_start, far_shootPreload)
+                Path far_start_shootPreload = path(
+                        new Line(far_start, far_shootPreload)
                     )
-                    .setHeadingInterpolation(
-                        HeadingInterpolator.facingPoint(
+                    .heading(
+                        Interpolator.facingPoint(
                             P(0, 140)
                         )
-                    )
-                    .build();
+                    );
 
-//                PathChain far_shootPreload_finishPos = follower.pathBuilder()
+//                Path far_shootPreload_finishPos = follower.pathBuilder()
 //                    .addPath(
-//                        new BezierLine(
+//                        new Line(
 //                            far_shootPreload,
 //                            P(48, 60)
 //                        )
 //                    )
-//                    .setLinearHeadingInterpolation(
+//                    .linear(
 //                        A(20), A(90)
 //                    )
 //                    .build();
 
-                PathChain far_shootPreload_bezierThird = follower.pathBuilder()
-                    .addPath(
+                Path far_shootPreload_bezierThird = path(
                         new BezierCurve(
                             P(144 - 88.000, 15.000),
                             P(144 - 95.552, 69.614),
@@ -475,8 +419,7 @@ public class BaboAuto extends OpMode {
                             P(144 - 133.393, 33.248)
                         )
                     )
-                    .setTangentHeadingInterpolation()
-                    .build();
+                    .tangent();
 
                 runtime.plan(
                     new ContiguousSequence(0)
@@ -576,7 +519,7 @@ public class BaboAuto extends OpMode {
 //        telemetry.addData("y", DevicePinpoint.pinpoint.getPosY(DistanceUnit.INCH));
 //        telemetry.addData("h", DevicePinpoint.pinpoint.getHeading(AngleUnit.DEGREES));
 
-        telemetry.addData("p", follower.getPose());
+        telemetry.addData("p", follower.pose());
 
         if (DeviceCamera.goalTagDetection != null) telemetry.addData("tag_goal", String.format("r=%f, b=%f, e=%f, y=%f", DeviceCamera.goalTagDetection.ftcPose.range, DeviceCamera.goalTagDetection.ftcPose.bearing, DeviceCamera.goalTagDetection.ftcPose.elevation, DeviceCamera.goalTagDetection.ftcPose.yaw));
 //        telemetry.addData("field_offset", deviceCamera.getFieldOffset());
@@ -606,6 +549,7 @@ public class BaboAuto extends OpMode {
     @Override
     public void stop() {
         this.runtime.reset();
+        follower.stop();
 
         deviceCamera.stop();
         deviceExtake.stop();
@@ -614,7 +558,7 @@ public class BaboAuto extends OpMode {
         telemetry.addData("status", "stopping");
         telemetry.update();
 
-        follower.setHeading(follower.getHeading() + Math.toRadians(-90) + alliance.apply(Math.toRadians(-90)));
+        follower.setHeading(follower.pose().heading() + Math.toRadians(-90) + alliance.apply(Math.toRadians(-90)));
     }
 
     private Pose P(double x, double y, double h) {
