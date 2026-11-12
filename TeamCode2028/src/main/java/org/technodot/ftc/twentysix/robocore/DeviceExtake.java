@@ -22,7 +22,8 @@ public class DeviceExtake extends Device {
     public DcMotorEx motorTurret;
     public Servo servoExtake;
 
-    public double TURRET_HEADING = 0.0;
+    public double turretHeading = 0.0;
+    public double turretPower = 0.0;
 
     public DeviceExtake(Alliance alliance) {
         super(alliance);
@@ -45,10 +46,10 @@ public class DeviceExtake extends Device {
     @Override
     public void start() {
         int currentTicks = motorTurret.getCurrentPosition();
-        TURRET_HEADING = normalizeHeading(currentTicks * 360.0 / TURRET_REVOLUTION_TICKS);
-        motorTurret.setTargetPosition(calculateTurretTarget(TURRET_HEADING, currentTicks));
+        this.turretHeading = normalizeHeading(currentTicks * 360.0 / TURRET_REVOLUTION_TICKS);
+        motorTurret.setTargetPosition(calculateTurretTarget(turretHeading, currentTicks));
         motorTurret.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-        motorTurret.setPower(TURRET_POSITION_POWER);
+        setTurretPower(TURRET_POSITION_POWER);
     }
 
     @Override
@@ -56,13 +57,13 @@ public class DeviceExtake extends Device {
         if (gamepad.turretReset()) {
             resetTurret();
         } else {
-            if (gamepad.turretHeadingIncrease()) TURRET_HEADING++;
-            if (gamepad.turretHeadingDecrease()) TURRET_HEADING--;
-
-            TURRET_HEADING = normalizeHeading(TURRET_HEADING);
-            motorTurret.setTargetPosition(calculateTurretTarget(TURRET_HEADING, motorTurret.getCurrentPosition()));
-            motorTurret.setPower(TURRET_POSITION_POWER);
+            if (gamepad.turretHeadingIncrease()) turretHeading++;
+            if (gamepad.turretHeadingDecrease()) turretHeading--;
         }
+
+        this.turretHeading = normalizeHeading(turretHeading);
+        motorTurret.setTargetPosition(calculateTurretTarget(turretHeading, motorTurret.getCurrentPosition()));
+        setTurretPower(TURRET_POSITION_POWER);
 
         motorExtake.setPower(gamepad.extakePower());
 
@@ -75,7 +76,7 @@ public class DeviceExtake extends Device {
         telemetry.addData("turret_pos", motorTurret.getCurrentPosition());
         telemetry.addData("turret_target_pos", motorTurret.getTargetPosition());
         telemetry.addData("turret_deg", motorTurret.getCurrentPosition() * 360.0 / TURRET_REVOLUTION_TICKS);
-        telemetry.addData("turret_target_deg", TURRET_HEADING);
+        telemetry.addData("turret_target_deg", turretHeading);
     }
 
     @Override
@@ -88,21 +89,38 @@ public class DeviceExtake extends Device {
         int lowerTicks = (int) Math.ceil(TURRET_LOWER_BOUND);
         int upperTicks = (int) Math.floor(TURRET_UPPER_BOUND);
         double baseTicks = normalizeHeading(heading) / 360.0 * TURRET_REVOLUTION_TICKS;
-        double minTurn = Math.ceil((lowerTicks - baseTicks) / TURRET_REVOLUTION_TICKS);
-        double maxTurn = Math.floor((upperTicks - baseTicks) / TURRET_REVOLUTION_TICKS);
-        double nearestTurn = Math.round((currentTicks - baseTicks) / TURRET_REVOLUTION_TICKS);
-        double turn = Math.max(minTurn, Math.min(maxTurn, nearestTurn));
-        long targetTicks = Math.round(baseTicks + turn * TURRET_REVOLUTION_TICKS);
-        return (int) Math.max(lowerTicks, Math.min(upperTicks, targetTicks));
+
+        return (int) Math.max(
+            lowerTicks,
+            Math.min(
+                upperTicks,
+                Math.round( // target ticks
+                    baseTicks + Math.max( // turn
+                        Math.ceil((lowerTicks - baseTicks) / TURRET_REVOLUTION_TICKS), // minimum turn
+                        Math.min(
+                            Math.floor((upperTicks - baseTicks) / TURRET_REVOLUTION_TICKS), // maximum turn
+                            Math.round((currentTicks - baseTicks) / TURRET_REVOLUTION_TICKS) // nearest turn
+                        )
+                    ) * TURRET_REVOLUTION_TICKS
+                )
+            )
+        );
     }
 
     private void resetTurret() {
         motorTurret.setPower(0);
         motorTurret.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        TURRET_HEADING = 0;
-        motorTurret.setTargetPosition(0);
+        this.turretHeading = 0;
         motorTurret.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-        motorTurret.setPower(TURRET_POSITION_POWER);
+//        motorTurret.setTargetPosition(0);
+//        setTurretPower(TURRET_POSITION_POWER);
+    }
+
+    private void setTurretPower(double power) {
+        if (power != turretPower) {
+            motorTurret.setPower(power);
+            turretPower = power;
+        }
     }
 
     private static double normalizeHeading(double heading) {
