@@ -34,7 +34,7 @@ public class DeviceExtake extends Device {
         super.init(hardwareMap, gamepad, telemetry);
 
         motorExtake = hardwareMap.get(DcMotorEx.class, "motorExtake");
-        motorExtake.setDirection(DcMotorEx.Direction.FORWARD);
+        motorExtake.setDirection(DcMotorEx.Direction.REVERSE);
         motorExtake.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
 
         motorTurret = hardwareMap.get(DcMotorEx.class, "motorTurret");
