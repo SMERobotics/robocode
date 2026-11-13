@@ -15,24 +15,32 @@
 buildscript {
     repositories {
         mavenCentral()
+        google()
         maven {
-            url = 'https://www.matthewo.tech/maven/'
+            url = providers.gradleProperty('dairyMavenUrl').getOrElse('https://repo.dairy.foundation/releases')
+            allowInsecureProtocol = url.host in ['127.0.0.1', 'localhost']
         }
     }
     dependencies {
-        classpath 'org.team11260:fast-load-plugin:0.1.2'
-
+        classpath('dev.frozenmilk:Load:0.3.2') {
+            exclude group: 'com.android.tools.build', module: 'gradle'
+        }
     }
 }
 
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
-apply plugin: 'org.team11260.fast-load-plugin'
+apply plugin: 'dev.frozenmilk.sinister.sloth.load'
+apply from: 'sloth.gradle'
 
+load {
+    autoconnect = dev.frozenmilk.sinister.sloth.AutoConnect.valueOf('NEVER')
+}
 
 android {
     namespace = 'com.shark.ftc.twentysix'
+    compileSdk 36
 
     // Connect this module's Android build to its C++ library.
     externalNativeBuild {
@@ -49,15 +57,26 @@ android {
 
 
 repositories {
-    maven {
-        url = 'https://www.matthewo.tech/maven/'
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = providers.gradleProperty('dairyMavenUrl').getOrElse('https://repo.dairy.foundation/releases')
+                allowInsecureProtocol = url.host in ['127.0.0.1', 'localhost']
+            }
+        }
+        filter {
+            includeGroupAndSubgroups 'dev.frozenmilk'
+            includeGroup 'com.acmerobotics.slothboard'
+        }
     }
+}
+
+configurations.configureEach {
+    exclude group: 'com.acmerobotics.dashboard'
 }
 
 dependencies {
     implementation project(':FtcRobotController')
-    implementation 'com.acmerobotics.dashboard:dashboard:0.5.0'
-    implementation 'org.team11260:fast-load:0.1.4-beta1'
-
-
+    implementation 'com.acmerobotics.slothboard:dashboard:0.3.2+0.6.0'
+    implementation 'dev.frozenmilk.sinister:Sloth:0.3.2'
 }
