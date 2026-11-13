@@ -10,6 +10,9 @@ import org.technodot.ftc.twentysix.roboctrl.GamepadBindings;
 
 public class DeviceIntake extends Device {
 
+    public static final double TRANSFER_OPEN_POS = 0.04;
+    public static final double TRANSFER_CLOSED_POS = 0.18;
+
     public DcMotorEx motorIntakeLeft;
     public DcMotorEx motorIntakeRight;
     public Servo servoTransfer;
@@ -45,12 +48,14 @@ public class DeviceIntake extends Device {
         motorIntakeRight.setPower(power);
 
         if (gamepad.transferOpen()) {
-            transferPos = 0.0;
+            transferPos = TRANSFER_OPEN_POS;
         }
         if (gamepad.transferClose()) {
-            transferPos = 0.5;
+            transferPos = TRANSFER_CLOSED_POS;
         }
         servoTransfer.setPosition(transferPos);
+
+        telemetry.addData("transfer_pos", transferPos);
     }
 
     @Override

@@ -37,11 +37,11 @@ public class GamepadBindings {
     }
 
     public boolean transferOpen() {
-        return ready() && gamepad1.a;
+        return ready() && gamepad1.right_bumper;
     }
 
     public boolean transferClose() {
-        return ready() && gamepad1.b;
+        return ready() && gamepad1.left_bumper;
     }
 
     public boolean turretHeadingIncrease() {
