@@ -48,7 +48,6 @@ public class TestPinpointOffsets extends OpMode {
     private static final double MAX_POWER = 0.7;
     private static final double MAX_SECONDS = 240;
     private static final double MAX_TRAVEL_MM = 750;
-    private static final double RATE_ACCELERATION = Math.toRadians(60);
     private static final double[] SPIN_DEGREES = {30, -30, -60, 60, 45, -45};
     private static final String[] TRANSLATION_NAMES = {"Forward", "Backward", "Left", "Right"};
 
@@ -71,6 +70,7 @@ public class TestPinpointOffsets extends OpMode {
     private Future<PinpointOffsetEstimator.Result> pendingFit;
     private PinpointOffsetEstimator.Result result;
     private PinpointTranslationController translation;
+    private PinpointTurnController turnControl;
     private PinpointPositionHold positionHold;
     private State state = State.WAIT_READY;
     private String message = "Keep the robot stationary for IMU calibration";
@@ -82,7 +82,7 @@ public class TestPinpointOffsets extends OpMode {
     private double finishedTime = Double.NaN;
     private double lastTelemetry, heading, podForward, podLeft;
     private double legHeading, legStartForward, legStartLeft, legWheelTicks;
-    private double turnStart, rateCommand, rateIntegral, lastHeadingChange, stalledSince = Double.NaN;
+    private double turnStart, lastHeadingChange, stalledSince = Double.NaN;
     private int step, turnsInRun, turnId, nextTurnId;
     private int[] encoderPolarity;
     private boolean started, initialized, brakingTranslation, latestFitSucceeded;
@@ -282,7 +282,6 @@ public class TestPinpointOffsets extends OpMode {
         stateTime = now;
         lastHeadingChange = now;
         stableSince = stalledSince = Double.NaN;
-        rateCommand = rateIntegral = 0;
         if (step < 4) {
             legHeading = heading;
             legStartForward = podForward;
@@ -293,6 +292,7 @@ public class TestPinpointOffsets extends OpMode {
             message = TRANSLATION_NAMES[step] + " 200 mm";
         } else if (step < 10) {
             turnsInRun = step < 8 ? trainingTurns[step - 4] : 0;
+            turnControl = new PinpointTurnController(targetRate(), MAX_POWER);
             state = State.SPIN_RAMP;
             message = String.format(Locale.US, "%s %s at %.0f deg/s",
                     step < 8 ? "Measuring" : "Validating", targetRate() > 0 ? "CCW" : "CW", Math.abs(SPIN_DEGREES[step - 4]));
@@ -311,16 +311,17 @@ public class TestPinpointOffsets extends OpMode {
                 break;
             case SPIN_RAMP:
                 controlSpin(d);
-                if (Math.abs(current.rate - targetRate()) <= 0.15 * Math.abs(targetRate())) {
-                    if (Double.isNaN(stableSince)) stableSince = now;
-                    if (now - stableSince >= 0.3) {
-                        state = State.SPIN_COLLECT;
-                        turnStart = heading;
-                        turnId = nextTurnId++;
-                        bin.clear();
-                    }
-                } else stableSince = Double.NaN;
-                if (now - stateTime > 8) abort("Could not reach a stable turn rate at the power limit");
+                if (turnControl.settled()) {
+                    state = State.SPIN_COLLECT;
+                    turnStart = heading;
+                    turnId = nextTurnId++;
+                    bin.clear();
+                } else if (turnControl.timedOut()) {
+                    abort(String.format(Locale.US, "Turn-rate settling timed out%s: target %.1f, measured %.1f, filtered %.1f deg/s; power %.3f, peak %.3f / %.3f",
+                            turnControl.powerLimited() ? " at motor power limit" : "",
+                            Math.toDegrees(targetRate()), Math.toDegrees(current.rate), Math.toDegrees(turnControl.filteredRate()),
+                            turnControl.power(), turnControl.peakPower(), MAX_POWER));
+                }
                 break;
             case SPIN_COLLECT:
                 controlSpin(d);
@@ -426,7 +427,6 @@ public class TestPinpointOffsets extends OpMode {
     }
 
     private void collect(Delta d, double now) {
-        for (int i = PinpointOffsetEstimator.FIRST_ENCODER; i < 4; i++) movementWheelTicks[i] += d.ticks[i];
         bin.add(d.ticks, d.forward, d.left, d.angle, d.dt, d.middleHeading);
         if (Math.abs(bin.heading) >= ROTATION_BIN) samples.add(bin.take(step - 4, turnId));
         if ((heading - turnStart) * Math.signum(targetRate()) >= PinpointOffsetEstimator.FULL_TURN) {
@@ -447,12 +447,10 @@ public class TestPinpointOffsets extends OpMode {
     }
 
     private void controlSpin(Delta d) {
-        double dt = d.dt;
-        rateCommand += clip(targetRate() - rateCommand, -RATE_ACCELERATION * dt, RATE_ACCELERATION * dt);
-        double error = rateCommand - current.rate;
-        rateIntegral = clip(rateIntegral + 0.12 * error * dt, -0.12, 0.12);
-        double turn = clip(0.08 * Math.signum(rateCommand) + 0.16 * error + rateIntegral, -MAX_POWER, MAX_POWER);
-        positionHold.control(heading, dt, MAX_POWER - Math.abs(turn));
+        for (int i = PinpointOffsetEstimator.FIRST_ENCODER; i < 4; i++) movementWheelTicks[i] += d.ticks[i];
+        turnControl.update(current.rate, d.dt);
+        double turn = turnControl.power();
+        positionHold.control(heading, d.dt, MAX_POWER - Math.abs(turn));
         drive(positionHold.forwardPower(), positionHold.leftPower(), turn);
     }
 
@@ -592,6 +590,14 @@ public class TestPinpointOffsets extends OpMode {
         }
         if (step >= 4 && step < 10) {
             telemetry.addData("Run", "%d / 6; revolutions collected %d", step - 3, turnsInRun);
+            if (turnControl != null) {
+                telemetry.addData("Turn target / measured / filtered (deg/s)", "%.1f / %.1f / %.1f",
+                        Math.toDegrees(turnControl.targetRate), Math.toDegrees(current.rate), Math.toDegrees(turnControl.filteredRate()));
+                telemetry.addData("Turn power / peak / limit", "%.3f / %.3f / %.3f",
+                        turnControl.power(), turnControl.peakPower(), MAX_POWER);
+                if (state == State.SPIN_RAMP) telemetry.addData("Turn settling", "%.1f / %.0f s; stable %.2f s",
+                        turnControl.elapsedSeconds(), PinpointTurnController.SETTLE_TIMEOUT_SECONDS, turnControl.stableSeconds());
+            }
             if (state == State.SPIN_COLLECT) telemetry.addData("Current turn", "%.0f deg", Math.abs(Math.toDegrees(heading - turnStart)));
         }
         telemetry.addData("Measurements", samples.size());
