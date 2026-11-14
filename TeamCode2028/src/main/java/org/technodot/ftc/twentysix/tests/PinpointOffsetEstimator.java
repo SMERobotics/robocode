@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.DoubleSupplier;
 
 /**
  * Calibration math, deliberately independent of the FTC/Android runtime.
@@ -79,7 +80,8 @@ final class PinpointOffsetEstimator {
         final double seconds;
         final double cosSeconds;
         final double sinSeconds;
-        // -1..-4: translation legs; 0..3: training spins; 4..5: held-out spins
+        // Negative: translation legs, repeating F/B/L/R; 0..3: training spins;
+        // 4..5: held-out spins. Each translation movement has its own negative ID.
         final int run;
         final int turn;
 
@@ -153,12 +155,16 @@ final class PinpointOffsetEstimator {
         final double inlierFraction, residualMm;
         final double xIntervalMm, yIntervalMm;
         final double directionGapMm, speedGapMm, validationGapMm;
+        final double[] translationSensitivityMm, turnSensitivityMm;
+        final double[][] runOffsetsMm;
+        final double translationCheckGapMm;
         final boolean finalAnalysis;
         final List<String> issues;
 
         Result(Fit fit, Diagnostics diagnostics, double[] intervals,
                double directionGap, double speedGap, double validationGap,
-               boolean finalAnalysis, List<String> issues) {
+               boolean finalAnalysis, List<String> issues, Sensitivity sensitivity,
+               double[][] runOffsetsMm, double translationCheckGapMm) {
             xMm = fit.coefficients[2];
             yMm = fit.coefficients[3];
             forwardMmPerTick = fit.coefficients[0];
@@ -174,6 +180,10 @@ final class PinpointOffsetEstimator {
             validationGapMm = validationGap;
             this.finalAnalysis = finalAnalysis;
             this.issues = issues;
+            translationSensitivityMm = sensitivity.translationShift;
+            turnSensitivityMm = sensitivity.turnShift;
+            this.runOffsetsMm = runOffsetsMm;
+            this.translationCheckGapMm = translationCheckGapMm;
         }
 
         boolean validated() {
@@ -197,25 +207,45 @@ final class PinpointOffsetEstimator {
         }
 
         double[] intervals = {Double.NaN, Double.NaN};
+        Sensitivity sensitivity = new Sensitivity();
+        double[][] runOffsets = new double[6][2];
+        for (double[] offsets : runOffsets) Arrays.fill(offsets, Double.NaN);
+        double translationGap = Double.NaN;
         double directionGap = Double.NaN, speedGap = Double.NaN, validationGap = Double.NaN;
         if (finalAnalysis) {
             try {
-                intervals = jackknife(training);
-                directionGap = compareSubsets(training, true);
-                speedGap = compareSubsets(training, false);
-                validationGap = validate(fit, samples);
-                if (intervals[0] > MAX_INTERVAL_MM || intervals[1] > MAX_INTERVAL_MM) {
-                    issues.add("95% repeatability half-width exceeds 1 mm");
-                }
-                if (directionGap > MAX_DISAGREEMENT_MM) issues.add("CW/CCW estimates differ by over 2 mm");
-                if (speedGap > MAX_DISAGREEMENT_MM) issues.add("Slow/fast estimates differ by over 2 mm");
-                if (validationGap > MAX_DISAGREEMENT_MM) issues.add("Held-out estimates differ by over 2 mm");
+                sensitivity = jackknife(fit);
+                intervals = sensitivity.intervals;
             } catch (IllegalArgumentException e) {
-                issues.add("Validation incomplete: " + e.getMessage());
+                issues.add("Repeatability incomplete: " + e.getMessage());
+            }
+            try { runOffsets = runOffsets(fit, samples); }
+            catch (IllegalArgumentException e) { issues.add("Per-run diagnostics incomplete: " + e.getMessage()); }
+            // A failed check must not hide the other independent comparisons.
+            translationGap = checkedGap("Before/after translation check", issues, () -> compareTranslationRounds(training));
+            directionGap = checkedGap("CW/CCW comparison", issues, () -> compareSubsets(training, true));
+            speedGap = checkedGap("Speed comparison", issues, () -> compareSubsets(training, false));
+            validationGap = checkedGap("Validation", issues, () -> validate(fit, samples));
+            if (intervals[0] > MAX_INTERVAL_MM || intervals[1] > MAX_INTERVAL_MM) {
+                issues.add("95% repeatability half-width exceeds 1 mm");
+            }
+            if (directionGap > MAX_DISAGREEMENT_MM) issues.add("CW/CCW estimates differ by over 2 mm");
+            if (speedGap > MAX_DISAGREEMENT_MM) issues.add("Slow/fast estimates differ by over 2 mm");
+            if (validationGap > MAX_DISAGREEMENT_MM) issues.add("Held-out estimates differ by over 2 mm");
+            if (translationGap > MAX_DISAGREEMENT_MM) {
+                issues.add("Before/after translation calibrations shift offsets by over 2 mm");
             }
         }
         return new Result(fit, diagnostics, intervals, directionGap, speedGap,
-                validationGap, finalAnalysis, issues);
+                validationGap, finalAnalysis, issues, sensitivity, runOffsets, translationGap);
+    }
+
+    private static double checkedGap(String name, List<String> issues, DoubleSupplier comparison) {
+        try { return comparison.getAsDouble(); }
+        catch (IllegalArgumentException e) {
+            issues.add(name + " incomplete: " + e.getMessage());
+            return Double.NaN;
+        }
     }
 
     private static final class Fit {
@@ -224,7 +254,7 @@ final class PinpointOffsetEstimator {
         final Regression regression;
         final double rotationMmPerRad, rotationLimitMm;
 
-        Fit(List<Sample> samples, int[] polarity, Regression regression, Map<Integer, Integer> counts) {
+        Fit(List<Sample> samples, int[] polarity, Regression regression, Map<Integer, Double> runWeights) {
             this.samples = samples;
             this.regression = regression;
             double[] p = regression.coefficients;
@@ -252,7 +282,7 @@ final class PinpointOffsetEstimator {
             List<Equation> angular = new ArrayList<>();
             for (Sample s : samples) {
                 angular.add(new Equation(new double[]{s.heading},
-                        mean * driveTicks(s, wheelScales)[2], 1.0 / counts.get(s.run)));
+                        mean * driveTicks(s, wheelScales)[2], runWeights.get(s.run)));
             }
             Regression yaw = robustFit(angular, 0.1);
             rotationMmPerRad = yaw.coefficients[0];
@@ -268,18 +298,24 @@ final class PinpointOffsetEstimator {
 
     private static Fit fit(List<Sample> samples) {
         checkInterrupted();
-        Set<Integer> translationRuns = new LinkedHashSet<>();
+        Set<Integer> translationDirections = new LinkedHashSet<>();
         Map<Integer, Integer> driftColumns = new LinkedHashMap<>();
         Map<Integer, Integer> counts = new LinkedHashMap<>();
         for (Sample s : samples) {
             counts.put(s.run, counts.containsKey(s.run) ? counts.get(s.run) + 1 : 1);
-            if (s.run < 0) translationRuns.add(s.run);
+            if (s.run < 0) translationDirections.add(translationDirection(s.run));
             else if (!driftColumns.containsKey(s.run)) driftColumns.put(s.run, 6 + 2 * driftColumns.size());
         }
-        if (translationRuns.size() < 3 || driftColumns.isEmpty()) {
+        if (translationDirections.size() < 3 || driftColumns.isEmpty()) {
             throw new IllegalArgumentException("Need forward, sideways, and rotation measurements");
         }
         int[] polarity = encoderPolarities(samples);
+        int[] repeats = new int[4];
+        for (int run : counts.keySet()) if (run < 0) repeats[translationDirection(run)]++;
+        Map<Integer, Double> runWeights = new LinkedHashMap<>();
+        for (int run : counts.keySet()) {
+            runWeights.put(run, 1.0 / counts.get(run) / (run < 0 ? repeats[translationDirection(run)] : 1));
+        }
         int columns = 6 + 2 * driftColumns.size();
         List<Equation> equations = new ArrayList<>();
         for (Sample s : samples) {
@@ -297,9 +333,9 @@ final class PinpointOffsetEstimator {
                 y[col] = -s.sinSeconds;
                 y[col + 1] = s.cosSeconds;
             }
-            // Equal total influence per movement keeps repeated spins from
-            // overwhelming the straight/sideways scale-calibration excitation.
-            double weight = 1.0 / counts.get(s.run);
+            // Balance rotation phases against translation directions. Repeated
+            // translations improve sampling without multiplying their influence.
+            double weight = runWeights.get(s.run);
             equations.add(new Equation(x, s.podForwardMm, weight));
             equations.add(new Equation(y, s.podLeftMm, weight));
         }
@@ -307,7 +343,7 @@ final class PinpointOffsetEstimator {
         if (Math.abs(regression.coefficients[4]) > 1000 || Math.abs(regression.coefficients[5]) > 1000) {
             throw new IllegalArgumentException("Estimated offsets exceed 1 meter; check pod and motor configuration");
         }
-        return new Fit(samples, polarity, regression, counts);
+        return new Fit(samples, polarity, regression, runWeights);
     }
 
     /** Learn counting polarity from completed movements; never change motor direction. */
@@ -333,25 +369,27 @@ final class PinpointOffsetEstimator {
     }
 
     private static int[] encoderPolarities(List<Sample> samples) {
-        double[][] translations = new double[4][4];
-        boolean[] present = new boolean[4];
+        Map<Integer, double[]> translations = new LinkedHashMap<>();
         for (Sample s : samples) {
             if (s.run >= 0) continue;
-            int leg = -1 - s.run;
-            if (leg >= 4) throw new IllegalArgumentException("Invalid translation leg");
-            present[leg] = true;
-            for (int i = FIRST_ENCODER; i < 4; i++) translations[leg][i] += s.ticks[i];
+            double[] counts = translations.get(s.run);
+            if (counts == null) {
+                counts = new double[4];
+                translations.put(s.run, counts);
+            }
+            for (int i = FIRST_ENCODER; i < 4; i++) counts[i] += s.ticks[i];
         }
         int[] result = null;
-        for (int leg = 0; leg < 4; leg++) {
-            if (!present[leg]) continue;
-            int[] response = encoderPolarities(translations[leg], leg);
+        for (Map.Entry<Integer, double[]> leg : translations.entrySet()) {
+            int[] response = encoderPolarities(leg.getValue(), translationDirection(leg.getKey()));
             if (result == null) result = response;
             else checkEncoderPolarities(result, response);
         }
         if (result == null) throw new IllegalArgumentException("Need straight-movement encoder measurements");
         return result;
     }
+
+    private static int translationDirection(int run) { return (-1 - run) % 4; }
 
     static void checkEncoderPolarities(int[] expected, int[] measured) {
         for (int i = FIRST_ENCODER; i < 4; i++) {
@@ -410,7 +448,17 @@ final class PinpointOffsetEstimator {
         return result;
     }
 
-    private static double[] jackknife(List<Sample> samples) {
+    private static final class Sensitivity {
+        final double[] intervals = {Double.NaN, Double.NaN};
+        final double[] translationShift = {Double.NaN, Double.NaN};
+        final double[] turnShift = {Double.NaN, Double.NaN};
+    }
+
+    private static Sensitivity jackknife(Fit full) {
+        List<Sample> samples = full.samples;
+        Sensitivity sensitivity = new Sensitivity();
+        Arrays.fill(sensitivity.translationShift, 0);
+        Arrays.fill(sensitivity.turnShift, 0);
         Set<Integer> groups = new LinkedHashSet<>();
         for (Sample s : samples) groups.add(s.run < 0 ? s.run : s.turn);
         if (groups.size() < 10) throw new IllegalArgumentException("Too few independent measurement groups");
@@ -422,17 +470,60 @@ final class PinpointOffsetEstimator {
             for (Sample s : samples) if ((s.run < 0 ? s.run : s.turn) != group) subset.add(s);
             Fit leaveOneOut = fit(subset);
             estimates[index++] = new double[]{leaveOneOut.coefficients[2], leaveOneOut.coefficients[3]};
+            double[] shifts = group < 0 ? sensitivity.translationShift : sensitivity.turnShift;
+            for (int axis = 0; axis < 2; axis++) {
+                shifts[axis] = Math.max(shifts[axis], Math.abs(leaveOneOut.coefficients[axis + 2] - full.coefficients[axis + 2]));
+            }
         }
-        double[] intervals = new double[2];
         for (int axis = 0; axis < 2; axis++) {
             double mean = 0, sum = 0;
             for (double[] estimate : estimates) mean += estimate[axis] / estimates.length;
             for (double[] estimate : estimates) sum += square(estimate[axis] - mean);
             // Conservative Student-t factor for >=10 groups. Refit wheel gains
             // and distance scales too, so their uncertainty is not treated as zero.
-            intervals[axis] = 2.3 * Math.sqrt((estimates.length - 1.0) / estimates.length * sum);
+            sensitivity.intervals[axis] = 2.3 * Math.sqrt((estimates.length - 1.0) / estimates.length * sum);
         }
-        return intervals;
+        return sensitivity;
+    }
+
+    private static double compareTranslationRounds(List<Sample> samples) {
+        List<Sample> before = new ArrayList<>(), after = new ArrayList<>();
+        boolean repeated = false;
+        for (Sample s : samples) {
+            if (s.run >= 0) {
+                before.add(s);
+                after.add(s);
+            } else if (s.run >= -4) before.add(s);
+            else { after.add(s); repeated = true; }
+        }
+        if (!repeated) return Double.NaN;
+        Fit first = fit(before), second = fit(after);
+        return Math.max(Math.abs(first.coefficients[2] - second.coefficients[2]),
+                Math.abs(first.coefficients[3] - second.coefficients[3]));
+    }
+
+    /** Per-run offsets with a fixed training wheel model, exposing directional bias. */
+    private static double[][] runOffsets(Fit training, List<Sample> samples) {
+        double[][] offsets = new double[6][2];
+        for (int run = 0; run < 6; run++) {
+            List<Equation> equations = new ArrayList<>();
+            for (Sample s : samples) if (s.run == run) addOffsetEquations(equations, training, s);
+            Arrays.fill(offsets[run], Double.NaN);
+            if (!equations.isEmpty()) {
+                Regression fit = robustFit(equations, 0.08);
+                offsets[run][0] = fit.coefficients[0];
+                offsets[run][1] = fit.coefficients[1];
+            }
+        }
+        return offsets;
+    }
+
+    private static void addOffsetEquations(List<Equation> equations, Fit training, Sample s) {
+        double[] motion = driveTicks(s, training.wheelScales);
+        equations.add(new Equation(new double[]{-s.heading, 0, s.cosSeconds, s.sinSeconds},
+                s.podForwardMm - training.coefficients[0] * motion[0], 1));
+        equations.add(new Equation(new double[]{0, s.heading, -s.sinSeconds, s.cosSeconds},
+                s.podLeftMm - training.coefficients[1] * motion[1], 1));
     }
 
     private static double compareSubsets(List<Sample> samples, boolean byDirection) {
@@ -458,11 +549,7 @@ final class PinpointOffsetEstimator {
             for (Sample s : samples) {
                 if (s.run != run) continue;
                 heldOut.add(s);
-                double[] motion = driveTicks(s, training.wheelScales);
-                equations.add(new Equation(new double[]{-s.heading, 0, s.cosSeconds, s.sinSeconds},
-                        s.podForwardMm - training.coefficients[0] * motion[0], 1));
-                equations.add(new Equation(new double[]{0, s.heading, -s.sinSeconds, s.cosSeconds},
-                        s.podLeftMm - training.coefficients[1] * motion[1], 1));
+                addOffsetEquations(equations, training, s);
                 angle += Math.abs(s.heading);
             }
             if (angle < 0.98 * FULL_TURN) throw new IllegalArgumentException("Missing held-out revolution");
