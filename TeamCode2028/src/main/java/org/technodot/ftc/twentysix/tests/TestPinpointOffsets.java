@@ -101,7 +101,7 @@ public class TestPinpointOffsets extends OpMode {
             File directory = hardwareMap.appContext.getExternalFilesDir(null);
             if (directory == null) directory = hardwareMap.appContext.getFilesDir();
             captureFile = new File(new File(directory, "pinpoint-offsets"), "pinpoint-offsets-" + System.currentTimeMillis() + ".csv");
-            MecanumConfig drive = Configuration.driveConfig;
+            MecanumConfig drive = Configuration.drivetrainConfig;
             String[] names = {drive.frontLeftName.get(), drive.frontRightName.get(),
                     drive.backLeftName.get(), drive.backRightName.get()};
             DcMotorSimple.Direction[] directions = {drive.frontLeftDirection.get(), drive.frontRightDirection.get(),

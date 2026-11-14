@@ -50,7 +50,7 @@ public class Tuning {
     public static Procedure foresightTuner() {
         return new ForesightTuner(
             hardwareMap -> new PinpointLocalizer(hardwareMap, Configuration.localizerConfig),
-            hardwareMap -> new Mecanum(hardwareMap, Configuration.driveConfig)
+            hardwareMap -> new Mecanum(hardwareMap, Configuration.drivetrainConfig)
         );
     }
 
