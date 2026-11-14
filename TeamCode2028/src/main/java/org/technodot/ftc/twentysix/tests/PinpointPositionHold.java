@@ -55,22 +55,38 @@ final class PinpointPositionHold {
      * the requested rotation. No drive encoder, including FL, is used here.
      */
     void control(double heading, double dt, double availablePower) {
+        control(heading, dt, availablePower, 0, 0, 0, 0, MAX_SPEED_MM_PER_SECOND, MAX_CORRECTION_POWER, VELOCITY_FEEDFORWARD);
+    }
+
+    /** Track a small calibration trajectory while still observing drift from the original start. */
+    void controlTarget(double heading, double dt, double availablePower,
+                       double targetX, double targetY, double targetVelocityX, double targetVelocityY) {
+        if (!finite(targetX) || !finite(targetY) || !finite(targetVelocityX) || !finite(targetVelocityY)) {
+            throw new IllegalArgumentException("Invalid calibration trajectory");
+        }
+        control(heading, dt, availablePower, targetX, targetY, targetVelocityX, targetVelocityY, 180, .4, .0025);
+    }
+
+    private void control(double heading, double dt, double availablePower,
+                         double targetX, double targetY, double targetVelocityX, double targetVelocityY,
+                         double maxSpeed, double maxCorrection, double feedforward) {
         if (!finite(heading) || !finite(dt) || dt <= 0
                 || !finite(availablePower) || availablePower < 0 || availablePower > 1) {
             throw new IllegalArgumentException("Invalid position-hold command");
         }
-        double desiredX = -POSITION_GAIN * x, desiredY = -POSITION_GAIN * y;
-        double speedScale = Math.max(1, Math.hypot(desiredX, desiredY) / MAX_SPEED_MM_PER_SECOND);
+        double desiredX = targetVelocityX + POSITION_GAIN * (targetX - x);
+        double desiredY = targetVelocityY + POSITION_GAIN * (targetY - y);
+        double speedScale = Math.max(1, Math.hypot(desiredX, desiredY) / maxSpeed);
         desiredX /= speedScale;
         desiredY /= speedScale;
         double errorX = desiredX - velocityX, errorY = desiredY - velocityY;
         double nextIntegralX = integralX + INTEGRAL_GAIN * errorX * dt;
         double nextIntegralY = integralY + INTEGRAL_GAIN * errorY * dt;
-        double baseX = VELOCITY_FEEDFORWARD * desiredX + VELOCITY_GAIN * errorX;
-        double baseY = VELOCITY_FEEDFORWARD * desiredY + VELOCITY_GAIN * errorY;
+        double baseX = feedforward * desiredX + VELOCITY_GAIN * errorX;
+        double baseY = feedforward * desiredY + VELOCITY_GAIN * errorY;
         double wantedX = baseX + nextIntegralX, wantedY = baseY + nextIntegralY;
         double cos = Math.cos(heading), sin = Math.sin(heading);
-        double limit = Math.min(MAX_CORRECTION_POWER, availablePower);
+        double limit = Math.min(maxCorrection, availablePower);
         // Conditional integration prevents windup when either the correction
         // cap or reserved rotation power prevents the requested translation.
         if (wheelPower(wantedX, wantedY, cos, sin) <= limit

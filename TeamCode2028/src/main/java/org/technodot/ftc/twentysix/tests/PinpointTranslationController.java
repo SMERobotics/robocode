@@ -13,8 +13,8 @@ final class PinpointTranslationController {
 
     static final double MAX_SECONDS = 15;
     private static final double POSITION_TOLERANCE_MM = 2;
-    private static final double CRUISE_MM_PER_SECOND = 70;
-    private static final double MIN_MOVING_MM_PER_SECOND = 25;
+    private static final double CRUISE_MM_PER_SECOND = 120;
+    private static final double MIN_MOVING_MM_PER_SECOND = 40;
 
     final double targetMm, maxPower;
     private Status status = Status.RUNNING;

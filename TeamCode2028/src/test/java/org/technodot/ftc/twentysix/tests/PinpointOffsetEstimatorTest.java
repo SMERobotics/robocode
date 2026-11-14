@@ -436,7 +436,7 @@ public class PinpointOffsetEstimatorTest {
         } finally { Files.deleteIfExists(csv.toPath()); }
     }
 
-    private static final class Simulation {
+    static final class Simulation {
         final double x, y, ticksPerMm;
         final double[] counters = new double[6];
         final int[] previous = new int[6];
@@ -444,6 +444,7 @@ public class PinpointOffsetEstimatorTest {
         final PinpointOffsetEstimator.Accumulator bin = new PinpointOffsetEstimator.Accumulator();
         final Random random = new Random(226);
         boolean unmeasuredDrift, outliers, directionBias, speedBias, turnBias, systematicSlip, repeatedTranslationBias;
+        boolean rotatingExcitation, turningScaleChanges, pureRotation;
         int counterStart, sampleNumber;
         double worldHeading;
         PinpointPositionHold positionHold;
@@ -462,6 +463,7 @@ public class PinpointOffsetEstimatorTest {
             int[] rates = {30, -30, -60, 60, 45, -45};
             for (int run = 0; run < 6; run++) {
                 if (run == 4) translationSet(1);
+                double runSeconds = 0;
                 double sign = Math.signum(rates[run]);
                 for (int turn = 0; turn < (run < 4 ? 3 : 1); turn++, id++) {
                     double bias = turnBias && run < 4 ? (turn - 1) * 6 : 0;
@@ -472,8 +474,15 @@ public class PinpointOffsetEstimatorTest {
                         double dt = Math.abs(dh) / rate;
                         double dx = 28 * (Math.cos(b) - Math.cos(a)) + (positionHold == null ? 2 : 20) * dt;
                         double dy = 14 * (Math.sin(b) - Math.sin(a)) - dt;
+                        if (rotatingExcitation) {
+                            PinpointCalibrationTrajectory old = new PinpointCalibrationTrajectory(runSeconds);
+                            PinpointCalibrationTrajectory next = new PinpointCalibrationTrajectory(runSeconds + dt);
+                            dx += next.x - old.x; dy += next.y - old.y;
+                        }
+                        runSeconds += dt;
                         double f = Math.cos(mid) * dx + Math.sin(mid) * dy;
                         double l = -Math.sin(mid) * dx + Math.cos(mid) * dy;
+                        if (pureRotation) { f = 0; l = 0; }
                         if (positionHold != null) {
                             positionHold.control(worldHeading, dt, .35);
                             f += 420 * positionHold.forwardPower() * dt;
@@ -504,8 +513,9 @@ public class PinpointOffsetEstimatorTest {
             double mid = worldHeading + dh / 2;
             // The 1.12 lateral scale models the different effective travel of
             // mecanum rollers during sideways movement, without wheel geometry.
-            double[] travel = {f - l / 1.12 - 250 * dh, f + l / 1.12 + 250 * dh,
-                    f + l / 1.12 - 250 * dh, f - l / 1.12 + 250 * dh};
+            double lateral = turningScaleChanges && run >= 0 ? 1.05 + .025 * run : 1.12;
+            double[] travel = {f - l / lateral - 250 * dh, f + l / lateral + 250 * dh,
+                    f + l / lateral - 250 * dh, f - l / lateral + 250 * dh};
             double observedX = x + turnOffset + (directionBias && (run == 1 || run == 2) ? 8 : 0)
                     + (speedBias && (run == 2 || run == 3) ? 8 : 0);
             double qx = f - observedX * dh, qy = l + y * dh;
@@ -524,7 +534,8 @@ public class PinpointOffsetEstimatorTest {
                 double distance = i < 4 ? travel[i] : i == 4 ? qx : qy;
                 if (repeatedTranslationBias && run <= -5 && i == 3) distance *= 1.08;
                 if (outliers && run >= 0 && sampleNumber % 239 == 0 && i == 1) distance += 3;
-                counters[i] += i < 4 ? distance / WHEEL_MM[i] : distance * ticksPerMm;
+                double wheelFactor = turningScaleChanges ? (run < 0 ? 1.15 : 1 + .09 * Math.sin(2.7 * run + i)) : 1;
+                counters[i] += i < 4 ? distance / (WHEEL_MM[i] * wheelFactor) : distance * ticksPerMm;
                 int count = (int) Math.round(counters[i]);
                 int delta = PinpointOffsetEstimator.counterDelta(count, previous[i]);
                 previous[i] = count;

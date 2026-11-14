@@ -30,7 +30,7 @@ import java.util.concurrent.Future;
 /**
  * Place the robot on a clear, level area with its normal pod loading. INIT while
  * stationary, then START. The robot moves about 20 cm in each direction and makes
- * repeated turns, then repeats the four moves before validation; B aborts.
+ * repeated turns with small forward/sideways sweeps; B aborts.
  * Allow about three to four minutes.
  *
  * Results target the symmetric mecanum drive's kinematic center. Translation is
@@ -52,6 +52,7 @@ public class TestPinpointOffsets extends OpMode {
     private static final double MAX_SECONDS = 240;
     private static final double MAX_TRAVEL_MM = 750;
     private static final double[] SPIN_DEGREES = {30, -30, -60, 60, 45, -45};
+    private static final boolean CALIBRATE_WHILE_TURNING = true;
     private static final String[] TRANSLATION_NAMES = {"Forward", "Backward", "Left", "Right"};
 
     private enum State { WAIT_READY, TRANSLATE, SPIN_RAMP, SPIN_COLLECT, BRAKE, WAIT_FIT, FINAL_ANALYSIS, DONE, ABORTED }
@@ -87,7 +88,7 @@ public class TestPinpointOffsets extends OpMode {
     private double finishedTime = Double.NaN;
     private double lastTelemetry, heading, podForward, podLeft;
     private double legHeading, legStartForward, legStartLeft, legWheelTicks;
-    private double turnStart, lastHeadingChange, stalledSince = Double.NaN;
+    private double turnStart, excitationSeconds, lastHeadingChange, stalledSince = Double.NaN;
     private int step, translationRound, turnsInRun, turnId, nextTurnId;
     private int[] encoderPolarity;
     private boolean started, initialized, brakingTranslation, latestFitSucceeded;
@@ -299,6 +300,7 @@ public class TestPinpointOffsets extends OpMode {
             state = State.TRANSLATE;
             message = TRANSLATION_NAMES[step] + " 200 mm";
         } else if (step < 10) {
+            excitationSeconds = 0;
             turnsInRun = step < 8 ? trainingTurns[step - 4] : 0;
             turnControl = new PinpointTurnController(targetRate(), MAX_POWER);
             state = State.SPIN_RAMP;
@@ -357,7 +359,7 @@ public class TestPinpointOffsets extends OpMode {
                     int next = PinpointOffsetEstimator.nextTrainingRun(trainingTurns,
                             latestFitSucceeded && result != null ? result.acceptedTurns : null);
                     if (next >= 0) {
-                        if (next == 4 && translationRound == 0) {
+                        if (next == 4 && translationRound == 0 && !CALIBRATE_WHILE_TURNING) {
                             translationRound = 1;
                             step = 0;
                         } else step = next == 4 ? 8 : next + 4;
@@ -467,7 +469,11 @@ public class TestPinpointOffsets extends OpMode {
         for (int i = PinpointOffsetEstimator.FIRST_ENCODER; i < 4; i++) movementWheelTicks[i] += d.ticks[i];
         turnControl.update(current.rate, d.dt);
         double turn = turnControl.power();
-        positionHold.control(heading, d.dt, MAX_POWER - Math.abs(turn));
+        excitationSeconds += d.dt;
+        if (CALIBRATE_WHILE_TURNING) {
+            PinpointCalibrationTrajectory target = new PinpointCalibrationTrajectory(excitationSeconds);
+            positionHold.controlTarget(heading, d.dt, MAX_POWER - Math.abs(turn), target.x, target.y, target.vx, target.vy);
+        } else positionHold.control(heading, d.dt, MAX_POWER - Math.abs(turn));
         drive(positionHold.forwardPower(), positionHold.leftPower(), turn);
     }
 
@@ -523,7 +529,9 @@ public class TestPinpointOffsets extends OpMode {
             // stays on the worker; it never delays motor/sensor updates.
             if (finalAnalysis) saveSamples(snapshot);
             try {
-                PinpointOffsetEstimator.Result fitted = PinpointOffsetEstimator.estimate(snapshot, finalAnalysis);
+                PinpointOffsetEstimator.Result fitted = CALIBRATE_WHILE_TURNING
+                        ? PinpointRotatingOffsetEstimator.estimate(snapshot, finalAnalysis)
+                        : PinpointOffsetEstimator.estimate(snapshot, finalAnalysis);
                 if (finalAnalysis) saveSummary(fitted, fitted.validated() ? "VALIDATED" : "INCONCLUSIVE");
                 return fitted;
             } catch (IllegalArgumentException e) {
@@ -535,7 +543,7 @@ public class TestPinpointOffsets extends OpMode {
 
     private void saveSamples(List<PinpointOffsetEstimator.Sample> snapshot) {
         try {
-            PinpointOffsetCapture.writeSamples(captureFile, snapshot);
+            PinpointOffsetCapture.writeSamples(captureFile, snapshot, CALIBRATE_WHILE_TURNING);
             captureStatus = captureFile.getAbsolutePath();
             RobotLog.ii(TAG, "Calibration observations: %s", captureStatus);
         } catch (IOException e) {
@@ -612,6 +620,7 @@ public class TestPinpointOffsets extends OpMode {
         telemetry.addData("Status", "%s: %s", state, message);
         telemetry.addLine("Automatic 20 cm moves and turns; clear the floor. B = abort.");
         telemetry.addLine("Using FR/BL/BR encoders. FL encoder ignored.");
+        if (CALIBRATE_WHILE_TURNING) telemetry.addLine("10 cm sweeps during turns calibrate wheel scales under rotational load.");
         if (started && positionHold != null) {
             telemetry.addData("Travel from start", "%.0f / %.0f mm; X %.0f, Y %.0f",
                     positionHold.distanceMm(), MAX_TRAVEL_MM, positionHold.xMm(), positionHold.yMm());
@@ -629,7 +638,8 @@ public class TestPinpointOffsets extends OpMode {
         if (encoderPolarity != null) telemetry.addData("Encoder forward signs FR/BL/BR",
                 Arrays.toString(Arrays.copyOfRange(encoderPolarity, 1, 4)));
         if (step < 4 && translation != null) {
-            telemetry.addData("Translation leg", "set %d / 2, leg %d / 4: %s", translationRound + 1, step + 1, TRANSLATION_NAMES[step]);
+            telemetry.addData("Translation leg", "set %d / %d, leg %d / 4: %s", translationRound + 1,
+                    CALIBRATE_WHILE_TURNING ? 1 : 2, step + 1, TRANSLATION_NAMES[step]);
             telemetry.addData("Leg travel", "%.1f / %.0f mm", translation.progressMm(), LEG_MM);
             telemetry.addData("Leg speed", "%.1f mm/s", translation.speedMmPerSecond());
             telemetry.addData("Translation power / peak / limit", "%.3f / %.3f / %.3f",
@@ -656,18 +666,22 @@ public class TestPinpointOffsets extends OpMode {
             telemetry.addLine("X: forward pod's left/right offset. Y: sideways pod's forward/back offset.");
             telemetry.addData("Accepted turns: CCW slow, CW slow, CW fast, CCW fast", Arrays.toString(result.acceptedTurns));
             telemetry.addData("Accepted data / residual", "%.1f%% / %.3f mm", 100 * result.inlierFraction, result.residualMm);
-            telemetry.addData("Drive scales F/L (mm/tick)", "%.6f / %.6f", result.forwardMmPerTick, result.leftMmPerTick);
+            telemetry.addData(result.rotatingCalibration ? "Mean turning drive scales F/L (mm/tick)" : "Drive scales F/L (mm/tick)",
+                    "%.6f / %.6f", result.forwardMmPerTick, result.leftMmPerTick);
             telemetry.addData("Signed working encoder gains", PinpointOffsetEstimator.formatCounts(result.wheelScales));
             telemetry.addData("95% repeatability +/- (mm)", "X %s; Y %s", measurement(result.xIntervalMm), measurement(result.yIntervalMm));
             telemetry.addData("Direction / speed / validation gaps (mm)", "%s / %s / %s",
                     measurement(result.directionGapMm), measurement(result.speedGapMm), measurement(result.validationGapMm));
             if (result.finalAnalysis) {
-                telemetry.addData("Before/after translation calibration gap (mm)", measurement(result.translationCheckGapMm));
-                telemetry.addData("Leave-one-move maximum X/Y shift (mm)", "%s / %s",
-                        measurement(result.translationSensitivityMm[0]), measurement(result.translationSensitivityMm[1]));
+                if (!result.rotatingCalibration) {
+                    telemetry.addData("Before/after translation calibration gap (mm)", measurement(result.translationCheckGapMm));
+                    telemetry.addData("Leave-one-move maximum X/Y shift (mm)", "%s / %s",
+                            measurement(result.translationSensitivityMm[0]), measurement(result.translationSensitivityMm[1]));
+                }
                 telemetry.addData("Leave-one-turn maximum X/Y shift (mm)", "%s / %s",
                         measurement(result.turnSensitivityMm[0]), measurement(result.turnSensitivityMm[1]));
-                telemetry.addLine("Per-run X/Y below use the same fitted drive scales (mm):");
+                telemetry.addLine(result.rotatingCalibration ? "Per-run X/Y use independently calibrated turning scales (mm):"
+                        : "Per-run X/Y below use the same fitted drive scales (mm):");
                 for (int run = 0; run < result.runOffsetsMm.length; run++) {
                     telemetry.addData("Run " + (run + 1) + " X/Y", "%s / %s",
                             measurement(result.runOffsetsMm[run][0]), measurement(result.runOffsetsMm[run][1]));

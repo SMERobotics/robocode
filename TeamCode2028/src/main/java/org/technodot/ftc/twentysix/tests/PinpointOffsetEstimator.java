@@ -159,31 +159,43 @@ final class PinpointOffsetEstimator {
         final double[][] runOffsetsMm;
         final double translationCheckGapMm;
         final boolean finalAnalysis;
+        final boolean rotatingCalibration;
         final List<String> issues;
 
         Result(Fit fit, Diagnostics diagnostics, double[] intervals,
                double directionGap, double speedGap, double validationGap,
                boolean finalAnalysis, List<String> issues, Sensitivity sensitivity,
                double[][] runOffsetsMm, double translationCheckGapMm) {
-            xMm = fit.coefficients[2];
-            yMm = fit.coefficients[3];
-            forwardMmPerTick = fit.coefficients[0];
-            leftMmPerTick = fit.coefficients[1];
-            wheelScales = fit.wheelScales.clone();
-            acceptedTurns = diagnostics.acceptedTurns;
-            inlierFraction = diagnostics.inlierFraction;
-            residualMm = fit.regression.scale;
+            this(fit.coefficients, fit.wheelScales, diagnostics.acceptedTurns,
+                    diagnostics.inlierFraction, fit.regression.scale, intervals,
+                    new double[]{directionGap, speedGap, validationGap}, finalAnalysis, issues,
+                    sensitivity.translationShift, sensitivity.turnShift, runOffsetsMm, translationCheckGapMm, false);
+        }
+
+        Result(double[] coefficients, double[] gains, int[] accepted, double inliers, double residual,
+               double[] intervals, double[] gaps, boolean finalAnalysis, List<String> issues,
+               double[] translationShift, double[] turnShift, double[][] runOffsetsMm,
+               double translationCheckGapMm, boolean rotatingCalibration) {
+            xMm = coefficients[2];
+            yMm = coefficients[3];
+            forwardMmPerTick = coefficients[0];
+            leftMmPerTick = coefficients[1];
+            wheelScales = gains.clone();
+            acceptedTurns = accepted;
+            inlierFraction = inliers;
+            residualMm = residual;
             xIntervalMm = intervals[0];
             yIntervalMm = intervals[1];
-            directionGapMm = directionGap;
-            speedGapMm = speedGap;
-            validationGapMm = validationGap;
+            directionGapMm = gaps[0];
+            speedGapMm = gaps[1];
+            validationGapMm = gaps[2];
             this.finalAnalysis = finalAnalysis;
             this.issues = issues;
-            translationSensitivityMm = sensitivity.translationShift;
-            turnSensitivityMm = sensitivity.turnShift;
+            translationSensitivityMm = translationShift;
+            turnSensitivityMm = turnShift;
             this.runOffsetsMm = runOffsetsMm;
             this.translationCheckGapMm = translationCheckGapMm;
+            this.rotatingCalibration = rotatingCalibration;
         }
 
         boolean validated() {
@@ -368,7 +380,7 @@ final class PinpointOffsetEstimator {
         return polarity;
     }
 
-    private static int[] encoderPolarities(List<Sample> samples) {
+    static int[] encoderPolarities(List<Sample> samples) {
         Map<Integer, double[]> translations = new LinkedHashMap<>();
         for (Sample s : samples) {
             if (s.run >= 0) continue;
@@ -572,7 +584,7 @@ final class PinpointOffsetEstimator {
         return gap;
     }
 
-    private static final class Equation {
+    static final class Equation {
         final double[] x;
         final double y, weight;
 
@@ -583,7 +595,7 @@ final class PinpointOffsetEstimator {
         }
     }
 
-    private static final class Regression {
+    static final class Regression {
         final double[] coefficients, residuals;
         final double scale;
 
@@ -594,7 +606,7 @@ final class PinpointOffsetEstimator {
         }
     }
 
-    private static Regression robustFit(List<Equation> equations, double noiseFloor) {
+    static Regression robustFit(List<Equation> equations, double noiseFloor) {
         if (equations.isEmpty() || equations.size() < equations.get(0).x.length) {
             throw new IllegalArgumentException("Insufficient independent measurements");
         }
