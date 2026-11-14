@@ -5,8 +5,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.technodot.ftc.twentysix.common.Alliance;
+import org.technodot.ftc.twentysix.common.FieldCoordinates;
+import com.pedropathing.math.Vector2D;
 import org.technodot.ftc.twentysix.roboctrl.GamepadBindings;
-import org.technodot.ftc.twentyfivebeta.Configuration;
+import org.technodot.ftc.twentysix.Configuration;
 
 public class DeviceDrive extends Device {
 
@@ -50,6 +52,12 @@ public class DeviceDrive extends Device {
     @Override
     public void update() {
         update(gamepad.driveForward(), gamepad.driveStrafe(), gamepad.driveRotate());
+    }
+
+    public void updateFieldCentric(double headingRadians) {
+        Vector2D powers = FieldCoordinates.driverToRobot(alliance, headingRadians,
+                gamepad.driveForward(), gamepad.driveStrafe());
+        update(powers.x(), powers.y(), gamepad.driveRotate());
     }
 
     public void update(double forward, double strafe, double rotate) {

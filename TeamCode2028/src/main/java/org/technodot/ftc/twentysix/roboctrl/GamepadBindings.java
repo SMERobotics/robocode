@@ -29,27 +29,55 @@ public class GamepadBindings {
     }
 
     public float intakePower() {
-        return ready() ? gamepad1.left_trigger : 0.0f;
-    }
-
-    public float extakePower() {
         return ready() ? gamepad1.right_trigger : 0.0f;
     }
 
-    public boolean transferOpen() {
-        return ready() && gamepad1.right_bumper;
+    public boolean intakeReverse() {
+        return ready() && gamepad1.x;
     }
 
-    public boolean transferClose() {
-        return ready() && gamepad1.left_bumper;
-    }
-
-    public boolean turretHeadingIncrease() {
+    public boolean extakeVelocityIncrease() {
         return ready() && gamepad1.dpad_up;
     }
 
-    public boolean turretHeadingDecrease() {
+    public boolean extakeVelocityDecrease() {
         return ready() && gamepad1.dpad_down;
+    }
+
+    public boolean extakeSpinUp() {
+        return ready() && gamepad1.y;
+    }
+
+    public void vibrateExtakeReady(int durationMillis) {
+        if (gamepad1 != null) gamepad1.rumble(durationMillis);
+    }
+
+    public boolean extakePreset1520() {
+        return ready() && gamepad2.a;
+    }
+
+    public boolean extakePreset1560() {
+        return ready() && gamepad2.b;
+    }
+
+    public boolean extakePreset1600() {
+        return ready() && gamepad2.x;
+    }
+
+    public boolean extakePreset1780() {
+        return ready() && gamepad2.y;
+    }
+
+    public boolean extakePresetCancel() {
+        return ready() && (gamepad2.dpad_up || gamepad2.dpad_left || gamepad2.dpad_right || gamepad2.dpad_down);
+    }
+
+    public boolean sequenceShoot() {
+        return ready() && gamepad1.right_bumper;
+    }
+
+    public boolean flowerUp() {
+        return ready() && gamepad1.left_trigger > 0.0f;
     }
 
     public boolean extakePollen() {
@@ -60,7 +88,4 @@ public class GamepadBindings {
         return ready() && gamepad1.b;
     }
 
-    public boolean turretReset() {
-        return ready() && gamepad1.start;
-    }
 }

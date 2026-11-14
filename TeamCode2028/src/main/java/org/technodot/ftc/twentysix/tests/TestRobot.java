@@ -57,8 +57,7 @@ public class TestRobot extends OpMode {
             servoExtake.setPosition(DeviceExtake.SERVO_NECTAR_POS);
         }
 
-        double turretVelocity = (gamepad1.dpad_up ? 0.1 : 0.0) + (gamepad1.dpad_down ? -0.1 : 0.0);
-        motorTurret.setPower(turretVelocity);
+        motorTurret.setPower(0);
 
         motorIntakeLeft.setPower(gamepad1.left_bumper ? 1.0 : gamepad1.left_trigger);
         motorIntakeRight.setPower(gamepad1.left_bumper ? 1.0 : gamepad1.left_trigger);

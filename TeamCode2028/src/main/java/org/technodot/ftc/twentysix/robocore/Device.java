@@ -10,10 +10,10 @@ public abstract class Device {
     protected GamepadBindings gamepad;
     protected Telemetry telemetry;
 
-    protected static Alliance alliance = Alliance.BLUE;
+    protected final Alliance alliance;
 
     public Device(Alliance alliance) {
-        Device.alliance = alliance;
+        this.alliance = alliance;
     }
 
     public void init(HardwareMap hardwareMap, GamepadBindings gamepad, Telemetry telemetry) {
