@@ -33,6 +33,9 @@ import java.util.concurrent.Future;
  * Results target the symmetric mecanum drive's kinematic center. Translation is
  * measured with FR/BL/BR encoders, not assumed zero when a revolution finishes.
  * The broken FL encoder is never read; its motor still participates in driving.
+ * Pod/IMU position feedback opposes accumulated drift during turns. The initial
+ * offsets define the point held near the starting position and the travel guard;
+ * they do not constrain the fitted offsets or assume that turns close.
  * Copy the printed configuration lines only after a VALIDATED result, and check
  * repeatability on the actual playing surface. Consistent drive-wheel slip can
  * bias even repeatable results. This OpMode never saves offsets to Configuration.
@@ -68,6 +71,7 @@ public class TestPinpointOffsets extends OpMode {
     private Future<PinpointOffsetEstimator.Result> pendingFit;
     private PinpointOffsetEstimator.Result result;
     private PinpointTranslationController translation;
+    private PinpointPositionHold positionHold;
     private State state = State.WAIT_READY;
     private String message = "Keep the robot stationary for IMU calibration";
     private String fitMessage = "Waiting for independent translation and rotation data";
@@ -76,7 +80,7 @@ public class TestPinpointOffsets extends OpMode {
     private DistanceUnit outputUnit;
     private double initTime, startTime, stateTime, stableSince = Double.NaN;
     private double finishedTime = Double.NaN;
-    private double lastTelemetry, heading, podForward, podLeft, fieldX, fieldY;
+    private double lastTelemetry, heading, podForward, podLeft;
     private double legHeading, legStartForward, legStartLeft, legWheelTicks;
     private double turnStart, rateCommand, rateIntegral, lastHeadingChange, stalledSince = Double.NaN;
     private int step, turnsInRun, turnId, nextTurnId;
@@ -131,6 +135,7 @@ public class TestPinpointOffsets extends OpMode {
             outputUnit = config.offsetUnits.get();
             initialXOffset = outputUnit.toMm(config.xPodOffset.get());
             initialYOffset = outputUnit.toMm(config.yPodOffset.get());
+            positionHold = new PinpointPositionHold(initialXOffset, initialYOffset);
             pinpoint.setOffsets(initialXOffset, initialYOffset, DistanceUnit.MM);
             pinpoint.resetPosAndIMU();
             initialized = true;
@@ -252,12 +257,7 @@ public class TestPinpointOffsets extends OpMode {
         podForward += d.forward;
         podLeft += d.left;
         if (started && state != State.WAIT_READY) {
-            // The configured offsets are used only for a generous travel guard,
-            // never as observations or priors in the calibration regression.
-            double f = d.forward + initialXOffset * d.angle;
-            double l = d.left - initialYOffset * d.angle;
-            fieldX += Math.cos(d.middleHeading) * f - Math.sin(d.middleHeading) * l;
-            fieldY += Math.sin(d.middleHeading) * f + Math.cos(d.middleHeading) * l;
+            positionHold.observe(d.forward, d.left, d.angle, d.middleHeading, d.dt);
         }
         return d;
     }
@@ -310,7 +310,7 @@ public class TestPinpointOffsets extends OpMode {
                 translate(d, now);
                 break;
             case SPIN_RAMP:
-                controlSpin(d.dt);
+                controlSpin(d);
                 if (Math.abs(current.rate - targetRate()) <= 0.15 * Math.abs(targetRate())) {
                     if (Double.isNaN(stableSince)) stableSince = now;
                     if (now - stableSince >= 0.3) {
@@ -323,7 +323,7 @@ public class TestPinpointOffsets extends OpMode {
                 if (now - stateTime > 8) abort("Could not reach a stable turn rate at the power limit");
                 break;
             case SPIN_COLLECT:
-                controlSpin(d.dt);
+                controlSpin(d);
                 collect(d, now);
                 break;
             case BRAKE:
@@ -446,18 +446,21 @@ public class TestPinpointOffsets extends OpMode {
         }
     }
 
-    private void controlSpin(double dt) {
+    private void controlSpin(Delta d) {
+        double dt = d.dt;
         rateCommand += clip(targetRate() - rateCommand, -RATE_ACCELERATION * dt, RATE_ACCELERATION * dt);
         double error = rateCommand - current.rate;
         rateIntegral = clip(rateIntegral + 0.12 * error * dt, -0.12, 0.12);
-        double turn = 0.08 * Math.signum(rateCommand) + 0.16 * error + rateIntegral;
-        drive(0, 0, clip(turn, -MAX_POWER, MAX_POWER));
+        double turn = clip(0.08 * Math.signum(rateCommand) + 0.16 * error + rateIntegral, -MAX_POWER, MAX_POWER);
+        positionHold.control(heading, dt, MAX_POWER - Math.abs(turn));
+        drive(positionHold.forwardPower(), positionHold.leftPower(), turn);
     }
 
     private double targetRate() { return Math.toRadians(SPIN_DEGREES[step - 4]); }
 
     private void brake(double now, boolean translation) {
         stopMotors();
+        positionHold.pause();
         state = State.BRAKE;
         brakingTranslation = translation;
         stateTime = now;
@@ -477,8 +480,9 @@ public class TestPinpointOffsets extends OpMode {
             abort("Stale, delayed, or implausible sensor reading");
             return;
         }
-        if (Math.hypot(fieldX, fieldY) > MAX_TRAVEL_MM) {
-            abort("Robot moved more than 750 mm from its starting area");
+        if (positionHold.distanceMm() > MAX_TRAVEL_MM) {
+            abort(String.format(Locale.US, "Travel limit: %.0f / %.0f mm from start (X %.0f, Y %.0f); position correction could not contain drift",
+                    positionHold.distanceMm(), MAX_TRAVEL_MM, positionHold.xMm(), positionHold.yMm()));
             return;
         }
         if (state == State.SPIN_RAMP || state == State.SPIN_COLLECT) {
@@ -562,6 +566,14 @@ public class TestPinpointOffsets extends OpMode {
         telemetry.addData("Status", "%s: %s", state, message);
         telemetry.addLine("Automatic 20 cm moves and turns; clear the floor. B = abort.");
         telemetry.addLine("Using FR/BL/BR encoders. FL encoder ignored.");
+        if (started && positionHold != null) {
+            telemetry.addData("Travel from start", "%.0f / %.0f mm; X %.0f, Y %.0f",
+                    positionHold.distanceMm(), MAX_TRAVEL_MM, positionHold.xMm(), positionHold.yMm());
+            if (state == State.SPIN_RAMP || state == State.SPIN_COLLECT) {
+                telemetry.addData("Position correction F/L power", "%.3f / %.3f",
+                        positionHold.forwardPower(), positionHold.leftPower());
+            }
+        }
         if (started) telemetry.addData("Elapsed", "%.1f / %.0f s",
                 (Double.isNaN(finishedTime) ? now : finishedTime) - startTime, MAX_SECONDS);
         if (current != null) telemetry.addData("Pinpoint", "%s; %.1f deg/s", current.status, Math.toDegrees(current.rate));
@@ -592,9 +604,9 @@ public class TestPinpointOffsets extends OpMode {
             telemetry.addData("Accepted data / residual", "%.1f%% / %.3f mm", 100 * result.inlierFraction, result.residualMm);
             telemetry.addData("Drive scales F/L (mm/tick)", "%.6f / %.6f", result.forwardMmPerTick, result.leftMmPerTick);
             telemetry.addData("Signed working encoder gains", PinpointOffsetEstimator.formatCounts(result.wheelScales));
-            telemetry.addData("95%% repeatability +/- (mm)", "X %.3f; Y %.3f", result.xIntervalMm, result.yIntervalMm);
-            telemetry.addData("Direction / speed / validation gaps (mm)", "%.3f / %.3f / %.3f",
-                    result.directionGapMm, result.speedGapMm, result.validationGapMm);
+            telemetry.addData("95% repeatability +/- (mm)", "X %s; Y %s", measurement(result.xIntervalMm), measurement(result.yIntervalMm));
+            telemetry.addData("Direction / speed / validation gaps (mm)", "%s / %s / %s",
+                    measurement(result.directionGapMm), measurement(result.speedGapMm), measurement(result.validationGapMm));
             telemetry.addLine("Repeatability does not measure systematic drive-wheel slip.");
             if (state == State.DONE && result.validated()) {
                 telemetry.addData("Configuration units", outputUnit);
@@ -619,6 +631,11 @@ public class TestPinpointOffsets extends OpMode {
     }
 
     private static double clip(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
+
+    private String measurement(double value) {
+        return PinpointOffsetEstimator.finite(value) ? String.format(Locale.US, "%.3f", value)
+                : (state == State.DONE || state == State.ABORTED ? "unavailable" : "pending");
+    }
 
     private static double seconds() { return System.nanoTime() * 1e-9; }
 }

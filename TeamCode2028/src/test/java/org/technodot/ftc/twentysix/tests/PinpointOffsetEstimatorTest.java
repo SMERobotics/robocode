@@ -317,6 +317,17 @@ public class PinpointOffsetEstimatorTest {
         assertTrue(result.issues.toString(), result.validated());
     }
 
+    @Test
+    public void positionFeedbackWithIncorrectSeedsDoesNotBiasTheFittedOffsets() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        sim.positionHold = new PinpointPositionHold(sim.x + 75, sim.y - 45);
+        PinpointOffsetEstimator.Result result = PinpointOffsetEstimator.estimate(sim.generate(), true);
+        assertTrue("Held travel " + sim.maxHeldDistance, sim.maxHeldDistance < 250);
+        assertEquals(sim.x, result.xMm, .3);
+        assertEquals(sim.y, result.yMm, .3);
+        assertTrue(result.issues.toString(), result.validated());
+    }
+
     private static final class Simulation {
         final double x, y, ticksPerMm;
         final double[] counters = new double[6];
@@ -327,6 +338,8 @@ public class PinpointOffsetEstimatorTest {
         boolean unmeasuredDrift, outliers, directionBias, speedBias, turnBias, systematicSlip;
         int counterStart, sampleNumber;
         double worldHeading;
+        PinpointPositionHold positionHold;
+        double maxHeldDistance;
 
         Simulation(double x, double y, double ticksPerMm) {
             this.x = x;
@@ -356,10 +369,15 @@ public class PinpointOffsetEstimatorTest {
                         double mid = (a + b) / 2;
                         double rate = Math.toRadians(Math.abs(rates[run])) * (1 + .07 * Math.sin(2 * mid));
                         double dt = Math.abs(dh) / rate;
-                        double dx = 28 * (Math.cos(b) - Math.cos(a)) + 2 * dt;
+                        double dx = 28 * (Math.cos(b) - Math.cos(a)) + (positionHold == null ? 2 : 20) * dt;
                         double dy = 14 * (Math.sin(b) - Math.sin(a)) - dt;
                         double f = Math.cos(mid) * dx + Math.sin(mid) * dy;
                         double l = -Math.sin(mid) * dx + Math.cos(mid) * dy;
+                        if (positionHold != null) {
+                            positionHold.control(worldHeading, dt, .35);
+                            f += 420 * positionHold.forwardPower() * dt;
+                            l += 340 * positionHold.leftPower() * dt;
+                        }
                         add(f, l, dh, dt, run, id, bias);
                         if ((n + 1) % 5 == 0) samples.add(bin.take(run, id));
                     }
@@ -400,6 +418,10 @@ public class PinpointOffsetEstimatorTest {
                 else podY = delta / ticksPerMm;
             }
             bin.add(ticks, podX, podY, dh, dt, mid);
+            if (positionHold != null) {
+                positionHold.observe(podX, podY, dh, mid, dt);
+                maxHeldDistance = Math.max(maxHeldDistance, positionHold.distanceMm());
+            }
             worldHeading += dh;
             sampleNumber++;
         }
