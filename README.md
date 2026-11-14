@@ -20,7 +20,7 @@ This repo contains the code used by Shawnee Mission East Robotics for the FTC BI
 
 ## setup
 
-Java 17 and Android Studio Quail 4 (2026.1.4) recommended! FTC SDK version 12.0 requires Android Studio Narwhal 3 Feature Drop or later.
+Java 17 recommended. Minimum Android Studio Quail 4 (2026.1.4) required.
 
 Create a Personal Access Token for GitHub and configure Android Studio to use the token for all git operations. Then, clone the repository.
 
