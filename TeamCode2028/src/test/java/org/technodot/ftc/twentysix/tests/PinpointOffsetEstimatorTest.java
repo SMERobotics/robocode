@@ -2,6 +2,9 @@ package org.technodot.ftc.twentysix.tests;
 
 import org.junit.Test;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -322,10 +325,115 @@ public class PinpointOffsetEstimatorTest {
         Simulation sim = new Simulation(-26, -161, 13.26291192);
         sim.positionHold = new PinpointPositionHold(sim.x + 75, sim.y - 45);
         PinpointOffsetEstimator.Result result = PinpointOffsetEstimator.estimate(sim.generate(), true);
-        assertTrue("Held travel " + sim.maxHeldDistance, sim.maxHeldDistance < 250);
+        assertTrue("Held travel during turns " + sim.maxSpinHeldDistance, sim.maxSpinHeldDistance < 160);
+        // The second set intentionally moves another 200 mm from wherever the
+        // held point stopped. Keep that commanded travel separate from drift.
+        assertTrue(sim.maxHeldDistance < 201 + Math.max(0, sim.maxSpinHeldDistance));
         assertEquals(sim.x, result.xMm, .3);
         assertEquals(sim.y, result.yMm, .3);
         assertTrue(result.issues.toString(), result.validated());
+    }
+
+    @Test
+    public void rejectsWheelResponseChangingBetweenTheTwoTranslationSets() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        sim.repeatedTranslationBias = true;
+        PinpointOffsetEstimator.Result result = PinpointOffsetEstimator.estimate(sim.generate(), true);
+        assertFalse(result.validated());
+        assertTrue("Scale-change gap " + result.translationCheckGapMm, result.translationCheckGapMm > 5);
+        assertTrue(result.issues.toString(), result.issues.stream().anyMatch(s -> s.contains("Before/after translation")));
+    }
+
+    @Test
+    public void separatesWholeTurnSensitivityFromTranslationScaleSensitivity() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        sim.turnBias = true;
+        PinpointOffsetEstimator.Result result = PinpointOffsetEstimator.estimate(sim.generate(), true);
+        assertTrue("Whole-turn shift " + result.turnSensitivityMm[0], result.turnSensitivityMm[0] > .2);
+        assertTrue(result.turnSensitivityMm[0] > result.translationSensitivityMm[0]);
+        assertTrue(result.xIntervalMm > result.turnSensitivityMm[0]);
+        assertFalse(result.validated());
+    }
+
+    @Test
+    public void perRunOffsetsExposeDirectionalBiasUsingOneFixedWheelModel() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        sim.directionBias = true;
+        PinpointOffsetEstimator.Result result = PinpointOffsetEstimator.estimate(sim.generate(), true);
+        assertTrue(result.runOffsetsMm[1][0] - result.runOffsetsMm[0][0] > 5);
+        assertTrue(result.runOffsetsMm[2][0] - result.runOffsetsMm[3][0] > 5);
+        assertEquals(6, result.runOffsetsMm.length);
+        for (double[] xy : result.runOffsetsMm) for (double v : xy) assertTrue(Double.isFinite(v));
+        assertFalse(result.validated());
+    }
+
+    @Test
+    public void checksEncoderPolaritySeparatelyForTheRepeatedMovements() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        List<PinpointOffsetEstimator.Sample> altered = new ArrayList<>();
+        for (PinpointOffsetEstimator.Sample s : sim.generate()) {
+            double[] ticks = s.ticks.clone();
+            if (s.run == -5) ticks[1] = -ticks[1];
+            altered.add(new PinpointOffsetEstimator.Sample(ticks, s.podForwardMm, s.podLeftMm,
+                    s.heading, s.seconds, s.cosSeconds, s.sinSeconds, s.run, s.turn));
+        }
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> PinpointOffsetEstimator.estimate(altered, false));
+        assertTrue(failure.getMessage(), failure.getMessage().contains("FR encoder response changes"));
+    }
+
+    @Test
+    public void repeatingTranslationsDoesNotChangeTheirWeightAgainstTheSpins() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        List<PinpointOffsetEstimator.Sample> original = new ArrayList<>(), repeated = new ArrayList<>();
+        for (PinpointOffsetEstimator.Sample s : sim.generate()) {
+            if (s.run < -4) continue;
+            original.add(s);
+            repeated.add(s);
+            if (s.run < 0) repeated.add(new PinpointOffsetEstimator.Sample(s.ticks, s.podForwardMm,
+                    s.podLeftMm, s.heading, s.seconds, s.cosSeconds, s.sinSeconds, s.run - 4, s.turn));
+        }
+        PinpointOffsetEstimator.Result first = PinpointOffsetEstimator.estimate(original, false);
+        PinpointOffsetEstimator.Result twice = PinpointOffsetEstimator.estimate(repeated, false);
+        assertEquals(first.xMm, twice.xMm, 1e-9);
+        assertEquals(first.yMm, twice.yMm, 1e-9);
+        assertArrayEquals(first.wheelScales, twice.wheelScales, 1e-9);
+    }
+
+    @Test
+    public void repeatedForwardMovementsCannotReplaceSidewaysExcitation() {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        List<PinpointOffsetEstimator.Sample> samples = new ArrayList<>();
+        for (PinpointOffsetEstimator.Sample s : sim.generate()) {
+            if (s.run >= 0 || s.run == -1 || s.run == -5) samples.add(s);
+        }
+        assertThrows(IllegalArgumentException.class, () -> PinpointOffsetEstimator.estimate(samples, false));
+    }
+
+    @Test
+    public void savedObservationsReplayToTheSameCalibrationWithoutAnyFrontLeftCounts() throws Exception {
+        Simulation sim = new Simulation(-26, -161, 13.26291192);
+        List<PinpointOffsetEstimator.Sample> samples = sim.generate();
+        File csv = File.createTempFile("pinpoint-observations-", ".csv");
+        try {
+            PinpointOffsetCapture.writeSamples(csv, samples);
+            List<String> lines = Files.readAllLines(csv.toPath(), StandardCharsets.UTF_8);
+            assertFalse(lines.get(0).contains("fl_ticks"));
+            List<PinpointOffsetEstimator.Sample> replay = new ArrayList<>();
+            for (String line : lines.subList(1, lines.size())) {
+                String[] c = line.split(",");
+                replay.add(new PinpointOffsetEstimator.Sample(new double[]{Double.NaN, Double.parseDouble(c[2]),
+                        Double.parseDouble(c[3]), Double.parseDouble(c[4])}, Double.parseDouble(c[5]),
+                        Double.parseDouble(c[6]), Double.parseDouble(c[7]), Double.parseDouble(c[8]),
+                        Double.parseDouble(c[9]), Double.parseDouble(c[10]), Integer.parseInt(c[0]), Integer.parseInt(c[1])));
+            }
+            PinpointOffsetEstimator.Result first = PinpointOffsetEstimator.estimate(samples, true);
+            PinpointOffsetEstimator.Result loaded = PinpointOffsetEstimator.estimate(replay, true);
+            assertEquals(first.xMm, loaded.xMm, 0);
+            assertEquals(first.yMm, loaded.yMm, 0);
+            assertEquals(first.translationCheckGapMm, loaded.translationCheckGapMm, 0);
+            assertTrue(loaded.issues.toString(), loaded.validated());
+        } finally { Files.deleteIfExists(csv.toPath()); }
     }
 
     private static final class Simulation {
@@ -335,11 +443,11 @@ public class PinpointOffsetEstimatorTest {
         final List<PinpointOffsetEstimator.Sample> samples = new ArrayList<>();
         final PinpointOffsetEstimator.Accumulator bin = new PinpointOffsetEstimator.Accumulator();
         final Random random = new Random(226);
-        boolean unmeasuredDrift, outliers, directionBias, speedBias, turnBias, systematicSlip;
+        boolean unmeasuredDrift, outliers, directionBias, speedBias, turnBias, systematicSlip, repeatedTranslationBias;
         int counterStart, sampleNumber;
         double worldHeading;
         PinpointPositionHold positionHold;
-        double maxHeldDistance;
+        double maxHeldDistance, maxSpinHeldDistance;
 
         Simulation(double x, double y, double ticksPerMm) {
             this.x = x;
@@ -349,18 +457,11 @@ public class PinpointOffsetEstimatorTest {
 
         List<PinpointOffsetEstimator.Sample> generate() {
             for (int i = 0; i < 6; i++) { counters[i] = counterStart; previous[i] = counterStart; }
-            for (int leg = 0; leg < 4; leg++) {
-                for (int n = 0; n < 40; n++) {
-                    double sign = leg % 2 == 0 ? 1 : -1;
-                    double angle = .0002 * Math.sin(n);
-                    add(leg < 2 ? sign * 5 : 0, leg >= 2 ? sign * 5 : 0,
-                            angle, .05, -1 - leg, -1, 0);
-                    if ((n + 1) % 4 == 0) samples.add(bin.take(-1 - leg, -1));
-                }
-            }
+            translationSet(0);
             int id = 0;
             int[] rates = {30, -30, -60, 60, 45, -45};
             for (int run = 0; run < 6; run++) {
+                if (run == 4) translationSet(1);
                 double sign = Math.signum(rates[run]);
                 for (int turn = 0; turn < (run < 4 ? 3 : 1); turn++, id++) {
                     double bias = turnBias && run < 4 ? (turn - 1) * 6 : 0;
@@ -386,6 +487,19 @@ public class PinpointOffsetEstimatorTest {
             return samples;
         }
 
+        void translationSet(int set) {
+            for (int leg = 0; leg < 4; leg++) {
+                if (positionHold != null) positionHold.pause();
+                int run = -1 - leg - 4 * set;
+                for (int n = 0; n < 40; n++) {
+                    double sign = leg % 2 == 0 ? 1 : -1;
+                    double angle = .0002 * Math.sin(n);
+                    add(leg < 2 ? sign * 5 : 0, leg >= 2 ? sign * 5 : 0, angle, .05, run, -1, 0);
+                    if ((n + 1) % 4 == 0) samples.add(bin.take(run, -1));
+                }
+            }
+        }
+
         void add(double f, double l, double dh, double dt, int run, int turn, double turnOffset) {
             double mid = worldHeading + dh / 2;
             // The 1.12 lateral scale models the different effective travel of
@@ -408,6 +522,7 @@ public class PinpointOffsetEstimatorTest {
             double podX = 0, podY = 0;
             for (int i = 0; i < 6; i++) {
                 double distance = i < 4 ? travel[i] : i == 4 ? qx : qy;
+                if (repeatedTranslationBias && run <= -5 && i == 3) distance *= 1.08;
                 if (outliers && run >= 0 && sampleNumber % 239 == 0 && i == 1) distance += 3;
                 counters[i] += i < 4 ? distance / WHEEL_MM[i] : distance * ticksPerMm;
                 int count = (int) Math.round(counters[i]);
@@ -421,6 +536,7 @@ public class PinpointOffsetEstimatorTest {
             if (positionHold != null) {
                 positionHold.observe(podX, podY, dh, mid, dt);
                 maxHeldDistance = Math.max(maxHeldDistance, positionHold.distanceMm());
+                if (run >= 0) maxSpinHeldDistance = Math.max(maxSpinHeldDistance, positionHold.distanceMm());
             }
             worldHeading += dh;
             sampleNumber++;

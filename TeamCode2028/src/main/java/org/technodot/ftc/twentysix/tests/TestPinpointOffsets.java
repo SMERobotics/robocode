@@ -15,6 +15,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.technodot.ftc.twentysix.Configuration;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +30,8 @@ import java.util.concurrent.Future;
 /**
  * Place the robot on a clear, level area with its normal pod loading. INIT while
  * stationary, then START. The robot moves about 20 cm in each direction and makes
- * repeated slow turns automatically; B aborts. Allow about three minutes.
+ * repeated turns, then repeats the four moves before validation; B aborts.
+ * Allow about three to four minutes.
  *
  * Results target the symmetric mecanum drive's kinematic center. Translation is
  * measured with FR/BL/BR encoders, not assumed zero when a revolution finishes.
@@ -75,6 +78,8 @@ public class TestPinpointOffsets extends OpMode {
     private State state = State.WAIT_READY;
     private String message = "Keep the robot stationary for IMU calibration";
     private String fitMessage = "Waiting for independent translation and rotation data";
+    private File captureFile;
+    private volatile String captureStatus = "Saved after the final fit";
     private Snapshot previous, current;
     private double mmPerTick, xSign, ySign, initialXOffset, initialYOffset;
     private DistanceUnit outputUnit;
@@ -83,7 +88,7 @@ public class TestPinpointOffsets extends OpMode {
     private double lastTelemetry, heading, podForward, podLeft;
     private double legHeading, legStartForward, legStartLeft, legWheelTicks;
     private double turnStart, lastHeadingChange, stalledSince = Double.NaN;
-    private int step, turnsInRun, turnId, nextTurnId;
+    private int step, translationRound, turnsInRun, turnId, nextTurnId;
     private int[] encoderPolarity;
     private boolean started, initialized, brakingTranslation, latestFitSucceeded;
 
@@ -92,6 +97,9 @@ public class TestPinpointOffsets extends OpMode {
         initTime = seconds();
         telemetry.setMsTransmissionInterval(100);
         try {
+            File directory = hardwareMap.appContext.getExternalFilesDir(null);
+            if (directory == null) directory = hardwareMap.appContext.getFilesDir();
+            captureFile = new File(new File(directory, "pinpoint-offsets"), "pinpoint-offsets-" + System.currentTimeMillis() + ".csv");
             MecanumConfig drive = Configuration.driveConfig;
             String[] names = {drive.frontLeftName.get(), drive.frontRightName.get(),
                     drive.backLeftName.get(), drive.backRightName.get()};
@@ -333,7 +341,11 @@ public class TestPinpointOffsets extends OpMode {
                         && Math.hypot(d.forward, d.left) / d.dt < 10) {
                     if (Double.isNaN(stableSince)) stableSince = now;
                     if (now - stableSince > 0.35 && now - stateTime > 0.6) {
-                        if (brakingTranslation || step >= 8) nextStep(now);
+                        if (brakingTranslation && translationRound == 1 && step == 3) {
+                            submitFit(false);
+                            state = State.WAIT_FIT;
+                            stateTime = now;
+                        } else if (brakingTranslation || step >= 8) nextStep(now);
                         else { state = State.WAIT_FIT; stateTime = now; }
                     }
                 } else stableSince = Double.NaN;
@@ -345,7 +357,10 @@ public class TestPinpointOffsets extends OpMode {
                     int next = PinpointOffsetEstimator.nextTrainingRun(trainingTurns,
                             latestFitSucceeded && result != null ? result.acceptedTurns : null);
                     if (next >= 0) {
-                        step = next == 4 ? 8 : next + 4;
+                        if (next == 4 && translationRound == 0) {
+                            translationRound = 1;
+                            step = 0;
+                        } else step = next == 4 ? 8 : next + 4;
                         beginStep(now);
                     } else abort("Calibration remained inconsistent after collecting both directions and speeds: " + fitMessage);
                 }
@@ -370,7 +385,7 @@ public class TestPinpointOffsets extends OpMode {
     private void translate(Delta d, double now) {
         bin.add(d.ticks, d.forward, d.left, d.angle, d.dt, d.middleHeading);
         if (Math.hypot(bin.forward, bin.left) >= 20 || (bin.seconds >= 0.25 && Math.hypot(bin.forward, bin.left) >= 3)) {
-            samples.add(bin.take(-1 - step, -1));
+            samples.add(bin.take(translationRun(), -1));
         }
         double sign = step % 2 == 0 ? 1 : -1;
         double distance = step < 2 ? podForward - legStartForward + initialXOffset * (heading - legHeading)
@@ -386,7 +401,7 @@ public class TestPinpointOffsets extends OpMode {
             int[] measuredPolarity = PinpointOffsetEstimator.encoderPolarities(movementWheelTicks, step);
             if (encoderPolarity == null) encoderPolarity = measuredPolarity;
             else PinpointOffsetEstimator.checkEncoderPolarities(encoderPolarity, measuredPolarity);
-            if (bin.seconds > 0 && Math.hypot(bin.forward, bin.left) >= 1) samples.add(bin.take(-1 - step, -1));
+            if (bin.seconds > 0 && Math.hypot(bin.forward, bin.left) >= 1) samples.add(bin.take(translationRun(), -1));
             RobotLog.ii(TAG, "%s leg complete: %s; raw working encoder counts %s; forward counting signs FR/BL/BR %s",
                     TRANSLATION_NAMES[step], translationDetails(),
                     PinpointOffsetEstimator.formatCounts(movementWheelTicks), Arrays.toString(Arrays.copyOfRange(encoderPolarity, 1, 4)));
@@ -425,6 +440,8 @@ public class TestPinpointOffsets extends OpMode {
                 translation.progressMm(), LEG_MM, translation.speedMmPerSecond(), translation.peakPower(),
                 translation.wheelTicks(), translation.elapsedSeconds());
     }
+
+    private int translationRun() { return -1 - step - 4 * translationRound; }
 
     private void collect(Delta d, double now) {
         bin.add(d.ticks, d.forward, d.left, d.angle, d.dt, d.middleHeading);
@@ -501,7 +518,38 @@ public class TestPinpointOffsets extends OpMode {
         List<PinpointOffsetEstimator.Sample> snapshot = new ArrayList<>(samples);
         if (pendingFit != null && !pendingFit.isDone()) pendingFit.cancel(true);
         latestFitSucceeded = false;
-        pendingFit = analysis.submit(() -> PinpointOffsetEstimator.estimate(snapshot, finalAnalysis));
+        pendingFit = analysis.submit(() -> {
+            // Save observations even if the final regression fails. All file I/O
+            // stays on the worker; it never delays motor/sensor updates.
+            if (finalAnalysis) saveSamples(snapshot);
+            try {
+                PinpointOffsetEstimator.Result fitted = PinpointOffsetEstimator.estimate(snapshot, finalAnalysis);
+                if (finalAnalysis) saveSummary(fitted, fitted.validated() ? "VALIDATED" : "INCONCLUSIVE");
+                return fitted;
+            } catch (IllegalArgumentException e) {
+                if (finalAnalysis) saveSummary(null, "INCONCLUSIVE: " + e.getMessage());
+                throw e;
+            }
+        });
+    }
+
+    private void saveSamples(List<PinpointOffsetEstimator.Sample> snapshot) {
+        try {
+            PinpointOffsetCapture.writeSamples(captureFile, snapshot);
+            captureStatus = captureFile.getAbsolutePath();
+            RobotLog.ii(TAG, "Calibration observations: %s", captureStatus);
+        } catch (IOException e) {
+            captureStatus = "Could not save observations: " + e.getMessage();
+            RobotLog.ee(TAG, "%s", captureStatus);
+        }
+    }
+
+    private void saveSummary(PinpointOffsetEstimator.Result fitted, String status) {
+        try {
+            PinpointOffsetCapture.writeSummary(captureFile, fitted, status);
+        } catch (IOException e) {
+            RobotLog.ee(TAG, "Could not save calibration summary: %s", e.getMessage());
+        }
     }
 
     private void pollFit() {
@@ -581,7 +629,7 @@ public class TestPinpointOffsets extends OpMode {
         if (encoderPolarity != null) telemetry.addData("Encoder forward signs FR/BL/BR",
                 Arrays.toString(Arrays.copyOfRange(encoderPolarity, 1, 4)));
         if (step < 4 && translation != null) {
-            telemetry.addData("Translation leg", "%d / 4: %s", step + 1, TRANSLATION_NAMES[step]);
+            telemetry.addData("Translation leg", "set %d / 2, leg %d / 4: %s", translationRound + 1, step + 1, TRANSLATION_NAMES[step]);
             telemetry.addData("Leg travel", "%.1f / %.0f mm", translation.progressMm(), LEG_MM);
             telemetry.addData("Leg speed", "%.1f mm/s", translation.speedMmPerSecond());
             telemetry.addData("Translation power / peak / limit", "%.3f / %.3f / %.3f",
@@ -613,6 +661,18 @@ public class TestPinpointOffsets extends OpMode {
             telemetry.addData("95% repeatability +/- (mm)", "X %s; Y %s", measurement(result.xIntervalMm), measurement(result.yIntervalMm));
             telemetry.addData("Direction / speed / validation gaps (mm)", "%s / %s / %s",
                     measurement(result.directionGapMm), measurement(result.speedGapMm), measurement(result.validationGapMm));
+            if (result.finalAnalysis) {
+                telemetry.addData("Before/after translation calibration gap (mm)", measurement(result.translationCheckGapMm));
+                telemetry.addData("Leave-one-move maximum X/Y shift (mm)", "%s / %s",
+                        measurement(result.translationSensitivityMm[0]), measurement(result.translationSensitivityMm[1]));
+                telemetry.addData("Leave-one-turn maximum X/Y shift (mm)", "%s / %s",
+                        measurement(result.turnSensitivityMm[0]), measurement(result.turnSensitivityMm[1]));
+                telemetry.addLine("Per-run X/Y below use the same fitted drive scales (mm):");
+                for (int run = 0; run < result.runOffsetsMm.length; run++) {
+                    telemetry.addData("Run " + (run + 1) + " X/Y", "%s / %s",
+                            measurement(result.runOffsetsMm[run][0]), measurement(result.runOffsetsMm[run][1]));
+                }
+            }
             telemetry.addLine("Repeatability does not measure systematic drive-wheel slip.");
             if (state == State.DONE && result.validated()) {
                 telemetry.addData("Configuration units", outputUnit);
@@ -621,6 +681,7 @@ public class TestPinpointOffsets extends OpMode {
             }
         }
         telemetry.addData("Quality checks", fitMessage);
+        if (state == State.DONE) telemetry.addData("Observations CSV (+ .txt report)", captureStatus);
         telemetry.update();
     }
 
